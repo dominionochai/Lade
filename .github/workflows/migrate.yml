@@ -1,6 +1,7 @@
 name: One-time source migration
 on:
   workflow_dispatch:
+
 permissions:
   contents: write
 
@@ -8,16 +9,15 @@ jobs:
   migrate:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out destination at workspace root
+      - name: Check out destination repository
         uses: actions/checkout@v4
         with:
           repository: dominionochai/Lade
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-          persist-credentials: true
 
-      - name: Fetch pinned public source into separate temporary directory
+      - name: Fetch pinned public source into a separate directory
         env:
           SOURCE_REF: 5321847887fe1fcb5399cec0a1703db9c513bac8
         run: |
@@ -30,7 +30,7 @@ jobs:
           git -C "$SOURCE_DIR" checkout --detach FETCH_HEAD
           test "$(git -C "$SOURCE_DIR" rev-parse HEAD)" = "$SOURCE_REF"
 
-      - name: Copy source without deleting destination-only files; verify inventory and blobs
+      - name: Copy source files, validate inventory and blobs, stage and push
         env:
           SOURCE_DIR: /tmp/mulder-src
           SOURCE_REF: 5321847887fe1fcb5399cec0a1703db9c513bac8
@@ -44,31 +44,29 @@ jobs:
           test "$(git hash-object LICENSE)" = "caed799e2ea59f9c6234b8f3fde6ed91a66a683c"
           test "$(git hash-object NOTICE.md)" = "89e4efe92cd09141f73348b550163712e2c308e4"
 
-          # Copy only from the external source checkout. Anchored excludes protect
-          # the three destination-owned root files; .git is never copied. No --delete.
           rsync -a \
-            --exclude='/.git/' \
             --exclude='/README.md' \
             --exclude='/LICENSE' \
             --exclude='/NOTICE.md' \
-            "$SOURCE_DIR/" "$GITHUB_WORKSPACE/"
+            --exclude='/.git/' \
+            --exclude='/.github/workflows/***' \
+            /tmp/mulder-src/ "$GITHUB_WORKSPACE/"
 
           test -d lade
-          for dir in src docs tests examples scripts; do test -d "$dir"; done
-          test "$(git hash-object README.md)" = "fed4a321cb71820f5e2abcd470d3cd321452efa7"
-          test "$(git hash-object LICENSE)" = "caed799e2ea59f9c6234b8f3fde6ed91a66a683c"
-          test "$(git hash-object NOTICE.md)" = "89e4efe92cd09141f73348b550163712e2c308e4"
-
           inventory="$RUNNER_TEMP/mulder-source-inventory.tsv"
           : > "$inventory"
           count=0
           while IFS= read -r -d '' path; do
             case "$path" in
-              README.md|LICENSE|NOTICE.md) continue ;;
+              README.md|LICENSE|NOTICE.md|.github/workflows/*) continue ;;
             esac
-            test -f "$GITHUB_WORKSPACE/$path" || test -L "$GITHUB_WORKSPACE/$path"
+            target="$GITHUB_WORKSPACE/$path"
+            if [[ ! -e "$target" && ! -L "$target" ]]; then
+              echo "Missing copied source path: $path" >&2
+              exit 1
+            fi
             source_blob="$(git -C "$SOURCE_DIR" rev-parse "$SOURCE_REF:$path")"
-            destination_blob="$(git -C "$GITHUB_WORKSPACE" hash-object -- "$path")"
+            destination_blob="$(git -C "$GITHUB_WORKSPACE" hash-object -- "$target")"
             if [[ "$source_blob" != "$destination_blob" ]]; then
               echo "Blob mismatch for $path: source=$source_blob destination=$destination_blob" >&2
               exit 1
@@ -77,24 +75,28 @@ jobs:
             count=$((count + 1))
           done < <(git -C "$SOURCE_DIR" ls-tree -r -z --name-only "$SOURCE_REF")
 
+          test "$count" -gt 0
+          test "$(git hash-object README.md)" = "fed4a321cb71820f5e2abcd470d3cd321452efa7"
+          test "$(git hash-object LICENSE)" = "caed799e2ea59f9c6234b8f3fde6ed91a66a683c"
+          test "$(git hash-object NOTICE.md)" = "89e4efe92cd09141f73348b550163712e2c308e4"
           {
             echo '## Pinned source migration inventory'
             echo "Source: calebevans/mulder@$SOURCE_REF"
-            echo "Destination: dominionochai/Lade (main); root README.md, LICENSE, and NOTICE.md excluded and preserved."
+            echo "Destination: dominionochai/Lade (main); root README.md, LICENSE, NOTICE.md and lade/ preserved."
             echo "Copied and Git-blob-verified source files: $count"
             echo
             echo '```text'
-            cut -f1 "$inventory"
+            cat "$inventory"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           if git diff --cached --quiet; then
             echo 'No source changes to commit.'
           else
-            git commit -m "chore: migrate mulder at 5321847"
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'chore: migrate pinned mulder source'
           fi
           git push origin HEAD:main
           test -d lade
