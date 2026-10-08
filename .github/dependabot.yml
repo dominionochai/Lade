@@ -1,14 +1,30 @@
-dmVyc2lvbjogMgoKdXBkYXRlczoKICAtIHBhY2thZ2UtZWNvc3lzdGVtOiB1
-dgogICAgZGlyZWN0b3J5OiAvCiAgICBzY2hlZHVsZToKICAgICAgaW50ZXJ2
-YWw6IHdlZWtseQogICAgdGFyZ2V0LWJyYW5jaDogbWFpbgogICAgb3Blbi1w
-dXxsLXJlcXVlc3RzLWxpbWl0OiA1CiAgICBncm91cHM6CiAgICAgIHByb2R1
-Y3Rpb246CiAgICAgICAgZGVwZW5kZW5jeS10eXBlOiBwcm9kdWN0aW9uCiAg
-ICAgIGRldjoKICAgICAgICBkZXBlbmRlbmN5LXR5cGU6IGRldmVsb3BtZW50
-CgogIC0gcGFja2FnZS1lY29zeXN0ZW06IGdpdGh1Yi1hY3Rpb25zCiAgICBk
-aXJlY3Rvcnk6IC8KICAgIHNjaGVkdWxlOgogICAgICBpbnRlcnZhbDogd2Vl
-a2x5CiAgICB0YXJnZXQtYnJhbmNoOiBtYWluCiAgICBvcGVuLXB1bGwtcmVx
-dWVzdHMtbGltaXQ6IDUKCiAgLSBwYWNrYWdlLWVjb3N5c3RlbTogZG9ja2Vy
-CiAgICBkaXJlY3Rvcnk6IC8KICAgIHNjaGVkdWxlOgogICAgICBpbnRlcnZh
-bDogbW9udGhseQogICAgdGFyZ2V0LWJyYW5jaDogbWFpbgogICAgaWdub3Jl
-OgogICAgICAtIGRlcGVuZGVuY3ktbmFtZTogdWJ1bnR1CiAgICAgICAgdmVy
-c2lvbnM6IFsiPiAyMi4wNCJdCg==
+version: 2
+
+updates:
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: main
+    open-pull-requests-limit: 5
+    groups:
+      production:
+        dependency-type: production
+      dev:
+        dependency-type: development
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    target-branch: main
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly
+    target-branch: main
+    ignore:
+      - dependency-name: ubuntu
+        versions: ["> 22.04"]

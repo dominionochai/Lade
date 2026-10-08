@@ -1,0 +1,149 @@
+"""Tests for mulder.orchestrator.display -- dashboard task list UI."""
+
+from __future__ import annotations
+
+from unittest.mock import patch
+
+from mulder.orchestrator.display import InvestigationDashboard
+
+
+def _make_dashboard() -> InvestigationDashboard:
+    """Create a dashboard with psutil seeding suppressed."""
+    with patch("mulder.orchestrator.display.psutil"):
+        return InvestigationDashboard()
+
+
+class TestSetTasksAndRender:
+    """Setting tasks produces correct panel output."""
+
+    def test_set_tasks_produces_panel(self) -> None:
+        dash = _make_dashboard()
+        dash.set_tasks("base-dc", ["extract_archive", "run_volatility_batch"])
+        panel = dash._build_task_panel(body_height=40)
+        assert panel is not None
+        rendered = (
+            panel.renderable.plain if hasattr(panel.renderable, "plain") else str(panel.renderable)
+        )
+        assert "extract_archive" in rendered
+        assert "run_volatility_batch" in rendered
+
+    def test_no_tasks_returns_empty_panel(self) -> None:
+        """An empty task panel is always returned to keep layout stable."""
+        dash = _make_dashboard()
+        panel = dash._build_task_panel(body_height=40)
+        assert panel is not None
+        assert panel.renderable.plain == ""
+
+
+class TestTaskUpdateStatus:
+    """Updating a task changes its icon and style in the rendered panel."""
+
+    def test_done_task_not_overwritten(self) -> None:
+        """Once a task is done, subsequent updates should not change it."""
+        dash = _make_dashboard()
+        dash.set_tasks("base-dc", ["extract_archive"])
+        dash.update_task("base-dc", "extract_archive", "done", elapsed=2.0)
+        dash.update_task("base-dc", "extract_archive", "running")
+
+        assert dash._tasks[0].status == "done"
+
+    def test_update_wrong_system_is_noop(self) -> None:
+        dash = _make_dashboard()
+        dash.set_tasks("base-dc", ["extract_archive"])
+        dash.update_task("base-admin", "extract_archive", "running")
+
+        assert dash._tasks[0].status == "pending"
+
+
+class TestTaskClear:
+    """Clearing resets the task list and returns an empty panel."""
+
+    def test_clear_removes_tasks(self) -> None:
+        dash = _make_dashboard()
+        dash.set_tasks("base-dc", ["extract_archive", "run_fls"])
+        assert dash._tasks_active is True
+
+        dash.clear_tasks()
+        assert dash._tasks == []
+        assert dash._tasks_active is False
+        panel = dash._build_task_panel(body_height=40)
+        assert panel is not None
+        assert panel.renderable.plain == ""
+
+
+class TestMultipleSystems:
+    """Systems are grouped correctly in the panel output."""
+
+    def test_multiple_systems_grouped(self) -> None:
+        dash = _make_dashboard()
+        dash.set_tasks("base-dc", ["extract_archive", "run_volatility_batch"])
+        dash.set_tasks("base-admin", ["extract_archive"])
+
+        assert len(dash._tasks) == 3
+        assert dash._tasks[0].system == "base-dc"
+        assert dash._tasks[1].system == "base-dc"
+        assert dash._tasks[2].system == "base-admin"
+
+        panel = dash._build_task_panel(body_height=40)
+        assert panel is not None
+
+    def test_update_correct_system_in_multi(self) -> None:
+        dash = _make_dashboard()
+        dash.set_tasks("base-dc", ["extract_archive"])
+        dash.set_tasks("base-admin", ["extract_archive"])
+
+        dash.update_task("base-admin", "extract_archive", "done", elapsed=1.0)
+
+        assert dash._tasks[0].status == "pending"
+        assert dash._tasks[1].status == "done"
+        assert dash._tasks[1].elapsed_seconds == 1.0
+
+
+class TestCompleteOneRunningTask:
+    """complete_one_running_task targets exactly one running task per call."""
+
+    def test_completes_only_one_system(self) -> None:
+        """When two systems share the same tool, only one is marked done."""
+        dash = _make_dashboard()
+        dash.set_tasks("sys-a", ["run_fls"])
+        dash.set_tasks("sys-b", ["run_fls"])
+        dash.update_task("sys-a", "run_fls", "running")
+        dash.update_task("sys-b", "run_fls", "running")
+
+        dash.complete_one_running_task("run_fls", "done")
+
+        statuses = [t.status for t in dash._tasks]
+        assert statuses.count("done") == 1
+        assert statuses.count("running") == 1
+
+    def test_second_completion_marks_second_system(self) -> None:
+        """A second completion event marks the remaining running task."""
+        dash = _make_dashboard()
+        dash.set_tasks("sys-a", ["run_fls"])
+        dash.set_tasks("sys-b", ["run_fls"])
+        dash.update_task("sys-a", "run_fls", "running")
+        dash.update_task("sys-b", "run_fls", "running")
+
+        dash.complete_one_running_task("run_fls", "done")
+        dash.complete_one_running_task("run_fls", "done")
+
+        assert all(t.status == "done" for t in dash._tasks)
+
+    def test_noop_when_none_running(self) -> None:
+        """No-op when no task with that tool is in running state."""
+        dash = _make_dashboard()
+        dash.set_tasks("sys-a", ["run_fls"])
+
+        dash.complete_one_running_task("run_fls", "done")
+        assert dash._tasks[0].status == "pending"
+
+    def test_failed_status_with_error(self) -> None:
+        """Failed status propagates the error message."""
+        dash = _make_dashboard()
+        dash.set_tasks("sys-a", ["run_fls"])
+        dash.update_task("sys-a", "run_fls", "running")
+
+        dash.complete_one_running_task("run_fls", "failed", error="timeout")
+
+        assert dash._tasks[0].status == "failed"
+        assert dash._tasks[0].error == "timeout"

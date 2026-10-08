@@ -1,11 +1,47 @@
-IyBQcm9qZWN0CnJlcG9ydHMvCgojIFB5dGhvbiBieXRlY29kZQpfX3B5Y2Fj
-aGVfXy8KKi5weVtjb2R6XQoqJHB5LmNsYXNzCiouc28KCiMgRGlzdHJpYnV0
-aW9uIC8gcGFja2FnaW5nCmJ1aWxkLwpkaXN0LwoqLmVnZy1pbmZvLwoqLmVn
-ZwoKIyBWaXJ0dWFsIGVudmlyb25tZW50cwouZW52Ci5lbnZyYwoudmVudgpl
-bnYvCnZlbnYvCgojIFRlc3RpbmcgLyBjb3ZlcmFnZQpodG1sY292LwoudG94
-Lwoubm94LwouY292ZXJhZ2UKLmNvdmVyYWdlLioKLnB5dGVzdF9jYWNoZS8K
-Y292ZXJhZ2UueG1sCgojIFR5cGUgY2hlY2tlcnMgLyBsaW50ZXJzCi5teXB5
-X2NhY2hlLwouZG15cHkuanNvbgpkbXlweS5qc29uCi5ydWZmX2NhY2hlLwou
-cHl0eXBlLwoucHlyZS8KCiMgSURFCi5jdXJzb3JpZ25vcmUKLmN1cnNvcmlu
-ZGV4aW5naWdub3JlCgojIExvZ3MKKi5sb2cKIWV4YW1wbGVzLyoqLyoubG9n
-ClNQRUMvCg==
+# Project
+reports/
+
+# Python bytecode
+__pycache__/
+*.py[codz]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.env
+.envrc
+.venv
+env/
+venv/
+
+# Testing / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.pytest_cache/
+coverage.xml
+
+# Type checkers / linters
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+.pyre/
+
+# IDE
+.cursorignore
+.cursorindexingignore
+
+# Logs
+*.log
+!examples/**/*.log
+SPEC/
