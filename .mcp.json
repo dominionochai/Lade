@@ -1,4 +1,11 @@
-ewogICJtY3BTZXJ2ZXJzIjogewogICAgIm11bGRlciI6IHsKICAgICAgInR5
-cGUiOiAic3RkaW8iLAogICAgICAiY29tbWFuZCI6ICJtdWxkZXIiLAogICAg
-ICAiYXJncyI6IFsKICAgICAgICAic2VydmUiCiAgICAgIF0KICAgIH0KICB9
-Cn0K
+{
+  "mcpServers": {
+    "mulder": {
+      "type": "stdio",
+      "command": "mulder",
+      "args": [
+        "serve"
+      ]
+    }
+  }
+}

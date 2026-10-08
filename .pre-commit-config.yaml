@@ -1,13 +1,23 @@
-cmVwb3M6CiAgLSByZXBvOiBodHRwczovL2dpdGh1Yi5jb20vYXN0cmFsLXNo
-L3J1ZmYtcHJlLWNvbW1pdAogICAgcmV2OiB2MC4xNi41CiAgICBob29rczoK
-ICAgICAgLSBpZDogcnVmZgogICAgICAgIGFyZ3M6IFstLWZpeF0KICAgICAg
-LSBpZDogcnVmZi1mb3JtYXQKICAtIHJlcG86IGh0dHBzOi8vZ2l0aHViLmNv
-bS9wcmUtY29tbWl0L21pcnJvcnMtbXlweQogICAgcmV2OiB2Mi4zLjEKICAg
-IGhvb2tzOgogICAgICAtIGlkOiBteXB5CiAgICAgICAgYXJnczogWy0tc3Ry
-aWN0XQogICAgICAgIGFkZGl0aW9uYWxfZGVwZW5kZW5jaWVzOgogICAgICAg
-ICAgLSBtY3A+PTIuMAogICAgICAgICAgLSBodHRweD49MC4yNwogICAgICAg
-ICAgLSBzcWxhbGNoZW15W215cHldPj0yLjAKICAgICAgICAgIC0gcHlkYW50
-aWM+PTIuMTIKICAgICAgICAgIC0gY2xpY2s+PTguMwogICAgICAgICAgLSBq
-aW5qYTI+PTMuMS42CiAgICAgICAgICAtIHR5cGVzLU1hcmtkb3duCiAgICAg
-ICAgICAtIGRldGVjdC1zZWNyZXRzPj0xLjUKICAgICAgICAgIC0gcHl0aG9u
-LWV2dHg+PTAuOC4xCiAgICAgICAgICAtIHB5dGVzdAo=
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.5
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v2.3.1
+    hooks:
+      - id: mypy
+        args: [--strict]
+        additional_dependencies:
+          - mcp>=2.0
+          - httpx>=0.27
+          - sqlalchemy[mypy]>=2.0
+          - pydantic>=2.12
+          - click>=8.3
+          - jinja2>=3.1.6
+          - types-Markdown
+          - detect-secrets>=1.5
+          - python-evtx>=0.8.1
+          - pytest
