@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lade"
+version = "0.1.0"
+description = "Evidence-led post-commit DevSecOps forensic investigations"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+dependencies = ["Jinja2>=3.1,<4"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4,<9"]
+llm = ["litellm>=1.40,<2"]
+
+[project.scripts]
+lade = "lade.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["lade*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
