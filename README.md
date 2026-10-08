@@ -1,1 +1,1 @@
-# Lade
+This is the DevSecOps post-commit forensics & incident autopsy agent (formerly 'Mulder' agentic DFIR repurposed for the GitLab 'Life After Code' Transcend Hackathon.)
