@@ -1,83 +1,103 @@
-name: Temporary full-source migration
+name: One-time source migration
 on:
   workflow_dispatch:
 permissions:
   contents: write
+
 jobs:
   migrate:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Lade
+      - name: Check out destination at workspace root
         uses: actions/checkout@v4
         with:
           repository: dominionochai/Lade
           ref: main
-          token: ${{ github.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
-      - name: Check out pinned source
-        uses: actions/checkout@v4
-        with:
-          repository: calebevans/mulder
-          ref: 5321847887fe1fcb5399cec0a1703db9c513bac8
-          path: source
-          persist-credentials: false
-      - name: Copy source, validate, commit, and push
+          persist-credentials: true
+
+      - name: Fetch pinned public source into separate temporary directory
+        env:
+          SOURCE_REF: 5321847887fe1fcb5399cec0a1703db9c513bac8
+        run: |
+          set -euo pipefail
+          SOURCE_DIR=/tmp/mulder-src
+          rm -rf -- "$SOURCE_DIR"
+          git init "$SOURCE_DIR"
+          git -C "$SOURCE_DIR" remote add origin https://github.com/calebevans/mulder.git
+          git -C "$SOURCE_DIR" fetch --no-tags --depth=1 origin "$SOURCE_REF"
+          git -C "$SOURCE_DIR" checkout --detach FETCH_HEAD
+          test "$(git -C "$SOURCE_DIR" rev-parse HEAD)" = "$SOURCE_REF"
+
+      - name: Copy source without deleting destination-only files; verify inventory and blobs
+        env:
+          SOURCE_DIR: /tmp/mulder-src
+          SOURCE_REF: 5321847887fe1fcb5399cec0a1703db9c513bac8
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git -C source rev-parse HEAD)" = "5321847887fe1fcb5399cec0a1703db9c513bac8"
+          cd "$GITHUB_WORKSPACE"
+          test "$(git -C "$SOURCE_DIR" rev-parse HEAD)" = "$SOURCE_REF"
+          test -d lade
           test "$(git hash-object README.md)" = "fed4a321cb71820f5e2abcd470d3cd321452efa7"
           test "$(git hash-object LICENSE)" = "caed799e2ea59f9c6234b8f3fde6ed91a66a683c"
           test "$(git hash-object NOTICE.md)" = "89e4efe92cd09141f73348b550163712e2c308e4"
-          test -d lade
-          rsync -a --delete \
+
+          # Copy only from the external source checkout. Anchored excludes protect
+          # the three destination-owned root files; .git is never copied. No --delete.
+          rsync -a \
             --exclude='/.git/' \
             --exclude='/README.md' \
             --exclude='/LICENSE' \
             --exclude='/NOTICE.md' \
-            --exclude='/lade/' \
-            --exclude='/.github/workflows/migrate.yml' \
-            source/ ./
+            "$SOURCE_DIR/" "$GITHUB_WORKSPACE/"
+
+          test -d lade
+          for dir in src docs tests examples scripts; do test -d "$dir"; done
           test "$(git hash-object README.md)" = "fed4a321cb71820f5e2abcd470d3cd321452efa7"
           test "$(git hash-object LICENSE)" = "caed799e2ea59f9c6234b8f3fde6ed91a66a683c"
           test "$(git hash-object NOTICE.md)" = "89e4efe92cd09141f73348b550163712e2c308e4"
-          test -d lade
+
+          inventory="$RUNNER_TEMP/mulder-source-inventory.tsv"
+          : > "$inventory"
+          count=0
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              README.md|LICENSE|NOTICE.md) continue ;;
+            esac
+            test -f "$GITHUB_WORKSPACE/$path" || test -L "$GITHUB_WORKSPACE/$path"
+            source_blob="$(git -C "$SOURCE_DIR" rev-parse "$SOURCE_REF:$path")"
+            destination_blob="$(git -C "$GITHUB_WORKSPACE" hash-object -- "$path")"
+            if [[ "$source_blob" != "$destination_blob" ]]; then
+              echo "Blob mismatch for $path: source=$source_blob destination=$destination_blob" >&2
+              exit 1
+            fi
+            printf '%s\t%s\n' "$path" "$source_blob" >> "$inventory"
+            count=$((count + 1))
+          done < <(git -C "$SOURCE_DIR" ls-tree -r -z --name-only "$SOURCE_REF")
+
+          {
+            echo '## Pinned source migration inventory'
+            echo "Source: calebevans/mulder@$SOURCE_REF"
+            echo "Destination: dominionochai/Lade (main); root README.md, LICENSE, and NOTICE.md excluded and preserved."
+            echo "Copied and Git-blob-verified source files: $count"
+            echo
+            echo '```text'
+            cut -f1 "$inventory"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m "chore: copy mulder at 5321847"
-            git push origin HEAD:main
+          if git diff --cached --quiet; then
+            echo 'No source changes to commit.'
           else
-            echo "No content changes required"
+            git commit -m "chore: migrate mulder at 5321847"
           fi
-          python3 - <<'PY'
-          import subprocess
-          def entries(repo, ref):
-              raw = subprocess.check_output(['git', '-C', repo, 'ls-tree', '-rz', '--full-tree', ref])
-              result = {}
-              for record in raw.split(b'\0'):
-                  if not record:
-                      continue
-                  meta, path = record.split(b'\t', 1)
-                  mode, kind, sha = meta.split(b' ', 2)
-                  path = path.decode('utf-8', 'surrogateescape')
-                  if kind == b'blob':
-                      result[path] = (mode.decode(), sha.decode())
-              return result
-          src = entries('source', 'HEAD')
-          dst = entries('.', 'HEAD')
-          src.pop('README.md', None)
-          src.pop('LICENSE', None)
-          mismatches = [(p, v, dst.get(p)) for p, v in src.items() if dst.get(p) != v]
-          if mismatches:
-              raise SystemExit(f'Path/mode/blob mismatches ({len(mismatches)}): {mismatches[:30]}')
-          sizes = []
-          for path, (_, sha) in src.items():
-              size = int(subprocess.check_output(['git', '-C', 'source', 'cat-file', '-s', sha]))
-              sizes.append((size, path))
-          print(f'INVENTORY_OK source_commit=5321847887fe1fcb5399cec0a1703db9c513bac8 copied_files={len(src)} total_bytes={sum(x for x, _ in sizes)}')
-          for size, path in sorted(sizes, reverse=True)[:10]:
-              print(f'LARGEST {size} {path}')
-          PY
           git push origin HEAD:main
+          test -d lade
+          test "$(git hash-object README.md)" = "fed4a321cb71820f5e2abcd470d3cd321452efa7"
+          test "$(git hash-object LICENSE)" = "caed799e2ea59f9c6234b8f3fde6ed91a66a683c"
+          test "$(git hash-object NOTICE.md)" = "89e4efe92cd09141f73348b550163712e2c308e4"
