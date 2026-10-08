@@ -1,11 +1,23 @@
-bmFtZTogQ2xlYW51cCBjb250YWluZXIgaW1hZ2VzCgpvbjoKICBzY2hlZHVs
-ZToKICAgIC0gY3JvbjogIjAgNiAqICogMSIgIyBXZWVrbHkgb24gTW9uZGF5
-cyBhdCAwNjowMCBVVEMKICB3b3JrZmxvd19kaXNwYXRjaDoKCnBlcm1pc3Np
-b25zOiB7fQoKam9iczoKICBjbGVhbnVwOgogICAgbmFtZTogRGVsZXRlIHVu
-dGFnZ2VkIGltYWdlcwogICAgcnVucy1vbjogdWJ1bnR1LWxhdGVzdAogICAg
-cGVybWlzc2lvbnM6CiAgICAgIHBhY2thZ2VzOiB3cml0ZQoKICAgIHN0ZXBz
-OgogICAgICAtIG5hbWU6IENsZWFuIHVwIHVudGFnZ2VkIGNvbnRhaW5lciBp
-bWFnZXMKICAgICAgICB1c2VzOiBkYXRhYXhpb20vZ2hjci1jbGVhbnVwLWFj
-dGlvbkB2MQogICAgICAgIHdpdGg6CiAgICAgICAgICBkZWxldGUtdW50YWdn
-ZWQ6IHRydWUKICAgICAgICAgIHZhbGlkYXRlOiB0cnVlCiAgICAgICAgICB0
-b2tlbjogJHt7IHNlY3JldHMuR0lUSFVCX1RPS0VOIH19Cg==
+name: Cleanup container images
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Weekly on Mondays at 06:00 UTC
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  cleanup:
+    name: Delete untagged images
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+
+    steps:
+      - name: Clean up untagged container images
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          delete-untagged: true
+          validate: true
+          token: ${{ secrets.GITHUB_TOKEN }}
