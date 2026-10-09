@@ -23,7 +23,7 @@ from typing import Any, ParamSpec
 from urllib.parse import quote
 from uuid import uuid4
 
-from mulder.server.app import get_ctx, has_ctx
+from lade.server.app import get_ctx, has_ctx
 
 current_batch_id: ContextVar[str | None] = ContextVar("current_batch_id", default=None)
 
@@ -118,10 +118,10 @@ def require_binary(name: str) -> str | None:
 def interpreter_candidates() -> list[str]:
     """Python interpreters to probe, most-likely-correct first.
 
-    ``sys.executable`` is mulder's own interpreter: under ``pipx install`` /
+    ``sys.executable`` is lade's own interpreter: under ``pipx install`` /
     ``uv tool install`` it is the only one that can see dependencies injected
-    into mulder's venv.  The PATH interpreters follow because several helper
-    tools (plaso, pyhindsight, ALEAPP, iLEAPP) are *not* mulder dependencies
+    into lade's venv.  The PATH interpreters follow because several helper
+    tools (plaso, pyhindsight, ALEAPP, iLEAPP) are *not* lade dependencies
     and on SIFT live in the system interpreter or a separate venv.  Order
     matters; duplicates are dropped so a probe never runs twice against the
     same binary.
@@ -628,7 +628,7 @@ def run_cli_tool(
     """
     import time
 
-    from mulder.server.extract_helpers import extract_and_index
+    from lade.server.extract_helpers import extract_and_index
 
     tc_id = make_tool_call_id()
     t0 = time.monotonic()

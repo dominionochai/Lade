@@ -12,18 +12,18 @@ from unittest.mock import MagicMock, patch
 import pytest
 from claude_agent_sdk import ClaudeAgentOptions as Options
 
-from mulder.orchestrator.gates import GateResult
-from mulder.orchestrator.models import ModelConfig
-from mulder.orchestrator.phases import CATALOG
-from mulder.orchestrator.proxy import (
+from lade.orchestrator.gates import GateResult
+from lade.orchestrator.models import ModelConfig
+from lade.orchestrator.phases import CATALOG
+from lade.orchestrator.proxy import (
     PROXY_MAX_OUTPUT_TOKENS,
     PROXY_REASONING_MAX_OUTPUT_TOKENS,
     ModelSettings,
     fetch_model_windows,
 )
-from mulder.orchestrator.runner import Orchestrator
-from mulder.orchestrator.session import SessionExecutor, _is_context_exhausted
-from mulder.orchestrator.types import PhaseResult
+from lade.orchestrator.runner import Orchestrator
+from lade.orchestrator.session import SessionExecutor, _is_context_exhausted
+from lade.orchestrator.types import PhaseResult
 
 _OUT = "CLAUDE_CODE_MAX_OUTPUT_TOKENS"
 _CTX = "CLAUDE_CODE_MAX_CONTEXT_TOKENS"
@@ -63,7 +63,7 @@ async def _captured_env(
         return
         yield  # pragma: no cover
 
-    with patch("mulder.orchestrator.session.query", capture_query):
+    with patch("lade.orchestrator.session.query", capture_query):
         if utility:
             await session.execute_utility("wait", [], "wait_all")
         else:
@@ -152,7 +152,7 @@ class TestContextExhaustion:
             raise RuntimeError(error)
             yield  # pragma: no cover
 
-        with patch("mulder.orchestrator.session.query", failing_query):
+        with patch("lade.orchestrator.session.query", failing_query):
             result = await _session().execute("s", "p", DEEPSEEK, [], [], 1)
         assert result.context_exhausted is exhausted
 
@@ -175,16 +175,16 @@ class TestFetchModelWindows:
             assert fetch_model_windows(4000) == {DEEPSEEK: 163840}
         req = urlopen.call_args.args[0]
         assert req.full_url == "http://localhost:4000/model_group/info"
-        assert req.get_header("Authorization") == "Bearer sk-mulder-proxy"
+        assert req.get_header("Authorization") == "Bearer sk-lade-proxy"
 
     def test_endpoint_failure_is_empty(self) -> None:
         with patch("urllib.request.urlopen", side_effect=OSError("refused")):
             assert fetch_model_windows(4000) == {}
 
     def test_orchestrator_hands_settings_to_session(self) -> None:
-        with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+        with patch("lade.orchestrator.runner.InvestigationDashboard"):
             orch = Orchestrator("/evidence", model_config=ModelConfig(planner=DEEPSEEK))
-        with patch("mulder.orchestrator.runner.ProxyManager") as pm_cls:
+        with patch("lade.orchestrator.runner.ProxyManager") as pm_cls:
             pm_cls.return_value.settings = DEEPSEEK_SETTINGS
             pm_cls.return_value.env_overrides = {}
             orch._start_proxy_if_needed()
@@ -194,7 +194,7 @@ class TestFetchModelWindows:
 class TestSinglePhaseCompaction:
     @pytest.mark.asyncio()
     async def test_clean_continuation_stops_compacting(self) -> None:
-        with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+        with patch("lade.orchestrator.runner.InvestigationDashboard"):
             orch = Orchestrator("/evidence", max_compactions=3)
         orch._case_id = "test-case"
         outcomes = iter([True, False])
@@ -216,7 +216,7 @@ class TestSinglePhaseCompaction:
 
     @pytest.mark.asyncio()
     async def test_repeated_overflow_is_bounded(self) -> None:
-        with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+        with patch("lade.orchestrator.runner.InvestigationDashboard"):
             orch = Orchestrator("/evidence", max_compactions=2)
         orch._case_id = "test-case"
 

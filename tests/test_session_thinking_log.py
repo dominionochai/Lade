@@ -18,7 +18,7 @@ from claude_agent_sdk.types import (
     ToolUseBlock,
 )
 
-from mulder.orchestrator.runner import Orchestrator
+from lade.orchestrator.runner import Orchestrator
 
 REASONING = "SECRET-REASONING " * 100
 SILENT_WARNING = "assistant turn had no text and no tool use (thinking-only or empty)"
@@ -41,14 +41,14 @@ def _result(stop_reason: str | None = "end_turn") -> ResultMessage:
 
 
 async def _run(tmp_path: Path, stream: list[object], caplog: pytest.LogCaptureFixture) -> None:
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         orch = Orchestrator(evidence_path="/evidence", case_id="case", db_dir=str(tmp_path))
 
     async def fake_query(*, prompt: str, options: ClaudeAgentOptions) -> AsyncIterator[object]:
         for message in stream:
             yield message
 
-    with patch("mulder.orchestrator.session.query", fake_query), caplog.at_level(logging.INFO):
+    with patch("lade.orchestrator.session.query", fake_query), caplog.at_level(logging.INFO):
         await orch._session.execute("sys", "go", "test-model", [], [], 3, log_prefix="host-a")
 
 
@@ -60,7 +60,7 @@ async def test_thinking_logged_as_counts_without_content(
         _assistant(
             ThinkingBlock(thinking=REASONING, signature="sig"),
             ThinkingBlock(thinking="short", signature="sig"),
-            ToolUseBlock(id="t1", name="mcp__mulder__search", input={}),
+            ToolUseBlock(id="t1", name="mcp__lade__search", input={}),
         ),
         _result(),
     ]
@@ -112,7 +112,7 @@ async def test_per_block_messages_of_one_turn_are_not_silent(
     """The CLI may split one API turn into one AssistantMessage per block."""
     stream = [
         _assistant(ThinkingBlock(thinking=REASONING, signature="sig"), msg_id="msg_1"),
-        _assistant(ToolUseBlock(id="t1", name="mcp__mulder__search", input={}), msg_id="msg_1"),
+        _assistant(ToolUseBlock(id="t1", name="mcp__lade__search", input={}), msg_id="msg_1"),
         _result("tool_use"),
     ]
     await _run(tmp_path, stream, caplog)

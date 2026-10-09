@@ -7,7 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from mulder.path_policy import PathPolicyError, resolve_allowed_path
+from lade.path_policy import PathPolicyError, resolve_allowed_path
 
 
 def test_allows_root_and_nested_file(tmp_path: Path) -> None:
@@ -110,7 +110,7 @@ def test_accepts_evidence_and_case_roots_but_not_common_parent(tmp_path: Path) -
 def test_artifact_adapter_uses_configured_evidence_and_case_roots(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    from mulder.server.tools import artifacts
+    from lade.server.tools import artifacts
 
     evidence_root = tmp_path / "evidence"
     case_root = tmp_path / "cases"

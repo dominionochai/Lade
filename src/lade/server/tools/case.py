@@ -19,10 +19,10 @@ import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from mulder.extractors.classifier import ClassifiedEvidence
-from mulder.extractors.optical import probe_optical
-from mulder.path_policy import PathPolicyError, resolve_allowed_path
-from mulder.server.app import (
+from lade.extractors.classifier import ClassifiedEvidence
+from lade.extractors.optical import probe_optical
+from lade.path_policy import PathPolicyError, resolve_allowed_path
+from lade.server.app import (
     create_case,
     get_cfg,
     get_ctx,
@@ -32,14 +32,14 @@ from mulder.server.app import (
     slugify,
     validate_case_id,
 )
-from mulder.server.helpers import error_response, hash_output, make_tool_call_id
-from mulder.server.tool_access import ALL_ROLES, Role, tool_access
+from lade.server.helpers import error_response, hash_output, make_tool_call_id
+from lade.server.tool_access import ALL_ROLES, Role, tool_access
 
 logger = logging.getLogger(__name__)
 
 _EXTRACT_TIMEOUT = 600
 
-_COMPLETION_MARKER = ".mulder-extraction-complete.json"
+_COMPLETION_MARKER = ".lade-extraction-complete.json"
 """Written only after an extraction runs to completion.
 
 The presence of *files* in a destination proves only that an extraction
@@ -93,11 +93,11 @@ def scan_evidence(
             error_type="file_not_found",
         )
 
-    enforced_id = os.environ.get("MULDER_CASE_ID", "")
+    enforced_id = os.environ.get("LADE_CASE_ID", "")
     if enforced_id:
         if case_id is not None and case_id != enforced_id:
             logger.warning(
-                "Overriding requested case_id '%s' with MULDER_CASE_ID='%s'",
+                "Overriding requested case_id '%s' with LADE_CASE_ID='%s'",
                 case_id,
                 enforced_id,
             )
@@ -105,7 +105,7 @@ def scan_evidence(
     elif case_id is None:
         case_id = slugify(ev_path.name)
 
-    # slugify guarantees a safe path segment, but only for IDs mulder derives.
+    # slugify guarantees a safe path segment, but only for IDs lade derives.
     # One supplied by an agent has to be checked before it becomes a path.
     try:
         validate_case_id(case_id)
@@ -153,7 +153,7 @@ def _hash_and_register_evidence(manifest: list[dict[str, object]]) -> list[str]:
     """
     import hashlib as _hashlib
 
-    from mulder.server.app import get_ctx, has_ctx
+    from lade.server.app import get_ctx, has_ctx
 
     if not has_ctx():
         return []
@@ -207,7 +207,7 @@ def _manifest_entry(item: ClassifiedEvidence) -> dict[str, object]:
 
 def _scan_evidence_inner(ev_path: Path, case_id: str, replace: bool) -> dict[str, object]:
     """Inner implementation of scan_evidence with full error propagation."""
-    from mulder.extractors.classifier import ClassifierConfig, EvidenceClassifier
+    from lade.extractors.classifier import ClassifierConfig, EvidenceClassifier
 
     classifier = EvidenceClassifier(ClassifierConfig())
     classified = classifier.classify(ev_path)
@@ -297,7 +297,7 @@ def list_cases() -> dict[str, object]:
     for db_path in sorted(cfg.db_dir.glob("*.db")):
         cid = db_path.stem
         try:
-            from mulder.db import CaseDB
+            from lade.db import CaseDB
 
             # ``with``, not a trailing close(): CaseDB.open starts a writer
             # thread and holds an engine, and if get_case_metadata() raises --
@@ -370,16 +370,16 @@ def open_case(case_id: str) -> dict[str, object]:
             error_type="invalid_input",
         )
 
-    # scan_evidence and create_case both honour MULDER_CASE_ID; open_case did
+    # scan_evidence and create_case both honour LADE_CASE_ID; open_case did
     # not, so an agent pinned to one case could attach to another and every
     # later finding, note and export would be written there instead.
-    enforced_id = os.environ.get("MULDER_CASE_ID", "")
+    enforced_id = os.environ.get("LADE_CASE_ID", "")
     if enforced_id and case_id != enforced_id:
         return error_response(
             tc_id,
             "open_case",
             params,
-            f"MULDER_CASE_ID enforces case '{enforced_id}'; refusing to open '{case_id}'.",
+            f"LADE_CASE_ID enforces case '{enforced_id}'; refusing to open '{case_id}'.",
             (time.monotonic() - t0) * 1000,
             error_type="forbidden",
         )
@@ -583,7 +583,7 @@ def _mark_extraction_complete(dest: Path, archive: Path, file_count: int) -> Non
 
 
 def _extracted_files(dest: Path) -> list[str]:
-    """List extracted files, excluding mulder's own completion marker."""
+    """List extracted files, excluding lade's own completion marker."""
     return [
         str(f.relative_to(dest))
         for f in dest.rglob("*")
@@ -616,14 +616,14 @@ def extract_archive(
     gz, bz2, 7z, rar). Idempotent: returns existing files if already
     extracted. The original evidence is never modified.
 
-    Outputs to a writable directory under the mulder cases directory.
+    Outputs to a writable directory under the lade cases directory.
     Follow up with extraction tools (run_volatility_batch, run_fls, etc.)
     on the extracted files.
 
     Args:
         archive_path: Path to the compressed archive.
         extract_to: Optional destination directory.  If omitted, creates
-            a directory under the mulder cases dir.
+            a directory under the lade cases dir.
     """
     tc_id = make_tool_call_id()
     t0 = time.monotonic()
@@ -738,7 +738,7 @@ def extract_archive(
             (time.monotonic() - t0) * 1000,
         )
 
-    from mulder.extractors.classifier import ClassifierConfig, EvidenceClassifier
+    from lade.extractors.classifier import ClassifierConfig, EvidenceClassifier
 
     classifier = EvidenceClassifier(ClassifierConfig())
     classified = classifier.classify(dest)
@@ -752,7 +752,7 @@ def extract_archive(
         t = str(mi["artifact_type"])
         type_counts[t] = type_counts.get(t, 0) + 1
 
-    # Written last: the marker is mulder's own bookkeeping, so it must not be
+    # Written last: the marker is lade's own bookkeeping, so it must not be
     # on disk while the classifier is walking the tree for evidence.
     _mark_extraction_complete(dest, archive, len(files))
 

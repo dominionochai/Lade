@@ -9,8 +9,8 @@ from pathlib import Path
 import anyio
 import pytest
 
-from mulder.server import app
-from mulder.server.tool_access import UNTHROTTLED, Role, tool_access
+from lade.server import app
+from lade.server.tool_access import UNTHROTTLED, Role, tool_access
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ async def test_gated_tool_waits_under_pressure(
         return "ran"
 
     wrapped = app._wrap_sync_tool(gated_probe)
-    with caplog.at_level(logging.INFO, logger="mulder.server.app"):
+    with caplog.at_level(logging.INFO, logger="lade.server.app"):
         assert await wrapped() == "ran"
     assert any("gated_probe waiting" in line for line in _throttle_lines(caplog))
 
@@ -52,15 +52,15 @@ async def test_unthrottled_tool_skips_gate_and_limiter(
     # Hold the only tool-limiter slot from this task: acquiring it again here
     # would raise, and the gate would log a throttle line, so a clean "ran"
     # proves the tool used neither.
-    with caplog.at_level(logging.INFO, logger="mulder.server.app"), anyio.fail_after(1):
+    with caplog.at_level(logging.INFO, logger="lade.server.app"), anyio.fail_after(1):
         async with app._get_tool_limiter():
             assert await wrapped() == "ran"
     assert _throttle_lines(caplog) == []
 
 
 def test_control_tools_are_registered_unthrottled() -> None:
-    import mulder.server.tools.case  # noqa: F401
-    import mulder.server.tools.jobs  # noqa: F401
+    import lade.server.tools.case  # noqa: F401
+    import lade.server.tools.jobs  # noqa: F401
 
     assert {
         "start_extraction_batch",

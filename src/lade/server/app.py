@@ -1,4 +1,4 @@
-"""MCP server definition and initialization for Mulder."""
+"""MCP server definition and initialization for Lade."""
 
 from __future__ import annotations
 
@@ -17,15 +17,15 @@ from typing import Any, ParamSpec, TypeVar
 import anyio
 from mcp.server.mcpserver import MCPServer
 
-from mulder.audit import AuditLog
-from mulder.db import CaseDB
-from mulder.index.correlator import Correlator
-from mulder.server.jobs import JobStore, fill_case_id, validate_tool_args
-from mulder.server.tool_access import EXECUTORS, UNTHROTTLED, tool_access
+from lade.audit import AuditLog
+from lade.db import CaseDB
+from lade.index.correlator import Correlator
+from lade.server.jobs import JobStore, fill_case_id, validate_tool_args
+from lade.server.tool_access import EXECUTORS, UNTHROTTLED, tool_access
 
 logger = logging.getLogger(__name__)
 
-mcp = MCPServer("Mulder")
+mcp = MCPServer("Lade")
 
 # ---------------------------------------------------------------------------
 # Concurrent tool execution: wrap every sync @mcp.tool() to run in a thread
@@ -290,7 +290,7 @@ def validate_case_id(case_id: str) -> str:
     Every case ID becomes a path -- ``db_dir / f"{case_id}.db"`` and the
     sidecars beside it, ``.audit.jsonl``, ``.report.md``, ``.iocs.csv`` and the
     rest. ``slugify`` guarantees that shape, but it was only applied to IDs
-    mulder derived itself; an ID supplied by an agent went to the filesystem
+    lade derived itself; an ID supplied by an agent went to the filesystem
     verbatim, so ``"../../../../home/analyst/cases/CASE-2024-007"`` wrote its
     case database outside the cases directory.
 
@@ -377,7 +377,7 @@ def init_server(
                 case_id,
             )
 
-    logger.info("Mulder MCP server ready (db_dir=%s)", db_dir)
+    logger.info("Lade MCP server ready (db_dir=%s)", db_dir)
 
 
 def _seed_psutil() -> None:
@@ -503,7 +503,7 @@ def _try_open_existing(
             existing.close()
         if not replace:
             logger.exception("Failed to open existing case '%s'", case_id)
-            from mulder.server.helpers import error_response, make_tool_call_id
+            from lade.server.helpers import error_response, make_tool_call_id
 
             return error_response(
                 make_tool_call_id(),
@@ -573,16 +573,16 @@ def create_case(
     from silently wiping extraction data. The ``replace`` flag only
     takes effect when the existing database is empty.
 
-    When ``MULDER_CASE_ID`` is set in the environment, only that case
+    When ``LADE_CASE_ID`` is set in the environment, only that case
     ID is allowed. Attempts to create a different case are rejected
     and the enforced case is loaded instead.
     """
     validate_case_id(case_id)
 
-    enforced_id = os.environ.get("MULDER_CASE_ID", "")
+    enforced_id = os.environ.get("LADE_CASE_ID", "")
     if enforced_id and case_id != enforced_id:
         logger.warning(
-            "Refusing to create case '%s': MULDER_CASE_ID enforces '%s'. "
+            "Refusing to create case '%s': LADE_CASE_ID enforces '%s'. "
             "Loading the enforced case instead.",
             case_id,
             enforced_id,
@@ -593,7 +593,7 @@ def create_case(
             "case_id": enforced_id,
             "source_count": ctx.db.get_source_count(),
             "message": (
-                f"MULDER_CASE_ID enforces case '{enforced_id}'. "
+                f"LADE_CASE_ID enforces case '{enforced_id}'. "
                 f"Refused to create '{case_id}'. Using enforced case."
             ),
         }
@@ -686,7 +686,7 @@ async def run_parallel(tasks: list[dict[str, Any]]) -> dict[str, Any]:
     """
     from uuid import uuid4
 
-    from mulder.server.helpers import current_batch_id, hash_output
+    from lade.server.helpers import current_batch_id, hash_output
 
     batch_id = f"bp_{uuid4().hex[:8]}"
     results: list[Any] = [None] * len(tasks)
@@ -762,4 +762,4 @@ async def run_parallel(tasks: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-import mulder.server.tools as _tools  # noqa: E402, F401
+import lade.server.tools as _tools  # noqa: E402, F401

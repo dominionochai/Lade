@@ -9,14 +9,14 @@ from __future__ import annotations
 
 import time
 
-from mulder.server.app import ServerContext, get_ctx, mcp
-from mulder.server.helpers import (
+from lade.server.app import ServerContext, get_ctx, mcp
+from lade.server.helpers import (
     current_batch_id,
     hash_output,
     make_tool_call_id,
     windowed_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 _BULK_SOURCE_PREFIX = "bulk."
 _BULK_FEATURE_CAP = 15

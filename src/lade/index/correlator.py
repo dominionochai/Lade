@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from mulder.db import CaseDB
-from mulder.models import WindowRow
+from lade.db import CaseDB
+from lade.models import WindowRow
 
 
 class CorrelationResult(BaseModel):

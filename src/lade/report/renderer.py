@@ -1,4 +1,4 @@
-"""Jinja2 report renderer for Mulder investigation reports."""
+"""Jinja2 report renderer for Lade investigation reports."""
 
 from __future__ import annotations
 
@@ -19,8 +19,8 @@ import markdown
 from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 
-from mulder.models import AuditSummary, CaseMetadataRow, Finding, SourceRow
-from mulder.patterns import (
+from lade.models import AuditSummary, CaseMetadataRow, Finding, SourceRow
+from lade.patterns import (
     EMAIL_RE,
     IP_RE,
     SEVERITY_ORDER,
@@ -974,7 +974,7 @@ class ReportRenderer:
         ``| safe`` in the template.
         """
         self._env = jinja2.Environment(
-            loader=jinja2.PackageLoader("mulder", "report/templates"),
+            loader=jinja2.PackageLoader("lade", "report/templates"),
             autoescape=jinja2.select_autoescape(
                 enabled_extensions=("html", "html.j2"),
                 default_for_string=False,
@@ -1315,7 +1315,7 @@ class ReportRenderer:
         except ImportError:
             logger.warning(
                 "weasyprint not installed; skipping PDF generation. "
-                "Install with: pip install 'mulder-dfir[pdf]'"
+                "Install with: pip install 'lade-dfir[pdf]'"
             )
             return None
 

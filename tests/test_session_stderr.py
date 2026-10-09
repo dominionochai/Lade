@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 from claude_agent_sdk import ClaudeAgentOptions
 
-from mulder.orchestrator.runner import Orchestrator
+from lade.orchestrator.runner import Orchestrator
 
 
 @pytest.mark.parametrize("show_stderr", [False, True])
@@ -29,7 +29,7 @@ async def test_cli_stderr_on_failure(
         raise RuntimeError("Check stderr output for details")
         yield  # pragma: no cover
 
-    with patch("mulder.orchestrator.session.query", failing_query), caplog.at_level(logging.INFO):
+    with patch("lade.orchestrator.session.query", failing_query), caplog.at_level(logging.INFO):
         if utility:
             result = await orchestrator._session.execute_utility("wait", [], "wait_all")
             assert result is None
@@ -65,7 +65,7 @@ async def test_concurrent_stderr_keeps_worker_labels() -> None:
         return
         yield  # pragma: no cover
 
-    with patch("mulder.orchestrator.session.query", interleaved_query):
+    with patch("lade.orchestrator.session.query", interleaved_query):
         await asyncio.gather(
             *(
                 orchestrator._session.execute("test", host, "test-model", [], [], 1, host)

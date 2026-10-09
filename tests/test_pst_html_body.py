@@ -16,7 +16,7 @@ import email as email_lib
 from pathlib import Path
 from typing import Any
 
-from mulder.server.tools.email import _parse_email_message, _parse_extracted_emails
+from lade.server.tools.email import _parse_email_message, _parse_extracted_emails
 
 _PHISH_HTML = (
     "<html><head><style>p{color:red}</style></head><body>"

@@ -1,11 +1,11 @@
-"""Tests for mulder.server.tools.extract.tsk -- TSK tool helpers."""
+"""Tests for lade.server.tools.extract.tsk -- TSK tool helpers."""
 
 from __future__ import annotations
 
 import subprocess
 from unittest.mock import MagicMock, patch
 
-from mulder.server.tools.extract.tsk import (
+from lade.server.tools.extract.tsk import (
     _classify_mmls_failure,
     _parse_all_partitions,
     _parse_partition_offset,
@@ -153,18 +153,18 @@ class TestParsePartitionOffset:
 class TestRunMmls:
     """Integration-style tests for run_mmls with mocked subprocess."""
 
-    @patch("mulder.server.tools.extract.tsk.require_binary", return_value=None)
+    @patch("lade.server.tools.extract.tsk.require_binary", return_value=None)
     def test_missing_binary(self, mock_req: MagicMock) -> None:
-        from mulder.server.tools.extract.tsk import run_mmls
+        from lade.server.tools.extract.tsk import run_mmls
 
         result = run_mmls.__wrapped__("/fake/image.dd")  # type: ignore[attr-defined]
         assert result["status"] == "error"
         assert result["error_type"] == "binary_missing"
 
-    @patch("mulder.server.tools.extract.tsk.require_binary", return_value="/usr/bin/mmls")
-    @patch("mulder.server.tools.extract.tsk.subprocess.run")
+    @patch("lade.server.tools.extract.tsk.require_binary", return_value="/usr/bin/mmls")
+    @patch("lade.server.tools.extract.tsk.subprocess.run")
     def test_no_partition_table_error(self, mock_run: MagicMock, mock_req: MagicMock) -> None:
-        from mulder.server.tools.extract.tsk import run_mmls
+        from lade.server.tools.extract.tsk import run_mmls
 
         mock_run.return_value = subprocess.CompletedProcess(
             args=["mmls", "/fake/image.dd"],
@@ -178,10 +178,10 @@ class TestRunMmls:
         assert "suggestion" in result
         assert "partition_offset=0" in result["suggestion"]
 
-    @patch("mulder.server.tools.extract.tsk.require_binary", return_value="/usr/bin/mmls")
-    @patch("mulder.server.tools.extract.tsk.subprocess.run")
+    @patch("lade.server.tools.extract.tsk.require_binary", return_value="/usr/bin/mmls")
+    @patch("lade.server.tools.extract.tsk.subprocess.run")
     def test_ewf_error(self, mock_run: MagicMock, mock_req: MagicMock) -> None:
-        from mulder.server.tools.extract.tsk import run_mmls
+        from lade.server.tools.extract.tsk import run_mmls
 
         mock_run.return_value = subprocess.CompletedProcess(
             args=["mmls", "/fake/image.E01"],
@@ -194,10 +194,10 @@ class TestRunMmls:
         assert result["error_type"] == "ewf_unsupported"
         assert "suggestion" in result
 
-    @patch("mulder.server.tools.extract.tsk.require_binary", return_value="/usr/bin/mmls")
-    @patch("mulder.server.tools.extract.tsk.subprocess.run")
+    @patch("lade.server.tools.extract.tsk.require_binary", return_value="/usr/bin/mmls")
+    @patch("lade.server.tools.extract.tsk.subprocess.run")
     def test_generic_mmls_error(self, mock_run: MagicMock, mock_req: MagicMock) -> None:
-        from mulder.server.tools.extract.tsk import run_mmls
+        from lade.server.tools.extract.tsk import run_mmls
 
         mock_run.return_value = subprocess.CompletedProcess(
             args=["mmls", "/fake/image.dd"],
@@ -210,13 +210,13 @@ class TestRunMmls:
         assert result["error_type"] == "mmls_failed"
         assert "suggestion" in result
 
-    @patch("mulder.server.tools.extract.tsk.require_binary", return_value="/usr/bin/mmls")
+    @patch("lade.server.tools.extract.tsk.require_binary", return_value="/usr/bin/mmls")
     @patch(
-        "mulder.server.tools.extract.tsk.subprocess.run",
+        "lade.server.tools.extract.tsk.subprocess.run",
         side_effect=subprocess.TimeoutExpired("mmls", 60),
     )
     def test_timeout(self, mock_run: MagicMock, mock_req: MagicMock) -> None:
-        from mulder.server.tools.extract.tsk import run_mmls
+        from lade.server.tools.extract.tsk import run_mmls
 
         result = run_mmls.__wrapped__("/fake/image.dd")  # type: ignore[attr-defined]
         assert result["status"] == "error"
@@ -305,12 +305,12 @@ class TestParseAllPartitions:
 class TestRunFlsRetry:
     """Tests for run_fls self-contained mmls retry when partition_offset is None."""
 
-    @patch("mulder.server.tools.extract.tsk._index_secondary_partitions", return_value=[])
-    @patch("mulder.server.tools.extract.tsk.extract_and_index")
-    @patch("mulder.server.tools.extract.tsk.require_binary", return_value="/usr/bin/fls")
-    @patch("mulder.server.tools.extract.tsk.sources_already_indexed", return_value=[])
-    @patch("mulder.server.tools.extract.tsk.get_ctx")
-    @patch("mulder.server.tools.extract.tsk.subprocess.run")
+    @patch("lade.server.tools.extract.tsk._index_secondary_partitions", return_value=[])
+    @patch("lade.server.tools.extract.tsk.extract_and_index")
+    @patch("lade.server.tools.extract.tsk.require_binary", return_value="/usr/bin/fls")
+    @patch("lade.server.tools.extract.tsk.sources_already_indexed", return_value=[])
+    @patch("lade.server.tools.extract.tsk.get_ctx")
+    @patch("lade.server.tools.extract.tsk.subprocess.run")
     def test_retry_with_mmls_on_offset_zero_failure(
         self,
         mock_run: MagicMock,
@@ -321,7 +321,7 @@ class TestRunFlsRetry:
         mock_index_secondary: MagicMock,
     ) -> None:
         """run_fls retries with mmls-detected offset when offset 0 fails."""
-        from mulder.server.tools.extract.tsk import run_fls
+        from lade.server.tools.extract.tsk import run_fls
 
         mock_db = MagicMock()
         mock_db.get_kv.return_value = None
@@ -360,12 +360,12 @@ class TestRunFlsRetry:
         mock_db.set_kv.assert_any_call("tsk_partition_offset:/fake/image.E01", "2048")
         mock_db.set_kv.assert_any_call("tsk_source_offset:tsk.filelist:/fake/image.E01", "2048")
 
-    @patch("mulder.server.tools.extract.tsk._index_secondary_partitions", return_value=[])
-    @patch("mulder.server.tools.extract.tsk.extract_and_index")
-    @patch("mulder.server.tools.extract.tsk.require_binary", return_value="/usr/bin/fls")
-    @patch("mulder.server.tools.extract.tsk.sources_already_indexed", return_value=[])
-    @patch("mulder.server.tools.extract.tsk.get_ctx")
-    @patch("mulder.server.tools.extract.tsk.subprocess.run")
+    @patch("lade.server.tools.extract.tsk._index_secondary_partitions", return_value=[])
+    @patch("lade.server.tools.extract.tsk.extract_and_index")
+    @patch("lade.server.tools.extract.tsk.require_binary", return_value="/usr/bin/fls")
+    @patch("lade.server.tools.extract.tsk.sources_already_indexed", return_value=[])
+    @patch("lade.server.tools.extract.tsk.get_ctx")
+    @patch("lade.server.tools.extract.tsk.subprocess.run")
     def test_offset_zero_succeeds_without_retry(
         self,
         mock_run: MagicMock,
@@ -376,7 +376,7 @@ class TestRunFlsRetry:
         mock_index_secondary: MagicMock,
     ) -> None:
         """run_fls succeeds on offset 0 for partition-dump images without retry."""
-        from mulder.server.tools.extract.tsk import run_fls
+        from lade.server.tools.extract.tsk import run_fls
 
         mock_db = MagicMock()
         mock_db.get_kv.return_value = None
@@ -398,11 +398,11 @@ class TestRunFlsRetry:
         mock_run.assert_called_once()
         mock_db.set_kv.assert_any_call("tsk_partition_offset:/fake/partition.dd", "0")
 
-    @patch("mulder.server.tools.extract.tsk.extract_and_index")
-    @patch("mulder.server.tools.extract.tsk.require_binary", return_value="/usr/bin/fls")
-    @patch("mulder.server.tools.extract.tsk.sources_already_indexed", return_value=[])
-    @patch("mulder.server.tools.extract.tsk.get_ctx")
-    @patch("mulder.server.tools.extract.tsk.subprocess.run")
+    @patch("lade.server.tools.extract.tsk.extract_and_index")
+    @patch("lade.server.tools.extract.tsk.require_binary", return_value="/usr/bin/fls")
+    @patch("lade.server.tools.extract.tsk.sources_already_indexed", return_value=[])
+    @patch("lade.server.tools.extract.tsk.get_ctx")
+    @patch("lade.server.tools.extract.tsk.subprocess.run")
     def test_explicit_offset_skips_secondary_partitions(
         self,
         mock_run: MagicMock,
@@ -412,7 +412,7 @@ class TestRunFlsRetry:
         mock_extract: MagicMock,
     ) -> None:
         """run_fls with explicit partition_offset does not scan secondaries."""
-        from mulder.server.tools.extract.tsk import run_fls
+        from lade.server.tools.extract.tsk import run_fls
 
         mock_db = MagicMock()
         mock_ctx.return_value.db = mock_db
@@ -438,12 +438,12 @@ class TestRunFlsRetry:
 class TestRunFlsMultiPartition:
     """Tests for run_fls multi-partition indexing."""
 
-    @patch("mulder.server.tools.extract.tsk._index_secondary_partitions")
-    @patch("mulder.server.tools.extract.tsk.extract_and_index")
-    @patch("mulder.server.tools.extract.tsk.require_binary", return_value="/usr/bin/fls")
-    @patch("mulder.server.tools.extract.tsk.sources_already_indexed", return_value=[])
-    @patch("mulder.server.tools.extract.tsk.get_ctx")
-    @patch("mulder.server.tools.extract.tsk.subprocess.run")
+    @patch("lade.server.tools.extract.tsk._index_secondary_partitions")
+    @patch("lade.server.tools.extract.tsk.extract_and_index")
+    @patch("lade.server.tools.extract.tsk.require_binary", return_value="/usr/bin/fls")
+    @patch("lade.server.tools.extract.tsk.sources_already_indexed", return_value=[])
+    @patch("lade.server.tools.extract.tsk.get_ctx")
+    @patch("lade.server.tools.extract.tsk.subprocess.run")
     def test_indexes_secondary_partitions_on_auto_detect(
         self,
         mock_run: MagicMock,
@@ -454,7 +454,7 @@ class TestRunFlsMultiPartition:
         mock_index_secondary: MagicMock,
     ) -> None:
         """Auto-detected offset triggers secondary partition indexing."""
-        from mulder.server.tools.extract.tsk import run_fls
+        from lade.server.tools.extract.tsk import run_fls
 
         mock_db = MagicMock()
         mock_db.get_kv.return_value = None
@@ -491,7 +491,7 @@ class TestPartitionTableScoping:
 
     @classmethod
     def _ctx(cls) -> MagicMock:
-        from mulder.models import SourceRow, WindowRow
+        from lade.models import SourceRow, WindowRow
 
         def src(sid: int, path: str) -> SourceRow:
             return SourceRow(
@@ -521,9 +521,9 @@ class TestPartitionTableScoping:
         ctx.db.get_windows_by_source.return_value = [win(1, cls.MMLS_A), win(2, cls.MMLS_B)]
         return ctx
 
-    @patch("mulder.server.tools.extract.tsk.get_ctx")
+    @patch("lade.server.tools.extract.tsk.get_ctx")
     def test_resolver_and_discovery_use_only_that_images_table(self, mock_ctx: MagicMock) -> None:
-        from mulder.server.tools.extract.tsk import _discover_partitions, _resolve_partition_offset
+        from lade.server.tools.extract.tsk import _discover_partitions, _resolve_partition_offset
 
         mock_ctx.return_value = self._ctx()
         assert _resolve_partition_offset("/ev/b.E01") == 128
@@ -531,23 +531,23 @@ class TestPartitionTableScoping:
         assert [p[0] for p in _discover_partitions("/ev/b.E01")] == [128]
         assert [p[0] for p in _discover_partitions("/ev/a.E01")] == [32]
 
-    @patch("mulder.server.tools.extract.tsk.require_binary", return_value=None)
-    @patch("mulder.server.tools.extract.tsk.get_ctx")
+    @patch("lade.server.tools.extract.tsk.require_binary", return_value=None)
+    @patch("lade.server.tools.extract.tsk.get_ctx")
     def test_unindexed_image_does_not_borrow_another_images_table(
         self, mock_ctx: MagicMock, _req: MagicMock
     ) -> None:
-        from mulder.server.tools.extract.tsk import _discover_partitions, _resolve_partition_offset
+        from lade.server.tools.extract.tsk import _discover_partitions, _resolve_partition_offset
 
         mock_ctx.return_value = self._ctx()
         assert _resolve_partition_offset("/ev/c.E01") == 0
         assert _discover_partitions("/ev/c.E01") == []
 
-    @patch("mulder.server.tools.extract.tsk.get_ctx")
-    @patch("mulder.server.tools.artifacts.get_ctx")
+    @patch("lade.server.tools.extract.tsk.get_ctx")
+    @patch("lade.server.tools.artifacts.get_ctx")
     def test_artifacts_lookup_uses_the_first_images_own_table(
         self, mock_art_ctx: MagicMock, mock_tsk_ctx: MagicMock
     ) -> None:
-        from mulder.server.tools.artifacts import _resolve_image_and_offset
+        from lade.server.tools.artifacts import _resolve_image_and_offset
 
         mock_art_ctx.return_value = mock_tsk_ctx.return_value = self._ctx()
         assert _resolve_image_and_offset() == ("/ev/b.E01", 128)

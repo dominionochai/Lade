@@ -20,7 +20,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.extract.misc import run_exiftool, run_strings
+from lade.server.tools.extract.misc import run_exiftool, run_strings
 
 
 @pytest.fixture
@@ -46,9 +46,9 @@ def _invoke(
         return {"source_name": "s", "windows_indexed": 0, "line_count": 0}
 
     with (
-        patch("mulder.server.helpers.require_binary", return_value=True),
-        patch("mulder.server.helpers.run_subprocess", return_value=proc),
-        patch("mulder.server.extract_helpers.extract_and_index", side_effect=_record),
+        patch("lade.server.helpers.require_binary", return_value=True),
+        patch("lade.server.helpers.run_subprocess", return_value=proc),
+        patch("lade.server.extract_helpers.extract_and_index", side_effect=_record),
     ):
         result = tool.__wrapped__(str(target))
     return result, indexed

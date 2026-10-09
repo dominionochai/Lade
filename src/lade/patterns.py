@@ -1,4 +1,4 @@
-"""Shared patterns, constants, and utilities used across mulder modules."""
+"""Shared patterns, constants, and utilities used across lade modules."""
 
 from __future__ import annotations
 
@@ -54,14 +54,14 @@ DISK_IMAGE_EXTS: frozenset[str] = frozenset(
     {".e01", ".raw", ".dd", ".img", ".vmdk", ".vhd", ".vhdx", ".001"}
 )
 
-DEFAULT_DB_DIR: str = "~/.mulder/cases"
+DEFAULT_DB_DIR: str = "~/.lade/cases"
 
 #: Environment variable carrying the case-database directory to subprocesses.
-#: ``mulder investigate`` spawns agent sessions which spawn their own
-#: ``mulder serve``; without this the child server falls back to the default
-#: directory and writes the case somewhere ``mulder report --db-dir`` will
-#: never look. Mirrors the existing ``MULDER_CWD`` convention.
-DB_DIR_ENV_VAR: str = "MULDER_DB_DIR"
+#: ``lade investigate`` spawns agent sessions which spawn their own
+#: ``lade serve``; without this the child server falls back to the default
+#: directory and writes the case somewhere ``lade report --db-dir`` will
+#: never look. Mirrors the existing ``LADE_CWD`` convention.
+DB_DIR_ENV_VAR: str = "LADE_DB_DIR"
 
 
 def resolve_db_dir(db_dir: str | Path | None = None) -> Path:
@@ -69,7 +69,7 @@ def resolve_db_dir(db_dir: str | Path | None = None) -> Path:
 
     Args:
         db_dir: An explicit directory. When *None* or empty, falls back to
-            ``$MULDER_DB_DIR`` and then to :data:`DEFAULT_DB_DIR`.
+            ``$LADE_DB_DIR`` and then to :data:`DEFAULT_DB_DIR`.
 
     Returns:
         The expanded directory. Never ``~``-relative, so callers can compare
@@ -79,18 +79,18 @@ def resolve_db_dir(db_dir: str | Path | None = None) -> Path:
     return Path(chosen).expanduser()
 
 
-DEFAULT_WORKSPACE_DIR: str = "~/.mulder/workspace"
+DEFAULT_WORKSPACE_DIR: str = "~/.lade/workspace"
 """Default working directory for agent sessions on a native install.
 
-Mirrors DEFAULT_DB_DIR's ``~/.mulder/…`` convention. The container overrides
-this with the MULDER_CWD environment variable (see Dockerfile).
+Mirrors DEFAULT_DB_DIR's ``~/.lade/…`` convention. The container overrides
+this with the LADE_CWD environment variable (see Dockerfile).
 """
 
 DEFAULT_MAX_COMPACTIONS: int = 3
 """Continuation sessions allowed per role session after context exhaustion.
 
-Overridden by ``mulder investigate --max-compactions`` or
-``$MULDER_MAX_COMPACTIONS``; ``0`` disables continuations.
+Overridden by ``lade investigate --max-compactions`` or
+``$LADE_MAX_COMPACTIONS``; ``0`` disables continuations.
 """
 
 SUSPICIOUS_PATHS: tuple[str, ...] = (

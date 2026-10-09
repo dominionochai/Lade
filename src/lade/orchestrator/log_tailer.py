@@ -1,6 +1,6 @@
 """Background log file monitoring for job completion events.
 
-Tails ``mulder.log`` for structured ``[JOB_COMPLETE]`` markers emitted
+Tails ``lade.log`` for structured ``[JOB_COMPLETE]`` markers emitted
 by the MCP server when background jobs finish, and pushes real-time
 status updates to the investigation dashboard.
 """
@@ -13,7 +13,7 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 
-from mulder.orchestrator.display import InvestigationDashboard
+from lade.orchestrator.display import InvestigationDashboard
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ _SUCCESS_STATUSES: frozenset[str] = frozenset(("completed", "ok", "success"))
 
 
 class LogTailer:
-    """Tails mulder.log for job completion markers and updates the dashboard.
+    """Tails lade.log for job completion markers and updates the dashboard.
 
     Runs a daemon thread that polls the log file for new lines containing
     ``[JOB_COMPLETE]`` markers. Each marker triggers a dashboard task
@@ -37,7 +37,7 @@ class LogTailer:
 
         Args:
             dashboard: Dashboard instance for real-time task panel updates.
-            log_path: Path to the mulder.log file to tail.
+            log_path: Path to the lade.log file to tail.
         """
         self._dashboard = dashboard
         self._log_path = log_path
@@ -54,7 +54,7 @@ class LogTailer:
                 is active. The tailer thread exits when this returns False.
         """
         if not self._log_path.exists():
-            logger.debug("mulder.log not found at %s; tailer will wait", self._log_path)
+            logger.debug("lade.log not found at %s; tailer will wait", self._log_path)
 
         def _tail() -> None:
             while is_running():

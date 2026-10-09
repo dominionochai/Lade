@@ -1,6 +1,6 @@
 # Usage Guide
 
-Try-it-out instructions for running Mulder, the forensic investigation platform.
+Try-it-out instructions for running Lade, the forensic investigation platform.
 
 ## Table of Contents
 
@@ -10,9 +10,9 @@ Try-it-out instructions for running Mulder, the forensic investigation platform.
     - [Common](#common)
     - [Container Install](#container-install)
     - [Native Install](#native-install)
-      - [What `mulder setup` installs](#what-mulder-setup-installs)
+      - [What `lade setup` installs](#what-lade-setup-installs)
       - [ALEAPP and iLEAPP dependencies](#aleapp-and-ileapp-dependencies)
-      - [What `mulder setup` will not do](#what-mulder-setup-will-not-do)
+      - [What `lade setup` will not do](#what-lade-setup-will-not-do)
   - [Installing with pipx](#installing-with-pipx)
   - [Pulling the Container Image](#pulling-the-container-image)
   - [Running a Container](#running-a-container)
@@ -35,12 +35,12 @@ Try-it-out instructions for running Mulder, the forensic investigation platform.
     - [Example](#example)
   - [Artifact Awareness](#artifact-awareness)
   - [CLI Reference](#cli-reference)
-    - [`mulder investigate`](#mulder-investigate)
-    - [`mulder setup`](#mulder-setup)
-    - [`mulder serve`](#mulder-serve)
-    - [`mulder report`](#mulder-report)
-    - [`mulder export-iocs`](#mulder-export-iocs)
-    - [`mulder export-navigator`](#mulder-export-navigator)
+    - [`lade investigate`](#lade-investigate)
+    - [`lade setup`](#lade-setup)
+    - [`lade serve`](#lade-serve)
+    - [`lade report`](#lade-report)
+    - [`lade export-iocs`](#lade-export-iocs)
+    - [`lade export-navigator`](#lade-export-navigator)
   - [Understanding the Output](#understanding-the-output)
     - [Case Artifacts](#case-artifacts)
     - [Reports](#reports)
@@ -50,7 +50,7 @@ Try-it-out instructions for running Mulder, the forensic investigation platform.
 
 ## Prerequisites
 
-Mulder runs two ways: as a **container** with every forensic tool preinstalled, or as a **native install** from PyPI plus one `mulder setup` run. Pick one; the container is a portability choice, not an escape hatch.
+Lade runs two ways: as a **container** with every forensic tool preinstalled, or as a **native install** from PyPI plus one `lade setup` run. Pick one; the container is a portability choice, not an escape hatch.
 
 ### Common
 
@@ -65,13 +65,13 @@ Mulder runs two ways: as a **container** with every forensic tool preinstalled, 
 ### Container Install
 
 - **Docker or Podman** installed and running. All commands below use `docker`, but `podman` works as a drop-in replacement.
-- A host directory to mount for case output, since the container writes to `/home/mulder/.mulder/cases`.
+- A host directory to mount for case output, since the container writes to `/home/lade/.lade/cases`.
 
 Nothing else. The image ships every tool and data set a native install obtains through
-`mulder setup`, already provisioned under `/opt` and pinned there by `MULDER_ASSET_ROOT=/opt`.
-Running `mulder setup` *inside* the container therefore exits 1 by design: `/opt` is root-owned
-and the process runs as the unprivileged `mulder` user, and there is nothing for it to do.
-`mulder setup --verify` works normally there, since it only reads.
+`lade setup`, already provisioned under `/opt` and pinned there by `LADE_ASSET_ROOT=/opt`.
+Running `lade setup` *inside* the container therefore exits 1 by design: `/opt` is root-owned
+and the process runs as the unprivileged `lade` user, and there is nothing for it to do.
+`lade setup --verify` works normally there, since it only reads.
 The same applies to the YARA rules: the image pins `/opt/signature-base` to a commit, and the
 server logs once per session that it is using that checkout rather than pulling newer rules.
 
@@ -79,13 +79,13 @@ server logs once per session that it is using that checkout rather than pulling 
 
 ```bash
 sudo apt install yara            # SIFT ships the python3-yara module, not the binary
-pipx install "mulder-dfir[forensics]"
-mulder setup                     # everything mulder owns - no sudo
+pipx install "lade-dfir[forensics]"
+lade setup                     # everything lade owns - no sudo
 ```
 
 - **Python 3.10 or newer**, plus [`pipx`](https://pipx.pypa.io/) (or `uv`).
-- **`git`.** `mulder setup` clones six of its assets, and the YARA signature-base needs a real
-  `.git` so mulder can keep the rules current.
+- **`git`.** `lade setup` clones six of its assets, and the YARA signature-base needs a real
+  `.git` so lade can keep the rules current.
 - **An Anthropic credential** - `ANTHROPIC_API_KEY`, `claude /login`, or the Bedrock / Vertex
   environment variables.
 - **The SIFT forensic toolchain** on `$PATH`. SIFT already provides Sleuth Kit, plaso, Zeek,
@@ -94,60 +94,60 @@ mulder setup                     # everything mulder owns - no sudo
 - **Node.js is usually _not_ required**: `claude-agent-sdk`'s platform wheels bundle the Claude
   Code CLI. Node 18+ matters only if you install from an sdist or run where no wheel exists.
 
-#### What `mulder setup` installs
+#### What `lade setup` installs
 
-Everything mulder owns, in one run: MITRE ATT&CK data, Sigma rules, the YARA signature-base,
+Everything lade owns, in one run: MITRE ATT&CK data, Sigma rules, the YARA signature-base,
 the Didier Stevens suite, Chainsaw 2.16.0, Hayabusa 3.8.1, Zircolite 2.20.0, capa 9.4.0,
-FLOSS 3.1.0, the six EZ Tools mulder invokes, ALEAPP, iLEAPP, and the Volatility 3 symbol packs.
+FLOSS 3.1.0, the six EZ Tools lade invokes, ALEAPP, iLEAPP, and the Volatility 3 symbol packs.
 About **2.2 GB on disk**; it prints the total and asks before downloading more than 1 GB.
 
 Versions are pinned to match the container image exactly, and a test fails the build if the two
-drift apart. Release binaries are verified against a SHA-256 recorded in the mulder package;
+drift apart. Release binaries are verified against a SHA-256 recorded in the lade package;
 git clones and unversioned vendor URLs cannot be pinned by digest, so those are validated
 structurally (a clone that resolves, an archive that extracts, JSON that parses, a rules tree
 that contains rules) and rely on TLS in transit.
 
 Assets go to the first of these that applies:
 
-1. `$MULDER_ASSET_ROOT`, if set. This wins outright - nothing else is searched.
+1. `$LADE_ASSET_ROOT`, if set. This wins outright - nothing else is searched.
 2. `/opt`, if it exists and is writable (this is what the container uses).
-3. `~/.local/share/mulder/assets` otherwise.
+3. `~/.local/share/lade/assets` otherwise.
 
-Mulder *reads* `/opt` first and only then its own directory, so an existing SIFT layout keeps
+Lade *reads* `/opt` first and only then its own directory, so an existing SIFT layout keeps
 working untouched and a single-user install needs no `sudo`. If you previously hand-made
-`/opt/attack` or `/opt/sigma-rules`, mulder keeps reading those; `mulder setup --verify` reports
+`/opt/attack` or `/opt/sigma-rules`, lade keeps reading those; `lade setup --verify` reports
 each asset as `up-to-date (unmanaged)` or `shadowed by /opt/...` rather than claiming success
 while reading something else.
 
-`mulder setup` refuses to run as root: a root-owned `/opt/signature-base` makes git's
+`lade setup` refuses to run as root: a root-owned `/opt/signature-base` makes git's
 dubious-ownership check fail for every later non-root run, which would stop YARA rule updates
 permanently and silently.
 
 Re-running is safe - assets already present at the pinned version are skipped, and a version
-bump in the manifest is what triggers a re-fetch. `mulder setup --verify` checks an existing
+bump in the manifest is what triggers a re-fetch. `lade setup --verify` checks an existing
 install without touching the network.
 
 The Volatility symbol packs go to `~/.cache/volatility3/symbols` (honouring `XDG_CACHE_HOME`),
-where Volatility 3 looks for them - **not** under the mulder asset root, so the platform `vol`
+where Volatility 3 looks for them - **not** under the lade asset root, so the platform `vol`
 on your `$PATH` finds them.
 
 #### ALEAPP and iLEAPP dependencies
 
-Their Python dependencies are not covered by any mulder extra: the upstream `requirements.txt`
+Their Python dependencies are not covered by any lade extra: the upstream `requirements.txt`
 files contain a `git+https://` URL, local `whl_files/*.whl` paths, `pyinstaller`, and mutually
 conflicting `packaging` / `numpy` / `protobuf` pins, none of which can be expressed as PyPI
-metadata. `mulder setup` clones both; to install their dependencies:
+metadata. `lade setup` clones both; to install their dependencies:
 
 ```bash
-pipx inject mulder-dfir --requirements ~/.local/share/mulder/assets/aleapp/requirements.txt
-pipx inject mulder-dfir --requirements ~/.local/share/mulder/assets/ileapp/requirements.txt
+pipx inject lade-dfir --requirements ~/.local/share/lade/assets/aleapp/requirements.txt
+pipx inject lade-dfir --requirements ~/.local/share/lade/assets/ileapp/requirements.txt
 ```
 
 The two requirement sets conflict with each other, so installing both can leave the venv in a
-state `pip check` considers inconsistent. Mulder probes for any interpreter that can import
+state `pip check` considers inconsistent. Lade probes for any interpreter that can import
 them, so installing into the system interpreter instead also works.
 
-#### What `mulder setup` will not do
+#### What `lade setup` will not do
 
 It never runs a package manager and never asks for `sudo`. Sleuth Kit, `yara`, `git`, `dotnet`,
 Zeek, Suricata, plaso and radare2 are your OS's job - on SIFT, all but `yara` are already there.
@@ -155,19 +155,19 @@ Zeek, Suricata, plaso and radare2 are your OS's job - on SIFT, all but `yara` ar
 ## Installing with pipx
 
 ```bash
-pipx install "mulder-dfir[forensics]"
+pipx install "lade-dfir[forensics]"
 ```
 
-`pipx` puts mulder in its own isolated virtualenv and links the `mulder` command onto your PATH. The equivalent with `uv` is:
+`pipx` puts lade in its own isolated virtualenv and links the `lade` command onto your PATH. The equivalent with `uv` is:
 
 ```bash
-uv tool install "mulder-dfir[forensics]"
+uv tool install "lade-dfir[forensics]"
 ```
 
 Verify:
 
 ```bash
-mulder --version
+lade --version
 ```
 
 ### Extras
@@ -175,52 +175,52 @@ mulder --version
 | Extra | Pulls in | When you need it |
 |-------|----------|------------------|
 | `forensics` | `orjson`, `xxhash`, `colorama`, `tqdm`, `evtx` | Zircolite's runtime dependencies. Recommended for everyone. |
-| `pdf` | `weasyprint` | PDF report rendering via `mulder report` |
-| `stix` | `stix2` | STIX 2.1 bundle export via `mulder export-iocs` |
+| `pdf` | `weasyprint` | PDF report rendering via `lade report` |
+| `stix` | `stix2` | STIX 2.1 bundle export via `lade export-iocs` |
 
-Combine them as `pipx install "mulder-dfir[forensics,pdf,stix]"`, or add one later without reinstalling:
+Combine them as `pipx install "lade-dfir[forensics,pdf,stix]"`, or add one later without reinstalling:
 
 ```bash
-pipx inject mulder-dfir weasyprint
+pipx inject lade-dfir weasyprint
 ```
 
-`pipx inject` is also how you add any other Python dependency a forensic tool needs inside mulder's environment - see the ALEAPP/iLEAPP note above.
+`pipx inject` is also how you add any other Python dependency a forensic tool needs inside lade's environment - see the ALEAPP/iLEAPP note above.
 
 ### Directory Layout
 
-A native install uses two directories under `~/.mulder`, both overridable:
+A native install uses two directories under `~/.lade`, both overridable:
 
 | Directory | Default | Override | Contents |
 |-----------|---------|----------|----------|
-| Workspace | `~/.mulder/workspace` | `--cwd`, `MULDER_CWD` | Scratch working directory for agent sessions. Mulder writes a default `.mcp.json` here on first run. |
-| Cases | `~/.mulder/cases` | `--db-dir` | Case databases, audit logs, and reports |
+| Workspace | `~/.lade/workspace` | `--cwd`, `LADE_CWD` | Scratch working directory for agent sessions. Lade writes a default `.mcp.json` here on first run. |
+| Cases | `~/.lade/cases` | `--db-dir` | Case databases, audit logs, and reports |
 
-The container sets `MULDER_CWD=/mulder-investigation`, so its workspace is unchanged from earlier releases.
+The container sets `LADE_CWD=/lade-investigation`, so its workspace is unchanged from earlier releases.
 
-### Using Mulder as an MCP Server
+### Using Lade as an MCP Server
 
-To expose mulder's tools to Claude Desktop or any other MCP client, add:
+To expose lade's tools to Claude Desktop or any other MCP client, add:
 
 ```json
 {
   "mcpServers": {
-    "mulder": {
+    "lade": {
       "type": "stdio",
-      "command": "mulder",
+      "command": "lade",
       "args": ["serve"]
     }
   }
 }
 ```
 
-`uvx mulder-dfir serve` works without installing first.
+`uvx lade-dfir serve` works without installing first.
 
 ## Pulling the Container Image
 
-The pre-built container image includes all forensic tools, dependencies, and the Mulder server:
+The pre-built container image includes all forensic tools, dependencies, and the Lade server:
 
 ```bash
-docker pull ghcr.io/calebevans/mulder:1.5.2
+docker pull ghcr.io/dominionochai/lade:1.5.2
 ```
 
 ## Running a Container
@@ -232,17 +232,17 @@ Every `docker run` invocation requires two volume mounts:
 | Mount Path | Purpose |
 |------------|---------|
 | `/evidence` | Your evidence directory (mount read-only with `:ro`) |
-| `/home/mulder/.mulder/cases` | Case databases, audit logs, and reports (persisted to host) |
+| `/home/lade/.lade/cases` | Case databases, audit logs, and reports (persisted to host) |
 
 Create the cases directory on the host before your first run:
 
 ```bash
-mkdir -p ~/mulder-cases
+mkdir -p ~/lade-cases
 ```
 
 ### Privileged Access
 
-The `--privileged` flag is required for FUSE operations that several forensic tools depend on (`ewfmount` for E01 images, `guestmount` for VM disk images, and the `xmount` + `ntfs-3g`/`fuse2fs` stack that mounts disk images for the MFT, prefetch, Amcache, Shimcache and registry parsers). Mounting is entirely user-space FUSE: it runs as the unprivileged `mulder` user and needs no loop devices.
+The `--privileged` flag is required for FUSE operations that several forensic tools depend on (`ewfmount` for E01 images, `guestmount` for VM disk images, and the `xmount` + `ntfs-3g`/`fuse2fs` stack that mounts disk images for the MFT, prefetch, Amcache, Shimcache and registry parsers). Mounting is entirely user-space FUSE: it runs as the unprivileged `lade` user and needs no loop devices.
 
 If `--privileged` is too permissive for your environment, use the narrower capability grant instead:
 
@@ -250,11 +250,11 @@ If `--privileged` is too permissive for your environment, use the narrower capab
 --cap-add SYS_ADMIN --device /dev/fuse
 ```
 
-The container runs as a non-root `mulder` user. An entrypoint script handles credential copying and permission setup automatically.
+The container runs as a non-root `lade` user. An entrypoint script handles credential copying and permission setup automatically.
 
-When entering an existing container, use `docker exec -it -u mulder <container> bash`.
+When entering an existing container, use `docker exec -it -u lade <container> bash`.
 `docker exec` bypasses the entrypoint's user switch; investigations run as root are
-rejected by the agent CLI. Add `--show-cli-stderr` to `mulder investigate` to see
+rejected by the agent CLI. Add `--show-cli-stderr` to `lade investigate` to see
 the underlying diagnostic if a subprocess exits with a generic error.
 
 ### Using an Anthropic API Key
@@ -264,9 +264,9 @@ The simplest configuration passes your API key as an environment variable:
 ```bash
 docker run -it --privileged \
   -v /path/to/evidence:/evidence:ro \
-  -v ~/mulder-cases:/home/mulder/.mulder/cases \
+  -v ~/lade-cases:/home/lade/.lade/cases \
   -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
-  ghcr.io/calebevans/mulder:1.5.2
+  ghcr.io/dominionochai/lade:1.5.2
 ```
 
 ### Using Google Cloud Vertex AI
@@ -276,13 +276,13 @@ To route requests through Vertex AI, mount your GCP credentials file into the co
 ```bash
 docker run -it --privileged \
   -v /path/to/evidence:/evidence:ro \
-  -v ~/mulder-cases:/home/mulder/.mulder/cases \
+  -v ~/lade-cases:/home/lade/.lade/cases \
   -e CLAUDE_CODE_USE_VERTEX=1 \
   -e CLOUD_ML_REGION=us-east5 \
   -e ANTHROPIC_VERTEX_PROJECT_ID=your-gcp-project-id \
   -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud-creds.json \
   -v ~/.config/gcloud/application_default_credentials.json:/tmp/gcloud-creds.json:ro \
-  ghcr.io/calebevans/mulder:1.5.2
+  ghcr.io/dominionochai/lade:1.5.2
 ```
 
 Model IDs are passed through to the SDK exactly as specified, with no automatic translation or mapping. When using Vertex, you must provide the full Vertex model ID including the `@version` suffix (e.g. `--model claude-opus-4-6@20250514`). If you omit `--model`, the built-in defaults (`claude-opus-4-6` for planner/analyst, `claude-haiku-4-5` for executor) are used.
@@ -303,13 +303,13 @@ Pass your AWS credentials and region as environment variables:
 ```bash
 docker run -it --privileged \
   -v /path/to/evidence:/evidence:ro \
-  -v ~/mulder-cases:/home/mulder/.mulder/cases \
+  -v ~/lade-cases:/home/lade/.lade/cases \
   -e CLAUDE_CODE_USE_BEDROCK=1 \
   -e AWS_REGION=us-east-1 \
   -e AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
   -e AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
-  -v ~/.aws:/home/mulder/.aws \
-  ghcr.io/calebevans/mulder:1.5.2
+  -v ~/.aws:/home/lade/.aws \
+  ghcr.io/dominionochai/lade:1.5.2
 ```
 
 Model IDs are passed through to the SDK exactly as specified, with no automatic translation or mapping. When using Bedrock, you must provide the full Bedrock model ID with the `us.anthropic.` prefix (e.g. `--model us.anthropic.claude-opus-4-6`). If you omit `--model`, the built-in defaults (`claude-opus-4-6` for planner/analyst, `claude-haiku-4-5` for executor) are used.
@@ -321,14 +321,14 @@ Model IDs are passed through to the SDK exactly as specified, with no automatic 
 | `AWS_ACCESS_KEY_ID` | AWS access key |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret key |
 
-If you prefer file-based credentials, mount your whole `~/.aws` directory read-write at `/home/mulder/.aws` (as in the example above) instead of passing keys. This works for both static profiles in `~/.aws/credentials` and `aws login` sessions from AWS CLI 2.36+: the login token cache lives under `~/.aws/login/cache`, so the mount must be writable for the container to refresh it. The same mount serves `bedrock/` models routed through the LiteLLM proxy (see [Using Non-Anthropic Models via LiteLLM](#using-non-anthropic-models-via-litellm)).
+If you prefer file-based credentials, mount your whole `~/.aws` directory read-write at `/home/lade/.aws` (as in the example above) instead of passing keys. This works for both static profiles in `~/.aws/credentials` and `aws login` sessions from AWS CLI 2.36+: the login token cache lives under `~/.aws/login/cache`, so the mount must be writable for the container to refresh it. The same mount serves `bedrock/` models routed through the LiteLLM proxy (see [Using Non-Anthropic Models via LiteLLM](#using-non-anthropic-models-via-litellm)).
 
 ## Starting an Investigation
 
-Once the container is running, launch a full autonomous investigation with `mulder investigate`. The command takes two positional arguments: the evidence path and a case ID:
+Once the container is running, launch a full autonomous investigation with `lade investigate`. The command takes two positional arguments: the evidence path and a case ID:
 
 ```bash
-mulder investigate /evidence my-case
+lade investigate /evidence my-case
 ```
 
 The case ID names the output database and all derived artifacts. Choose something descriptive (e.g. the incident ticket number or a short codename).
@@ -345,7 +345,7 @@ Each phase passes through a quality gate before proceeding. The investigation ru
 
 ## Using Non-Anthropic Models via LiteLLM
 
-Mulder includes a built-in LiteLLM proxy that enables any LiteLLM-supported model provider. No manual proxy setup is required.
+Lade includes a built-in LiteLLM proxy that enables any LiteLLM-supported model provider. No manual proxy setup is required.
 
 ### Provider Prefixes
 
@@ -353,11 +353,11 @@ When any model ID includes a provider prefix, the proxy starts automatically:
 
 ```bash
 # Bedrock Llama
-mulder investigate /evidence my-case \
+lade investigate /evidence my-case \
   --model bedrock/meta.llama3-1-70b-instruct-v1:0
 
 # OpenAI
-mulder investigate /evidence my-case \
+lade investigate /evidence my-case \
   --model openai/gpt-4o
 ```
 
@@ -365,10 +365,10 @@ Supported prefixes: `bedrock/`, `openai/`, `vertex_ai/`, `azure/`, `ollama/`.
 
 ### Mixing Providers Across Roles
 
-Mulder uses three agent roles (planner, executor, analyst), and each can use a different model. This lets you route expensive reasoning to a stronger model while using a cheaper one for mechanical tool execution:
+Lade uses three agent roles (planner, executor, analyst), and each can use a different model. This lets you route expensive reasoning to a stronger model while using a cheaper one for mechanical tool execution:
 
 ```bash
-mulder investigate /evidence my-case \
+lade investigate /evidence my-case \
   --executor-model bedrock/meta.llama3-1-70b-instruct-v1:0 \
   --planner-model claude-opus-4-6 \
   --analyst-model claude-opus-4-6
@@ -379,7 +379,7 @@ mulder investigate /evidence my-case \
 To use a locally hosted model via Ollama, ensure the Ollama server is accessible from inside the container (e.g. via host networking) and pass the `ollama/` prefix:
 
 ```bash
-mulder investigate /evidence my-case \
+lade investigate /evidence my-case \
   --model ollama/llama3.1:70b --no-thinking
 ```
 
@@ -426,7 +426,7 @@ investigation reliably.
 
 ### Models LiteLLM does not know
 
-Mulder asks LiteLLM for each proxy model's context window and reasoning
+Lade asks LiteLLM for each proxy model's context window and reasoning
 support. A model absent from LiteLLM's model map (Bedrock's newest releases
 often are, e.g. `bedrock/us.moonshotai.kimi-k3`) gets no window, so Claude
 Code assumes 200K and never compacts before the provider rejects the request,
@@ -476,10 +476,10 @@ are read from the environment and applied to every proxy model in the run
 
 ```bash
 docker run ... \
-  -e MULDER_MODEL_CONTEXT_WINDOW=262144 \
-  -e MULDER_MODEL_MAX_OUTPUT_TOKENS=32768 \
-  -e MULDER_MODEL_REASONING=true \
-  mulder investigate /evidence my-case --model bedrock/us.moonshotai.kimi-k3
+  -e LADE_MODEL_CONTEXT_WINDOW=262144 \
+  -e LADE_MODEL_MAX_OUTPUT_TOKENS=32768 \
+  -e LADE_MODEL_REASONING=true \
+  lade investigate /evidence my-case --model bedrock/us.moonshotai.kimi-k3
 ```
 
 ### Custom LiteLLM Configuration
@@ -487,7 +487,7 @@ docker run ... \
 For advanced model routing, load balancing, or custom deployments, pass a LiteLLM configuration file:
 
 ```bash
-mulder investigate /evidence my-case \
+lade investigate /evidence my-case \
   --proxy-config ./litellm_config.yaml \
   --model my-custom-deployment
 ```
@@ -496,7 +496,7 @@ See the [LiteLLM documentation](https://docs.litellm.ai/docs/proxy/configs) for 
 
 ## Case Briefing
 
-You can provide investigation context by placing a `MULDER.md` file in the root of your evidence directory. This is optional but recommended when you have background knowledge about the case.
+You can provide investigation context by placing a `LADE.md` file in the root of your evidence directory. This is optional but recommended when you have background knowledge about the case.
 
 ### What to Include
 
@@ -507,7 +507,7 @@ You can provide investigation context by placing a `MULDER.md` file in the root 
 
 ### How It Works
 
-The contents of `MULDER.md` are prepended as an "INVESTIGATOR BRIEFING" to the planner and analyst prompts in every phase. This means:
+The contents of `LADE.md` are prepended as an "INVESTIGATOR BRIEFING" to the planner and analyst prompts in every phase. This means:
 
 - The extraction planner uses it to prioritize which tools to run
 - The analyst uses it to focus analysis on relevant questions
@@ -536,7 +536,7 @@ IPs. The workstation and a file server were imaged.
 4. Are there persistence mechanisms that survive a reboot?
 ```
 
-If no `MULDER.md` is present, the investigation proceeds without additional context (fully autonomous mode).
+If no `LADE.md` is present, the investigation proceeds without additional context (fully autonomous mode).
 
 ## Artifact Awareness
 
@@ -554,10 +554,10 @@ The analyst receives complementary guidance: when execution artifacts show commu
 
 ## CLI Reference
 
-### `mulder investigate`
+### `lade investigate`
 
 ```
-mulder investigate <evidence_path> <case_id> [OPTIONS]
+lade investigate <evidence_path> <case_id> [OPTIONS]
 ```
 
 Runs a full multi-phase forensic investigation.
@@ -572,9 +572,9 @@ Runs a full multi-phase forensic investigation.
 | `--effort` | `max` | Effort level (`max`, `xhigh`, `high`) |
 | `--no-thinking` | off | Disable extended thinking for all queries; overrides `--effort` |
 | `--workers` | `3` | Max concurrent extraction sessions |
-| `--max-compactions` | `3` | Continuation sessions allowed per role session after context exhaustion; `0` disables. Also settable via `MULDER_MAX_COMPACTIONS` (the flag wins) |
-| `--db-dir` | `~/.mulder/cases` | Case database directory |
-| `--cwd` | `~/.mulder/workspace` | Working directory for agent sessions. Also settable via `MULDER_CWD`; the container sets it to `/mulder-investigation`. Created on first use, along with a default `.mcp.json` |
+| `--max-compactions` | `3` | Continuation sessions allowed per role session after context exhaustion; `0` disables. Also settable via `LADE_MAX_COMPACTIONS` (the flag wins) |
+| `--db-dir` | `~/.lade/cases` | Case database directory |
+| `--cwd` | `~/.lade/workspace` | Working directory for agent sessions. Also settable via `LADE_CWD`; the container sets it to `/lade-investigation`. Created on first use, along with a default `.mcp.json` |
 | `--proxy-config` | None | LiteLLM config YAML for custom model routing |
 | `--show-cli-stderr` | off | Stream agent CLI diagnostics to the dashboard and `orchestrator.log` |
 
@@ -583,20 +583,20 @@ For subprocess failures that say "Check stderr output for details", rerun with
 and utility sessions, labeled by worker, model, or utility operation. The same lines
 are saved in `<db-dir>/orchestrator.log`. Without the flag, CLI stderr remains suppressed.
 
-### `mulder setup`
+### `lade setup`
 
 ```
-mulder setup [OPTIONS]
+lade setup [OPTIONS]
 ```
 
-Downloads everything mulder owns that pip cannot ship. Never installs OS packages, never invokes
+Downloads everything lade owns that pip cannot ship. Never installs OS packages, never invokes
 a package manager, and refuses to run as root.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--asset-root DIR` | resolved | Override the asset root (env: `MULDER_ASSET_ROOT`). Exclusive: setting it disables the `/opt` search |
+| `--asset-root DIR` | resolved | Override the asset root (env: `LADE_ASSET_ROOT`). Exclusive: setting it disables the `/opt` search |
 | `--dry-run` | off | Print the plan and exit 0. Issues no network requests at all |
-| `--verify` | off | Validate what is installed; fetch nothing. **Exits 4** if anything is missing, invalid, or shadowed by a copy mulder does not manage |
+| `--verify` | off | Validate what is installed; fetch nothing. **Exits 4** if anything is missing, invalid, or shadowed by a copy lade does not manage |
 | `--json` | off | Emit the result document on stdout (human progress always goes to stderr) |
 | `--yes` | off | Skip the confirmation prompt for plans over 1 GB |
 
@@ -605,13 +605,13 @@ missing digest), `2` usage error (running as root), `3` at least one asset faile
 `--verify` found something missing, invalid, or shadowed.
 
 Downloads land in a staging directory on the destination filesystem and are moved into place
-only after they validate, so a truncated file is never left where mulder would parse it. An
+only after they validate, so a truncated file is never left where lade would parse it. An
 interrupted download is simply redone on the next run.
 
-### `mulder serve`
+### `lade serve`
 
 ```
-mulder serve [OPTIONS]
+lade serve [OPTIONS]
 ```
 
 Starts the MCP server standalone. Normally invoked automatically by the orchestrator.
@@ -619,52 +619,52 @@ Starts the MCP server standalone. Normally invoked automatically by the orchestr
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--case-id` | None | Pre-load an existing case on startup |
-| `--db-dir` | `~/.mulder/cases` | Directory for case databases and audit logs |
+| `--db-dir` | `~/.lade/cases` | Directory for case databases and audit logs |
 | `--transport` | `stdio` | MCP transport (`stdio` or `streamable-http`) |
 | `--workers` | `8` | Concurrent tool execution threads |
 | `--mem-limit` | `90` | Memory usage % threshold (0 to disable) |
 | `--cpu-limit` | `90` | CPU usage % threshold (0 to disable) |
 
-### `mulder report`
+### `lade report`
 
 ```
-mulder report <case_id> [OPTIONS]
+lade report <case_id> [OPTIONS]
 ```
 
 Regenerates reports (Markdown, HTML, PDF) offline from an existing case database.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--db-dir` | `~/.mulder/cases` | Directory containing case databases |
+| `--db-dir` | `~/.lade/cases` | Directory containing case databases |
 
-### `mulder export-iocs`
+### `lade export-iocs`
 
 ```
-mulder export-iocs <case_id> [OPTIONS]
+lade export-iocs <case_id> [OPTIONS]
 ```
 
 Exports IOCs from a completed case.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--db-dir` | `~/.mulder/cases` | Directory containing case databases |
+| `--db-dir` | `~/.lade/cases` | Directory containing case databases |
 | `--format` | `stix` | Output format (`stix` or `csv`) |
 
-### `mulder export-navigator`
+### `lade export-navigator`
 
 ```
-mulder export-navigator <case_id> [OPTIONS]
+lade export-navigator <case_id> [OPTIONS]
 ```
 
 Generates a MITRE ATT&CK Navigator layer from a completed case.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--db-dir` | `~/.mulder/cases` | Directory containing case databases |
+| `--db-dir` | `~/.lade/cases` | Directory containing case databases |
 
 ## Understanding the Output
 
-After an investigation completes, all artifacts are written to the cases directory you mounted at `/home/mulder/.mulder/cases` (e.g. `~/mulder-cases` on the host).
+After an investigation completes, all artifacts are written to the cases directory you mounted at `/home/lade/.lade/cases` (e.g. `~/lade-cases` on the host).
 
 ### Case Artifacts
 
@@ -695,7 +695,7 @@ All report formats include an executive summary, severity overview, evidence int
 
 | File | Description |
 |------|-------------|
-| `mulder.log` | MCP server log |
+| `lade.log` | MCP server log |
 | `orchestrator.log` | Orchestrator log with phase progress and gate results |
 
 ## Building the Image from Source
@@ -703,9 +703,9 @@ All report formats include an executive summary, severity overview, evidence int
 To customize tools, add new MCP tools, or work from the latest development branch, build the container image locally:
 
 ```bash
-git clone https://github.com/calebevans/mulder.git
-cd mulder
-docker build -t mulder:dev .
+git clone https://github.com/dominionochai/Lade.git
+cd lade
+docker build -t lade:dev .
 ```
 
 The `Dockerfile` requires BuildKit. Docker Desktop and docker-ce use it by
@@ -715,14 +715,14 @@ still prints legacy `Step N/M` output, set `DOCKER_BUILDKIT=1 docker build ...`.
 Without BuildKit the build fails with
 `failed to parse platform : "" is an invalid OS component of ""`.
 
-Then run with the same volume mounts, substituting `mulder:dev` for the registry image:
+Then run with the same volume mounts, substituting `lade:dev` for the registry image:
 
 ```bash
 docker run -it --privileged \
   -v /path/to/evidence:/evidence:ro \
-  -v ~/mulder-cases:/home/mulder/.mulder/cases \
+  -v ~/lade-cases:/home/lade/.lade/cases \
   -e ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
-  mulder:dev
+  lade:dev
 ```
 
 A `Makefile` is included for convenience. Run `make all` for pre-commit checks

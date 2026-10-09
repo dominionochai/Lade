@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.server.tools.case import extract_archive
+from lade.server.tools.case import extract_archive
 
 
 @pytest.fixture
@@ -44,9 +44,9 @@ def _invoke(cases_dir: Path, archive: Path, extract_to: Path | None = None) -> A
     cfg = MagicMock()
     cfg.db_dir = cases_dir
     with (
-        patch("mulder.server.tools.case.get_cfg", return_value=cfg),
-        patch("mulder.server.tools.case.has_ctx", return_value=False),
-        patch("mulder.server.tools.case.EvidenceClassifier", create=True),
+        patch("lade.server.tools.case.get_cfg", return_value=cfg),
+        patch("lade.server.tools.case.has_ctx", return_value=False),
+        patch("lade.server.tools.case.EvidenceClassifier", create=True),
     ):
         return extract_archive.__wrapped__(  # type: ignore[attr-defined]
             str(archive), extract_to=str(extract_to) if extract_to else None
@@ -87,14 +87,14 @@ def test_a_finished_extraction_is_still_idempotent(
 def test_the_marker_is_not_reported_as_evidence(
     cases_dir: Path, archive: Path, tmp_path: Path
 ) -> None:
-    """mulder's own bookkeeping file must never appear in a file list."""
+    """lade's own bookkeeping file must never appear in a file list."""
     dest = cases_dir / "extracted" / "done"
 
     first = _invoke(cases_dir, archive, extract_to=dest)
     second = _invoke(cases_dir, archive, extract_to=dest)
 
     assert first["total_files_extracted"] == 3
-    assert all(not f.startswith(".mulder") for f in second["files"]), second["files"]
+    assert all(not f.startswith(".lade") for f in second["files"]), second["files"]
 
 
 def test_a_marker_from_a_different_archive_does_not_count(

@@ -6,15 +6,15 @@ import re
 import time
 from typing import Any
 
-from mulder.models import WindowRow
-from mulder.patterns import SUSPICIOUS_PATHS
-from mulder.server.app import get_ctx, mcp
-from mulder.server.helpers import (
+from lade.models import WindowRow
+from lade.patterns import SUSPICIOUS_PATHS
+from lade.server.app import get_ctx, mcp
+from lade.server.helpers import (
     make_tool_call_id,
     slim_window,
 )
-from mulder.server.tool_access import Role, tool_access
-from mulder.server.tools.composite.core import (
+from lade.server.tool_access import Role, tool_access
+from lade.server.tools.composite.core import (
     _SRC_EZ_AMCACHE,
     _SRC_EZ_JUMPLISTS,
     _SRC_EZ_LNKFILES,

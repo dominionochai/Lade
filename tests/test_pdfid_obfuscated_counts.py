@@ -20,7 +20,7 @@ the case this parser turned into silence.
 
 from __future__ import annotations
 
-from mulder.server.tools.documents import _compute_pdf_risk, _extract_pdfid_count
+from lade.server.tools.documents import _compute_pdf_risk, _extract_pdfid_count
 
 # Verbatim rows from pdfid 0.2.10 run against a PDF using /J#61vaScript
 # and /J#53 for its OpenAction JavaScript.

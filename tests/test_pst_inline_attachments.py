@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import email as email_lib
 
-from mulder.server.tools.email import _parse_email_message
+from lade.server.tools.email import _parse_email_message
 
 
 def _message(disposition_header: str) -> email_lib.message.Message:

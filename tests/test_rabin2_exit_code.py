@@ -20,8 +20,8 @@ from unittest.mock import patch
 
 import pytest
 
-import mulder.server.tools.binary as binary_module
-from mulder.server.tools.binary import _compute_verdict, _run_rabin2, triage_binary
+import lade.server.tools.binary as binary_module
+from lade.server.tools.binary import _compute_verdict, _run_rabin2, triage_binary
 
 _RWX_SECTION: list[dict[str, object]] = [{"name": ".text", "permissions": "-rwx"}]
 
@@ -41,7 +41,7 @@ def test_a_failed_rabin2_raises_instead_of_returning_an_empty_dict() -> None:
     )
 
     with (
-        patch("mulder.server.tools.binary.subprocess.run", return_value=proc),
+        patch("lade.server.tools.binary.subprocess.run", return_value=proc),
         pytest.raises(OSError) as excinfo,
     ):
         _run_rabin2("I", Path("/evidence/sample.exe"))
@@ -62,7 +62,7 @@ def test_an_empty_result_from_a_successful_run_is_still_an_empty_dict() -> None:
         args=["rabin2", "-ij", "/evidence/sample.exe"], returncode=0, stdout="", stderr=""
     )
 
-    with patch("mulder.server.tools.binary.subprocess.run", return_value=proc):
+    with patch("lade.server.tools.binary.subprocess.run", return_value=proc):
         assert _run_rabin2("i", Path("/evidence/sample.exe")) == {}
 
 
@@ -79,7 +79,7 @@ def test_json_produced_alongside_a_non_zero_exit_is_kept() -> None:
         stderr="warning: truncated section table",
     )
 
-    with patch("mulder.server.tools.binary.subprocess.run", return_value=proc):
+    with patch("lade.server.tools.binary.subprocess.run", return_value=proc):
         result = _run_rabin2("S", Path("/evidence/sample.exe"))
 
     assert result == {"sections": [{"name": ".text"}]}
@@ -166,10 +166,10 @@ def _triage(sample: Path, run: Any) -> tuple[Any, list[Any]]:
         return real(tc_id, name, params, results, *args)
 
     with (
-        patch("mulder.server.tools.binary.require_binary", return_value=True),
-        patch("mulder.server.tools.binary.subprocess.run", side_effect=run),
-        patch("mulder.server.tools.binary.extract_and_index", return_value={}),
-        patch("mulder.server.tools.binary.tool_response", side_effect=_capture),
+        patch("lade.server.tools.binary.require_binary", return_value=True),
+        patch("lade.server.tools.binary.subprocess.run", side_effect=run),
+        patch("lade.server.tools.binary.extract_and_index", return_value={}),
+        patch("lade.server.tools.binary.tool_response", side_effect=_capture),
     ):
         result = triage_binary.__wrapped__(  # type: ignore[attr-defined]
             "case-1", str(sample), depth="standard"
@@ -266,7 +266,7 @@ def test_a_parse_error_on_a_zero_exit_is_recorded() -> None:
     )
     incomplete: list[str] = []
 
-    with patch("mulder.server.tools.binary.subprocess.run", return_value=proc):
+    with patch("lade.server.tools.binary.subprocess.run", return_value=proc):
         result = _run_rabin2("i", Path("/evidence/truncated.macho"), incomplete)
 
     assert result == {"imports": [{"name": "printf"}]}, "the partial data is still returned"
@@ -288,7 +288,7 @@ def test_a_warning_on_a_zero_exit_is_not_a_parse_error() -> None:
     )
     incomplete: list[str] = []
 
-    with patch("mulder.server.tools.binary.subprocess.run", return_value=proc):
+    with patch("lade.server.tools.binary.subprocess.run", return_value=proc):
         _run_rabin2("i", Path("/evidence/stripped.elf"), incomplete)
 
     assert incomplete == []

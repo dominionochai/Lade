@@ -13,9 +13,9 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-from mulder.db import CaseDB
-from mulder.extractors.classifier import ClassifierConfig, EvidenceClassifier
-from mulder.patterns import (
+from lade.db import CaseDB
+from lade.extractors.classifier import ClassifierConfig, EvidenceClassifier
+from lade.patterns import (
     EMAIL_RE,
     IP_RE,
     UNIX_PATH_RE,
@@ -23,10 +23,10 @@ from mulder.patterns import (
     classify_ip,
     source_is_cited,
 )
-from mulder.server.app import get_ctx, mcp
-from mulder.server.helpers import hash_output, make_tool_call_id
-from mulder.server.tool_access import ANALYSTS, Role, tool_access
-from mulder.server.tools.findings import _evaluate_finalize_gates
+from lade.server.app import get_ctx, mcp
+from lade.server.helpers import hash_output, make_tool_call_id
+from lade.server.tool_access import ANALYSTS, Role, tool_access
+from lade.server.tools.findings import _evaluate_finalize_gates
 
 logger = logging.getLogger(__name__)
 

@@ -15,16 +15,16 @@ from email.header import decode_header, make_header
 from email.utils import getaddresses, parsedate_to_datetime
 from pathlib import Path
 
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     adaptive_timeout,
     error_response,
     make_tool_call_id,
     require_binary,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 __all__ = [
     "parse_pst",
@@ -479,7 +479,7 @@ def parse_pst(
             error_type="invalid_input",
         )
 
-    with tempfile.TemporaryDirectory(prefix="mulder_pst_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_pst_") as tmpdir:
         output_dir = Path(tmpdir)
         cmd = [
             readpst_bin,

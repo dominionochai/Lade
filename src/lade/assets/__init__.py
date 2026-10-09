@@ -1,11 +1,11 @@
-"""Mulder-owned forensic assets: where they live and how ``mulder setup`` gets them.
+"""Lade-owned forensic assets: where they live and how ``lade setup`` gets them.
 
 Only the path resolver is re-exported here.  ``manifest``, ``fetch``,
 ``install`` and ``state`` are imported lazily from the CLI command bodies so
-that ``mulder serve`` start-up cost is unchanged.
+that ``lade serve`` start-up cost is unchanged.
 """
 
-from mulder.assets.paths import (
+from lade.assets.paths import (
     ENV_ASSET_ROOT,
     asset_candidates,
     asset_display_path,

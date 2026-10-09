@@ -23,14 +23,14 @@ def _find_vol_binary() -> list[str]:
     Resolution order, and why:
 
     1. ``vol`` / ``vol3`` on PATH.  A platform Volatility (SIFT's
-       ``/usr/local/bin/vol``, the container's) **must** win.  mulder never
+       ``/usr/local/bin/vol``, the container's) **must** win.  lade never
        passes ``-s``, so volatility3 resolves ISF symbol tables relative to its
        own package directory; a platform install is the one with the platform's
        Windows/Linux symbol packs installed against it.  Preferring a
        venv-local copy would silently orphan those packs and degrade Windows
        memory analysis to the "ISF symbols are missing" path.
     2. The ``vol`` script sitting next to ``sys.executable``.  ``volatility3``
-       is a hard mulder dependency, so under ``pipx install`` / ``uv tool
+       is a hard lade dependency, so under ``pipx install`` / ``uv tool
        install`` this always exists, but it is not linked onto PATH — it is the
        last-resort fallback that makes a native install work at all.
     3. An in-process entry point call, if the console script is somehow missing

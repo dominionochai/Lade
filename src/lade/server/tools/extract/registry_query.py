@@ -15,15 +15,15 @@ from typing import Any
 
 from Registry import Registry
 
-from mulder.server.app import get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.server.app import get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     error_response,
     make_tool_call_id,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
-from mulder.server.tools.extract.tsk import _cleanup_tsk_extract_dir, _tsk_extract_files
+from lade.server.tool_access import Role, tool_access
+from lade.server.tools.extract.tsk import _cleanup_tsk_extract_dir, _tsk_extract_files
 
 __all__ = ["query_registry_value"]
 

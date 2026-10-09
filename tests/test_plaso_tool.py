@@ -16,9 +16,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.server.tools.extract.plaso import _failure_detail, run_plaso
+from lade.server.tools.extract.plaso import _failure_detail, run_plaso
 
-_MOD = "mulder.server.tools.extract.plaso"
+_MOD = "lade.server.tools.extract.plaso"
 
 _ARGPARSE_STDERR = (
     "usage: log2timeline [-h] [--troubles] [-V] [--artifact_definitions PATH]\n"

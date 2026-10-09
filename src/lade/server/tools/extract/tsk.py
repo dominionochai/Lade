@@ -12,11 +12,11 @@ import time
 from collections.abc import Mapping
 from pathlib import Path
 
-from mulder.extractors.optical import probe_optical
-from mulder.patterns import fls_file_entries, parse_mmls_rows
-from mulder.server.app import get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.extractors.optical import probe_optical
+from lade.patterns import fls_file_entries, parse_mmls_rows
+from lade.server.app import get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     _HINT_CHAR_LIMIT,
     TOOL_TIMEOUT,
     error_response,
@@ -25,7 +25,7 @@ from mulder.server.helpers import (
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 __all__ = [
     "_cleanup_tsk_extract_dir",
@@ -426,7 +426,7 @@ def _tsk_extract_files(
                 seen.add(dedup_key)
 
                 if extract_dir is None:
-                    extract_dir = Path(tempfile.mkdtemp(prefix="mulder_tsk_extract_"))
+                    extract_dir = Path(tempfile.mkdtemp(prefix="lade_tsk_extract_"))
                     with _tsk_lock:
                         _tsk_extract_dirs.append(str(extract_dir))
                     ctx.db.set_kv("tsk_extract_dir", str(extract_dir))

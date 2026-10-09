@@ -1,6 +1,6 @@
-# Mulder MCP Tool Manifest
+# Lade MCP Tool Manifest
 
-Every tool is exposed as `mcp__mulder__{name}`. All tools return a dict containing at minimum `tool_call_id` and `status`. Extraction tools additionally return `source_name`, `windows_indexed`, and `line_count`. Write tools (those with a `source_name`) return only metadata plus a 500-character content preview; full output is accessible via `search()` or `get_raw_output()`.
+Every tool is exposed as `mcp__lade__{name}`. All tools return a dict containing at minimum `tool_call_id` and `status`. Extraction tools additionally return `source_name`, `windows_indexed`, and `line_count`. Write tools (those with a `source_name`) return only metadata plus a 500-character content preview; full output is accessible via `search()` or `get_raw_output()`.
 
 **Role Key:** `CATALOG` `EXTRACT_PLANNER` `EXTRACT_EXECUTOR` `EXTRACT_ANALYST` `CROSS_PLANNER` `CROSS_EXECUTOR` `CROSS_ANALYST` `NARRATIVE_PLANNER` `NARRATIVE_EXECUTOR` `NARRATIVE_ANALYST` `REPORT`
 
@@ -435,9 +435,9 @@ Analyze Windows artifacts using Chainsaw with Sigma rules.
 |-----------|------|----------|-------------|
 | evidence_path | str | yes | Path to EVTX directory or SRUM database |
 | mode | Literal['hunt', 'search', 'srum', 'timeline'] | no | Analysis mode (default "hunt") |
-| sigma_rules_path | str | no | Path to Sigma rules directory; empty uses the rules installed by `mulder setup` |
+| sigma_rules_path | str | no | Path to Sigma rules directory; empty uses the rules installed by `lade setup` |
 | software_hive_path | str | no | SOFTWARE registry hive path; required when mode="srum" |
-| mapping_path | str | no | Chainsaw Sigma mapping file for hunt mode; empty uses the mapping installed by `mulder setup` |
+| mapping_path | str | no | Chainsaw Sigma mapping file for hunt mode; empty uses the mapping installed by `lade setup` |
 | search_term | str \| None | no | Required when mode="search" |
 | time_range_start | str \| None | no | ISO 8601 start time filter |
 | time_range_end | str \| None | no | ISO 8601 end time filter |

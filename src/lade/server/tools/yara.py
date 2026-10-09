@@ -19,16 +19,16 @@ import time
 from pathlib import Path
 from typing import Any
 
-from mulder.assets.paths import asset_path, register_cache_clear
-from mulder.server.app import get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.assets.paths import asset_path, register_cache_clear
+from lade.server.app import get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     _PREVIEW_CHAR_LIMIT,
     adaptive_timeout,
     hash_output,
     make_tool_call_id,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ def _signature_base_dir() -> Path | None:
 def _reset_rules_updated() -> None:
     """Re-arm the one-shot rule update after the asset root moves.
 
-    A ``mulder setup`` run that *creates* signature-base must be allowed to
+    A ``lade setup`` run that *creates* signature-base must be allowed to
     pull, even if a previous lookup in the same process already gave up.
     """
     global _rules_updated  # noqa: PLW0603
@@ -62,7 +62,7 @@ _SRC_VOL_SCAN = "yara.volatility_scan"
 
 _ERR_NO_RULES = (
     "No YARA rules available (built-in rules missing and none provided). "
-    "Run 'mulder setup --minimal' to install the signature-base rule set."
+    "Run 'lade setup --minimal' to install the signature-base rule set."
 )
 
 _YARA_MATCH_RE = re.compile(r"^(\S+)\s+(.+)$")
@@ -77,7 +77,7 @@ def _update_community_rules() -> None:
             return
         _rules_updated = True
     # Resolve once: four separate lookups could disagree if a concurrent
-    # ``mulder setup`` publishes the clone mid-function.
+    # ``lade setup`` publishes the clone mid-function.
     base = _signature_base_dir()
     if base is None or not (base / ".git").is_dir():
         return
@@ -85,7 +85,7 @@ def _update_community_rules() -> None:
         # A pull has to write objects, refs and the worktree, and git also
         # refuses to touch a clone owned by another user. The container image
         # ships a root-owned, SHA-pinned clone under /opt and runs the server
-        # as `mulder`, so there the pinned rules are the rules by design.
+        # as `lade`, so there the pinned rules are the rules by design.
         logger.info(
             "YARA rules: %s is not writable by this user; using the installed checkout as-is",
             base,
@@ -160,7 +160,7 @@ def _validate_rule_files(rule_paths: list[str]) -> list[str]:
     if not shutil.which("yara"):
         return rule_paths
 
-    fd, idx_path = tempfile.mkstemp(suffix=".yar", prefix="mulder_yara_validate_")
+    fd, idx_path = tempfile.mkstemp(suffix=".yar", prefix="lade_yara_validate_")
     try:
         with os.fdopen(fd, "w") as fh:
             for rp in rule_paths:
@@ -260,7 +260,7 @@ def _try_combined_compile(paths: list[str]) -> bool:
     Returns:
         True if YARA compiles the combined file successfully.
     """
-    fd, idx_path = tempfile.mkstemp(suffix=".yar", prefix="mulder_yara_combined_")
+    fd, idx_path = tempfile.mkstemp(suffix=".yar", prefix="lade_yara_combined_")
     try:
         with os.fdopen(fd, "w") as fh:
             for rp in paths:
@@ -293,7 +293,7 @@ def _build_index_file(rule_paths: list[str]) -> tuple[str, bool]:
     if len(valid_paths) == 1:
         return valid_paths[0], False
 
-    fd, idx_path = tempfile.mkstemp(suffix=".yar", prefix="mulder_yara_idx_")
+    fd, idx_path = tempfile.mkstemp(suffix=".yar", prefix="lade_yara_idx_")
     with os.fdopen(fd, "w") as fh:
         for rp in valid_paths:
             fh.write(f'include "{rp}"\n')
@@ -319,7 +319,7 @@ def _build_rules_args(
             return ([idx], cleanup) if idx else ([], False)
         if re.search(r"^\s*include\s+", stripped, re.MULTILINE | re.IGNORECASE):
             return [], False
-        fd, tmp_path = tempfile.mkstemp(suffix=".yar", prefix="mulder_yara_")
+        fd, tmp_path = tempfile.mkstemp(suffix=".yar", prefix="lade_yara_")
         with os.fdopen(fd, "w") as fh:
             fh.write(stripped)
         return [tmp_path], True
@@ -341,7 +341,7 @@ def _find_memory_image() -> str:
     yet (e.g. volatility is still running), searches the case's
     ``extracted/`` directory for common memory dump file extensions.
     """
-    from mulder.server.app import get_cfg
+    from lade.server.app import get_cfg
 
     ctx = get_ctx()
     sources = ctx.db.get_sources()
@@ -771,7 +771,7 @@ def yara_scan_with_volatility(
     Indexes matches as ``yara.volatility``; results include PID and
     virtual address for each match, enabling targeted process analysis.
     """
-    from mulder.extractors.volatility import _find_vol_binary
+    from lade.extractors.volatility import _find_vol_binary
 
     ctx = get_ctx()
     tc_id = make_tool_call_id()

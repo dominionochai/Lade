@@ -1,7 +1,7 @@
 """MCP tool for looking up MITRE ATT&CK techniques from STIX data.
 
-The ATT&CK Enterprise STIX bundle is provisioned by ``mulder setup`` (and
-baked into the container image) under the mulder asset root as
+The ATT&CK Enterprise STIX bundle is provisioned by ``lade setup`` (and
+baked into the container image) under the lade asset root as
 ``attack/enterprise-attack.json``.  It is loaded lazily on first use and
 parsed into an in-memory lookup structure.
 """
@@ -16,15 +16,15 @@ import time
 from pathlib import Path
 from typing import Any
 
-from mulder.assets.paths import (
+from lade.assets.paths import (
     asset_display_path,
     asset_path,
     asset_search_summary,
     register_cache_clear,
 )
-from mulder.server.app import mcp
-from mulder.server.helpers import error_response, make_tool_call_id, tool_response
-from mulder.server.tool_access import Role, tool_access
+from lade.server.app import mcp
+from lade.server.helpers import error_response, make_tool_call_id, tool_response
+from lade.server.tool_access import Role, tool_access
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +32,12 @@ _ATTACK_DIRNAME = "attack"
 
 
 def _stix_path() -> Path:
-    """The Enterprise ATT&CK bundle, or where ``mulder setup`` would put it."""
+    """The Enterprise ATT&CK bundle, or where ``lade setup`` would put it."""
     return asset_display_path(_ATTACK_DIRNAME, "enterprise-attack.json")
 
 
 def _ics_stix_path() -> Path:
-    """The ICS ATT&CK bundle, or where ``mulder setup`` would put it."""
+    """The ICS ATT&CK bundle, or where ``lade setup`` would put it."""
     return asset_display_path(_ATTACK_DIRNAME, "ics-attack.json")
 
 
@@ -191,7 +191,7 @@ def lookup_attack_technique(
             ),
             elapsed_ms=(time.monotonic() - t0) * 1000,
             error_type="file_not_found",
-            suggestion=f"Run 'mulder setup --minimal' to install it to {_stix_path()}.",
+            suggestion=f"Run 'lade setup --minimal' to install it to {_stix_path()}.",
         )
 
     try:

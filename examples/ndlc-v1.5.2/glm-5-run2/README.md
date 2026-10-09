@@ -1,6 +1,6 @@
-# NDLC on GLM-5, run 2 of 3 (Mulder v1.5.2)
+# NDLC on GLM-5, run 2 of 3 (Lade v1.5.2)
 
-Mulder's autonomous investigation of the [NIST CFReDS Data Leakage Case](https://cfreds-archive.nist.gov/data_leakage_case/data-leakage-case.html) using the open-weight model `bedrock/zai.glm-5` on Amazon Bedrock through Mulder's LiteLLM proxy, run on the v1.5.2 release image with the model's native reasoning and no per-model overrides. The same evidence, prompts, tools and scoring rubric as the [Claude Opus 4.6 run](../opus-4.6-run1/) in this directory.
+Lade's autonomous investigation of the [NIST CFReDS Data Leakage Case](https://cfreds-archive.nist.gov/data_leakage_case/data-leakage-case.html) using the open-weight model `bedrock/zai.glm-5` on Amazon Bedrock through Lade's LiteLLM proxy, run on the v1.5.2 release image with the model's native reasoning and no per-model overrides. The same evidence, prompts, tools and scoring rubric as the [Claude Opus 4.6 run](../opus-4.6-run1/) in this directory.
 
 > **Evidence:** PC disk image + 3 removable media (USB x2, CD-R). No memory dumps, no network capture.
 
@@ -38,7 +38,7 @@ Scored against the [published NIST answer key](https://cfreds-archive.nist.gov/d
 | Model | bedrock/zai.glm-5 (native reasoning) |
 | Tokens | 9.05M input / 135K output (no prompt caching through the proxy) |
 | Exit code | 0, all quality gates passed on the first attempt, 0 turn continuations |
-| Mulder | v1.5.2 |
+| Lade | v1.5.2 |
 
 ## How It Was Run
 
@@ -46,10 +46,10 @@ GLM-5 is in LiteLLM's model map (200K context, reasoning), so no per-model overr
 
 ```bash
 docker run --privileged \
-  -v /evidence:/evidence:ro -v cases:/home/mulder/.mulder/cases \
+  -v /evidence:/evidence:ro -v cases:/home/lade/.lade/cases \
   -e AWS_REGION=us-west-2 \
-  ghcr.io/calebevans/mulder:1.5.2 \
-  mulder investigate /evidence ndlc --model bedrock/zai.glm-5 --show-cli-stderr
+  ghcr.io/dominionochai/lade:1.5.2 \
+  lade investigate /evidence ndlc --model bedrock/zai.glm-5 --show-cli-stderr
 ```
 
 Bedrock credentials came from the EC2 instance role.
@@ -79,5 +79,5 @@ Bedrock credentials came from the EC2 instance role.
 | `ndlc.report.html` | Investigation report (HTML with navigation) |
 | `ndlc.audit.jsonl` | Structured tool execution audit log (487 entries) |
 | `orchestrator.log` | Agent phase transitions and reasoning (2,309 lines) |
-| `mulder.log` | MCP server tool execution log (405 lines) |
+| `lade.log` | MCP server tool execution log (405 lines) |
 | `ACCURACY-REPORT.md` | Ground truth comparison against the published answer key |

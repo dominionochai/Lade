@@ -24,7 +24,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.documents import analyze_office_document
+from lade.server.tools.documents import analyze_office_document
 
 _OLEVBA_CLEAN = json.dumps(
     [
@@ -75,9 +75,9 @@ def _invoke(document: Path, msodde: Any) -> tuple[Any, list[str]]:
         return next(calls)
 
     with (
-        patch("mulder.server.tools.documents.subprocess.run", side_effect=_run),
+        patch("lade.server.tools.documents.subprocess.run", side_effect=_run),
         patch(
-            "mulder.server.tools.documents.extract_and_index",
+            "lade.server.tools.documents.extract_and_index",
             side_effect=_recorder(indexed),
         ),
     ):
@@ -125,9 +125,9 @@ def test_a_timeout_running_msodde_is_reported(document: Path) -> None:
         raise subprocess.TimeoutExpired(cmd="msodde", timeout=120)
 
     with (
-        patch("mulder.server.tools.documents.subprocess.run", side_effect=_run),
+        patch("lade.server.tools.documents.subprocess.run", side_effect=_run),
         patch(
-            "mulder.server.tools.documents.extract_and_index",
+            "lade.server.tools.documents.extract_and_index",
             side_effect=_recorder(indexed),
         ),
     ):
@@ -178,9 +178,9 @@ def test_analyze_dde_false_never_runs_msodde(document: Path) -> None:
         return _proc(0, _OLEVBA_CLEAN)
 
     with (
-        patch("mulder.server.tools.documents.subprocess.run", side_effect=_run),
+        patch("lade.server.tools.documents.subprocess.run", side_effect=_run),
         patch(
-            "mulder.server.tools.documents.extract_and_index",
+            "lade.server.tools.documents.extract_and_index",
             side_effect=_recorder(indexed),
         ),
     ):

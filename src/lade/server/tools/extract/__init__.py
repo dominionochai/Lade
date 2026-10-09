@@ -1,6 +1,6 @@
 """Extraction tool submodules."""
 
-from mulder.server.tools.extract import (  # noqa: F401
+from lade.server.tools.extract import (  # noqa: F401
     app_files,
     carving,
     disk_pcap,

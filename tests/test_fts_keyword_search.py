@@ -28,8 +28,8 @@ from pathlib import Path
 
 import pytest
 
-from mulder.db import CaseDB, _fts5_any_query
-from mulder.models import WindowRow
+from lade.db import CaseDB, _fts5_any_query
+from lade.models import WindowRow
 
 KEYWORD_BAG = "failed logon event 4625 authentication failure brute force"
 
@@ -192,7 +192,7 @@ class TestKeywordBagAgainstARealDatabase:
 class TestCompositeKeywordSubQuery:
     def test_it_asks_for_any(self, case_db: CaseDB, monkeypatch: pytest.MonkeyPatch) -> None:
         """The composite hunts are the callers this exists for."""
-        from mulder.server.tools.composite import core as cc
+        from lade.server.tools.composite import core as cc
 
         captured: dict[str, object] = {}
 

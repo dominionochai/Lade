@@ -16,8 +16,8 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.extract import carving
-from mulder.server.tools.extract.carving import (
+from lade.server.tools.extract import carving
+from lade.server.tools.extract.carving import (
     _FALLBACK_SCANNERS,
     _build_bulk_extractor_cmd,
     _parse_scanner_help,
@@ -26,7 +26,7 @@ from mulder.server.tools.extract.carving import (
 )
 
 # Scanner section of ``bulk_extractor -h``, bulk_extractor 2.2.1-dev as built by
-# the Dockerfile (docker run --rm mulder:main bulk_extractor -h).
+# the Dockerfile (docker run --rm lade:main bulk_extractor -h).
 BULK_EXTRACTOR_HELP = """\
 These scanners enabled; disable with -x:
    -x accts - disable scanner accts
@@ -138,11 +138,11 @@ def _invoke(image: Path, scanners: list[str]) -> tuple[Any, list[list[str]]]:
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     with (
-        patch("mulder.server.tools.extract.carving.require_binary", return_value=True),
-        patch("mulder.server.tools.extract.carving.sources_already_indexed", return_value=[]),
-        patch("mulder.server.tools.extract.carving._check_disk_space", return_value=None),
-        patch("mulder.server.tools.extract.carving.subprocess.run", side_effect=_run),
-        patch("mulder.server.tools.extract.carving.extract_and_index", return_value={}),
+        patch("lade.server.tools.extract.carving.require_binary", return_value=True),
+        patch("lade.server.tools.extract.carving.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.extract.carving._check_disk_space", return_value=None),
+        patch("lade.server.tools.extract.carving.subprocess.run", side_effect=_run),
+        patch("lade.server.tools.extract.carving.extract_and_index", return_value={}),
     ):
         result = run_bulk_extractor.__wrapped__(str(image), scanners=scanners)  # type: ignore[attr-defined]
     return result, calls
@@ -155,12 +155,12 @@ def test_help_output_parses_to_the_real_scanner_set() -> None:
 
 def test_garbage_help_falls_back_to_builtin_list() -> None:
     proc = subprocess.CompletedProcess(["bulk_extractor", "-h"], 1, stdout="nope", stderr="")
-    with patch("mulder.server.tools.extract.carving.subprocess.run", return_value=proc):
+    with patch("lade.server.tools.extract.carving.subprocess.run", return_value=proc):
         assert carving._known_scanners() == _FALLBACK_SCANNERS
 
 
 def test_missing_binary_falls_back_to_builtin_list() -> None:
-    with patch("mulder.server.tools.extract.carving.subprocess.run", side_effect=OSError):
+    with patch("lade.server.tools.extract.carving.subprocess.run", side_effect=OSError):
         assert carving._known_scanners() == _FALLBACK_SCANNERS
 
 

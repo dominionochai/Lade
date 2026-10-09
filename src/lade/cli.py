@@ -1,4 +1,4 @@
-"""Click CLI entry point for Mulder."""
+"""Click CLI entry point for Lade."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 
 import click
 
-from mulder import __version__
-from mulder.patterns import (
+from lade import __version__
+from lade.patterns import (
     DB_DIR_ENV_VAR,
     DEFAULT_DB_DIR,
     DEFAULT_MAX_COMPACTIONS,
@@ -21,8 +21,8 @@ from mulder.patterns import (
 if TYPE_CHECKING:  # heavy imports stay inside the command bodies
     from rich.console import Console
 
-    from mulder.assets.fetch import Fetcher
-    from mulder.assets.install import Plan, Result, SetupOptions
+    from lade.assets.fetch import Fetcher
+    from lade.assets.install import Plan, Result, SetupOptions
 
 #: The default ``.mcp.json`` shipped as package data, copied into a fresh
 #: workspace on first run so a ``pipx``/``uv tool`` install works out of the box.
@@ -39,9 +39,9 @@ def _is_interactive() -> bool:
 
 
 @click.group()
-@click.version_option(version=__version__, prog_name="mulder")
+@click.version_option(version=__version__, prog_name="lade")
 def cli() -> None:
-    """Mulder: forensic MCP server for the SANS SIFT Workstation."""
+    """Lade: forensic MCP server for the SANS SIFT Workstation."""
 
 
 @cli.command()
@@ -51,7 +51,7 @@ def cli() -> None:
     default=DEFAULT_DB_DIR,
     envvar=DB_DIR_ENV_VAR,
     show_default=True,
-    help="Directory containing per-case databases (env: MULDER_DB_DIR).",
+    help="Directory containing per-case databases (env: LADE_DB_DIR).",
 )
 @click.option(
     "--transport",
@@ -86,7 +86,7 @@ def serve(
     mem_limit: float,
     cpu_limit: float,
 ) -> None:
-    """Start the Mulder MCP server.
+    """Start the Lade MCP server.
 
     Without --case-id, starts in ready state. The agent can then call
     scan_evidence() to create a new case, or open_case() to load an
@@ -95,13 +95,13 @@ def serve(
 
     With --case-id, pre-loads that case so analysis tools work immediately.
     """
-    from mulder.server.app import init_server
-    from mulder.server.app import mcp as mcp_server
+    from lade.server.app import init_server
+    from lade.server.app import mcp as mcp_server
 
     db_dir_path = Path(db_dir).expanduser()
     db_dir_path.mkdir(parents=True, exist_ok=True)
 
-    log_file = db_dir_path / "mulder.log"
+    log_file = db_dir_path / "lade.log"
     file_handler = logging.FileHandler(str(log_file), mode="a")
     file_handler.setFormatter(
         logging.Formatter("%(asctime)s [%(threadName)s] %(levelname)s %(name)s: %(message)s")
@@ -140,7 +140,7 @@ def serve(
     default=DEFAULT_DB_DIR,
     envvar=DB_DIR_ENV_VAR,
     show_default=True,
-    help="Directory containing per-case databases (env: MULDER_DB_DIR).",
+    help="Directory containing per-case databases (env: LADE_DB_DIR).",
 )
 def report(case_id: str, db_dir: str) -> None:
     """Generate HTML + Markdown reports from an existing case database.
@@ -149,9 +149,9 @@ def report(case_id: str, db_dir: str) -> None:
     formats, and writes them alongside the database.  Does not require
     the MCP server to be running.
     """
-    from mulder.audit import AuditLog
-    from mulder.db import CaseDB
-    from mulder.report.renderer import ReportRenderer
+    from lade.audit import AuditLog
+    from lade.db import CaseDB
+    from lade.report.renderer import ReportRenderer
 
     db_dir_path = Path(db_dir).expanduser()
     db_path = db_dir_path / f"{case_id}.db"
@@ -270,14 +270,14 @@ def report(case_id: str, db_dir: str) -> None:
     default=DEFAULT_DB_DIR,
     envvar=DB_DIR_ENV_VAR,
     show_default=True,
-    help="Case database directory (env: MULDER_DB_DIR).",
+    help="Case database directory (env: LADE_DB_DIR).",
 )
 @click.option(
     "--cwd",
     default=DEFAULT_WORKSPACE_DIR,
-    envvar="MULDER_CWD",
+    envvar="LADE_CWD",
     show_default=True,
-    help="Working directory for agent sessions (env: MULDER_CWD).",
+    help="Working directory for agent sessions (env: LADE_CWD).",
 )
 @click.option(
     "--workers",
@@ -288,11 +288,11 @@ def report(case_id: str, db_dir: str) -> None:
 @click.option(
     "--max-compactions",
     default=DEFAULT_MAX_COMPACTIONS,
-    envvar="MULDER_MAX_COMPACTIONS",
+    envvar="LADE_MAX_COMPACTIONS",
     type=click.IntRange(min=0),
     show_default=True,
     help="Continuation sessions allowed after context exhaustion; 0 disables "
-    "(env: MULDER_MAX_COMPACTIONS).",
+    "(env: LADE_MAX_COMPACTIONS).",
 )
 @click.option(
     "--proxy-config",
@@ -332,7 +332,7 @@ def investigate(
     database filename and referenced by all phases).
 
     \b
-      mulder investigate /evidence Rocba \\
+      lade investigate /evidence Rocba \\
         --planner-model claude-opus-4-6 \\
         --executor-model claude-haiku-4-5 \\
         --analyst-model claude-opus-4-6
@@ -343,9 +343,9 @@ def investigate(
     import asyncio
     from typing import cast
 
-    from mulder.orchestrator.models import ModelConfig
-    from mulder.orchestrator.runner import Orchestrator
-    from mulder.orchestrator.types import EffortLevel
+    from lade.orchestrator.models import ModelConfig
+    from lade.orchestrator.runner import Orchestrator
+    from lade.orchestrator.types import EffortLevel
 
     cwd_path = Path(cwd).expanduser()
     try:
@@ -353,7 +353,7 @@ def investigate(
     except OSError as exc:
         raise click.ClickException(f"Cannot create working directory {cwd_path}: {exc}") from exc
     # The *expanded* path is what must reach Orchestrator(cwd=...) below, or the
-    # agent sessions are handed a literal "~/.mulder/workspace" string.
+    # agent sessions are handed a literal "~/.lade/workspace" string.
     cwd = str(cwd_path)
 
     mcp_config_file = cwd_path / ".mcp.json"
@@ -386,7 +386,7 @@ def investigate(
     )
 
     click.echo(
-        f"Mulder v{__version__} \u2014 The truth is in the data.",
+        f"Lade v{__version__} \u2014 The truth is in the data.",
         err=True,
     )
     click.echo(f"Starting multi-pass investigation of {evidence_path}", err=True)
@@ -416,7 +416,7 @@ def investigate(
         max_compactions=max_compactions,
     )
 
-    from mulder.orchestrator.errors import (
+    from lade.orchestrator.errors import (
         AuthenticationError,
         ModelNotAvailableError,
     )
@@ -439,12 +439,12 @@ def investigate(
                     default=True,
                 ):
                     click.echo(
-                        f"\nRe-run with: mulder investigate ... --model {exc.alternative}",
+                        f"\nRe-run with: lade investigate ... --model {exc.alternative}",
                         err=True,
                     )
             else:
                 click.echo(
-                    f"\nTry: mulder investigate ... --model {exc.alternative}",
+                    f"\nTry: lade investigate ... --model {exc.alternative}",
                     err=True,
                 )
         else:
@@ -465,7 +465,7 @@ def investigate(
     "--asset-root",
     default=None,
     type=click.Path(),
-    help="Override the asset root (env: MULDER_ASSET_ROOT). Exclusive: setting it "
+    help="Override the asset root (env: LADE_ASSET_ROOT). Exclusive: setting it "
     "disables the /opt search entirely.",
 )
 @click.option("--dry-run", is_flag=True, help="Print the plan and exit. Issues no requests.")
@@ -473,7 +473,7 @@ def investigate(
     "--verify",
     is_flag=True,
     help="Validate what is installed; fetch nothing. Exits 4 if anything is missing, "
-    "invalid, or shadowed by a copy mulder does not manage.",
+    "invalid, or shadowed by a copy lade does not manage.",
 )
 @click.option("--json", "as_json", is_flag=True, help="Emit the result document on stdout.")
 @click.option("--yes", is_flag=True, help="Skip the confirmation prompt for large plans.")
@@ -486,34 +486,34 @@ def setup(
 ) -> None:
     """Download the forensic data, rule sets and helper tools pip cannot ship.
 
-    Installs everything mulder owns.  Never installs OS packages, and never
+    Installs everything lade owns.  Never installs OS packages, and never
     needs sudo -- it refuses to run as root, because root-owned clones make git
     refuse to update the YARA rules afterwards.
 
     \b
-      mulder setup                 # install everything (~2.2 GB)
-      mulder setup --dry-run       # print the plan, download nothing
-      mulder setup --verify        # check an existing install, touch no network
+      lade setup                 # install everything (~2.2 GB)
+      lade setup --dry-run       # print the plan, download nothing
+      lade setup --verify        # check an existing install, touch no network
 
-    Assets are written to $MULDER_ASSET_ROOT if set, else /opt when it is
-    writable, else ~/.local/share/mulder/assets.  Mulder *reads* /opt first, so
+    Assets are written to $LADE_ASSET_ROOT if set, else /opt when it is
+    writable, else ~/.local/share/lade/assets.  Lade *reads* /opt first, so
     an existing SIFT layout keeps working untouched.
     """
     import os
 
     from rich.console import Console
 
-    from mulder.assets import install as install_mod
-    from mulder.assets.fetch import HttpFetcher, OfflineFetcher
-    from mulder.assets.paths import asset_write_root, reset_asset_caches
-    from mulder.assets.paths import bin_dir as resolve_bin_dir
+    from lade.assets import install as install_mod
+    from lade.assets.fetch import HttpFetcher, OfflineFetcher
+    from lade.assets.paths import asset_write_root, reset_asset_caches
+    from lade.assets.paths import bin_dir as resolve_bin_dir
 
     console = Console(stderr=True, no_color=bool(os.environ.get("NO_COLOR")))
 
     if asset_root:
         # Set the variable rather than threading a second value around, so the
         # flag and the environment can never disagree.
-        os.environ["MULDER_ASSET_ROOT"] = str(Path(asset_root).expanduser())
+        os.environ["LADE_ASSET_ROOT"] = str(Path(asset_root).expanduser())
         reset_asset_caches()
 
     options = install_mod.SetupOptions(verify=verify, dry_run=dry_run)
@@ -602,7 +602,7 @@ def _print_summary(console: Console, result: Result, plan: Plan, options: SetupO
     """
     from rich.table import Table
 
-    from mulder.assets.install import capability_gaps
+    from lade.assets.install import capability_gaps
 
     table = Table(title="Summary", title_justify="left")
     table.add_column("asset")
@@ -645,18 +645,18 @@ def _print_summary(console: Console, result: Result, plan: Plan, options: SetupO
         )
     elif failed:
         console.print(
-            f"\n{installed} installed, {failed} failed - re-run 'mulder setup' to retry; "
+            f"\n{installed} installed, {failed} failed - re-run 'lade setup' to retry; "
             "see the errors above."
         )
     elif missing:
         # Never fall through to "All ... present" here: the table two lines up
         # says otherwise, and the last line is the one a human actually reads.
         console.print(
-            f"\n{installed} present, {missing} missing - run 'mulder setup' to install them."
+            f"\n{installed} present, {missing} missing - run 'lade setup' to install them."
         )
     elif shadowed:
         console.print(
-            f"\n{installed} installed, {shadowed} shadowed - mulder is still reading "
+            f"\n{installed} installed, {shadowed} shadowed - lade is still reading "
             "the older copies."
         )
     else:
@@ -715,12 +715,12 @@ def _human_bytes(count: int) -> str:
     default=DEFAULT_DB_DIR,
     envvar=DB_DIR_ENV_VAR,
     show_default=True,
-    help="Directory containing per-case databases (env: MULDER_DB_DIR).",
+    help="Directory containing per-case databases (env: LADE_DB_DIR).",
 )
 def export_iocs_cmd(case_id: str, fmt: str, output_dir: str | None, db_dir: str) -> None:
     """Export IOCs from a completed investigation as STIX 2.1 or CSV."""
-    from mulder.db import CaseDB
-    from mulder.report.ioc_export import export_iocs
+    from lade.db import CaseDB
+    from lade.report.ioc_export import export_iocs
 
     db_dir_path = Path(db_dir).expanduser()
     db_path = db_dir_path / f"{case_id}.db"
@@ -761,12 +761,12 @@ def export_iocs_cmd(case_id: str, fmt: str, output_dir: str | None, db_dir: str)
     default=DEFAULT_DB_DIR,
     envvar=DB_DIR_ENV_VAR,
     show_default=True,
-    help="Directory containing per-case databases (env: MULDER_DB_DIR).",
+    help="Directory containing per-case databases (env: LADE_DB_DIR).",
 )
 def export_navigator_cmd(case_id: str, output_dir: str | None, domain: str, db_dir: str) -> None:
     """Export a MITRE ATT&CK Navigator layer from investigation findings."""
-    from mulder.db import CaseDB
-    from mulder.report.navigator import export_navigator_layer
+    from lade.db import CaseDB
+    from lade.report.navigator import export_navigator_layer
 
     db_dir_path = Path(db_dir).expanduser()
     db_path = db_dir_path / f"{case_id}.db"

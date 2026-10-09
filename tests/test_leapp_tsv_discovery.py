@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from mulder.server.tools.phone import _parse_leapp_output
+from lade.server.tools.phone import _parse_leapp_output
 
 _HEADERS = "Timestamp\tPartner\tMessage"
 _ROWS = [

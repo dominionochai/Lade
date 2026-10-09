@@ -14,15 +14,15 @@ import tempfile
 import time
 from pathlib import Path
 
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     error_response,
     interpreter_candidates,
     make_tool_call_id,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 logger = logging.getLogger(__name__)
 
@@ -96,7 +96,7 @@ def run_hindsight(
 
     browser_type = browser.lower() if browser.lower() in _VALID_BROWSERS else "chrome"
 
-    with tempfile.TemporaryDirectory(prefix="mulder_hindsight_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_hindsight_") as tmpdir:
         output_base = str(Path(tmpdir) / "results")
 
         cmd = [

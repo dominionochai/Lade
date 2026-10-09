@@ -1,12 +1,12 @@
 # Adding a New MCP Tool
 
-This guide walks through adding a new tool to the Mulder MCP server, from function creation through registration and testing.
+This guide walks through adding a new tool to the Lade MCP server, from function creation through registration and testing.
 
 ## 1. Create the Tool Function
 
 ### Where to Put It
 
-Tool modules live under `src/mulder/server/tools/` (with the exception of `run_parallel`, which is defined in `src/mulder/server/app.py`). Choose a location based on the tool's purpose:
+Tool modules live under `src/lade/server/tools/` (with the exception of `run_parallel`, which is defined in `src/lade/server/app.py`). Choose a location based on the tool's purpose:
 
 | Location | Purpose |
 |----------|---------|
@@ -71,9 +71,9 @@ These three sentences are what the agent reads to decide whether and when to inv
 Import the shared plumbing from the server package:
 
 ```python
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     error_response,
     make_tool_call_id,
     require_binary,
@@ -81,12 +81,12 @@ from mulder.server.helpers import (
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 ```
 
 ## 2. Choose the Right Roles
 
-The `Role` enum in [`src/mulder/server/tool_access.py`](../src/mulder/server/tool_access.py) declares which pipeline roles can call a tool. Each investigation phase uses a planner/executor/analyst split, and each role maps to a specific responsibility:
+The `Role` enum in [`src/lade/server/tool_access.py`](../src/lade/server/tool_access.py) declares which pipeline roles can call a tool. Each investigation phase uses a planner/executor/analyst split, and each role maps to a specific responsibility:
 
 ### Individual Roles
 
@@ -132,10 +132,10 @@ Start with the narrowest set of roles that makes sense. You can always expand la
 
 ### `extract_and_index()`
 
-Use [`extract_and_index()`](../src/mulder/server/extract_helpers.py) for tools that produce searchable data. It splits raw output into fixed-size windows, extracts timestamps, hashes the content, and stores everything in the case database:
+Use [`extract_and_index()`](../src/lade/server/extract_helpers.py) for tools that produce searchable data. It splits raw output into fixed-size windows, extracts timestamps, hashes the content, and stores everything in the case database:
 
 ```python
-from mulder.server.extract_helpers import extract_and_index
+from lade.server.extract_helpers import extract_and_index
 
 summary = extract_and_index(
     raw_output=proc.stdout.strip(),
@@ -154,7 +154,7 @@ Use **one** of these two patterns for audit logging, not both:
 - **`tool_response()`** for tools that manually manage `tool_call_id`, timing, and audit logging. Call `make_tool_call_id()` yourself, measure elapsed time, and pass everything to `tool_response()`:
 
 ```python
-from mulder.server.helpers import tool_response
+from lade.server.helpers import tool_response
 
 return tool_response(
     tc_id,
@@ -175,7 +175,7 @@ return tool_response(
 For error cases, use `error_response()` which logs the failure to the audit trail:
 
 ```python
-from mulder.server.helpers import error_response
+from lade.server.helpers import error_response
 
 return error_response(
     tc_id,
@@ -191,7 +191,7 @@ return error_response(
 For simple tools that run a binary and index its stdout, `run_cli_tool()` wraps the entire flow (binary check, subprocess execution, `extract_and_index`, `tool_response`) into a single call:
 
 ```python
-from mulder.server.helpers import run_cli_tool
+from lade.server.helpers import run_cli_tool
 
 return run_cli_tool(
     binary="mytool",
@@ -209,20 +209,20 @@ return run_cli_tool(
 
 After writing the tool module, import it in the appropriate `__init__.py` so the tool is registered at server startup.
 
-For a top-level module (e.g. `tools/mytool.py`), add to [`src/mulder/server/tools/__init__.py`](../src/mulder/server/tools/__init__.py):
+For a top-level module (e.g. `tools/mytool.py`), add to [`src/lade/server/tools/__init__.py`](../src/lade/server/tools/__init__.py):
 
 ```python
-from mulder.server.tools import (
+from lade.server.tools import (
     ...
     mytool,   # add alphabetically
     ...
 )
 ```
 
-For an extraction submodule (e.g. `tools/extract/mytool.py`), add to [`src/mulder/server/tools/extract/__init__.py`](../src/mulder/server/tools/extract/__init__.py):
+For an extraction submodule (e.g. `tools/extract/mytool.py`), add to [`src/lade/server/tools/extract/__init__.py`](../src/lade/server/tools/extract/__init__.py):
 
 ```python
-from mulder.server.tools.extract import (
+from lade.server.tools.extract import (
     ...
     mytool,   # add alphabetically
     ...
@@ -240,7 +240,7 @@ Extraction tools should be idempotent. If the data has already been indexed from
 Use `sources_already_indexed()` at the top of the tool function:
 
 ```python
-from mulder.server.helpers import sources_already_indexed, tool_response
+from lade.server.helpers import sources_already_indexed, tool_response
 
 if not force:
     existing = sources_already_indexed(
@@ -266,7 +266,7 @@ The `evidence_path` parameter ensures that running the same tool on a *different
 
 ### Register in `TOOL_SOURCE_PREFIXES`
 
-Add your tool's source prefix mapping to `TOOL_SOURCE_PREFIXES` in [`src/mulder/server/helpers.py`](../src/mulder/server/helpers.py):
+Add your tool's source prefix mapping to `TOOL_SOURCE_PREFIXES` in [`src/lade/server/helpers.py`](../src/lade/server/helpers.py):
 
 ```python
 TOOL_SOURCE_PREFIXES: dict[str, list[str]] = {
@@ -299,7 +299,7 @@ pytest tests/ -k tool
 For extraction tools, run a small test case. This requires a valid `.mcp.json` configuration in the working directory (or the container default) so the orchestrator can connect to the MCP server:
 
 ```bash
-mulder investigate /path/to/test/evidence test-case
+lade investigate /path/to/test/evidence test-case
 ```
 
 ### Run Pre-commit and Pytest
@@ -322,9 +322,9 @@ from __future__ import annotations
 
 import time
 
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     error_response,
     make_tool_call_id,
     require_binary,
@@ -332,7 +332,7 @@ from mulder.server.helpers import (
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 
 @mcp.tool()
@@ -417,7 +417,7 @@ def run_custom_parser(
 
 After writing this module, you would:
 
-1. Save it as `src/mulder/server/tools/extract/custom_parser.py`
-2. Add `custom_parser,` to the imports in `src/mulder/server/tools/extract/__init__.py`
-3. Add `"run_custom_parser": ["custom_parser."]` to `TOOL_SOURCE_PREFIXES` in `src/mulder/server/helpers.py`
+1. Save it as `src/lade/server/tools/extract/custom_parser.py`
+2. Add `custom_parser,` to the imports in `src/lade/server/tools/extract/__init__.py`
+3. Add `"run_custom_parser": ["custom_parser."]` to `TOOL_SOURCE_PREFIXES` in `src/lade/server/helpers.py`
 4. Run `pre-commit run --all-files` and `pytest`

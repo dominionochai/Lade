@@ -6,7 +6,7 @@ CONTAINER_ENGINE ?= $(shell \
 	elif command -v container >/dev/null 2>&1; then echo container; \
 	else echo docker; fi)
 
-IMAGE_NAME ?= mulder
+IMAGE_NAME ?= lade
 IMAGE_TAG  ?= dev
 
 .PHONY: all install hooks lint format typecheck test precommit build dist-check assets-lock container-build container-run clean
@@ -33,7 +33,7 @@ format:
 # environment. This target is the narrower src-only pass; use `make precommit`
 # before pushing.
 typecheck:
-	mypy src/mulder
+	mypy src/lade
 
 test:
 	pytest tests/ -v
@@ -47,10 +47,10 @@ precommit:
 	pre-commit run --files $$(git ls-files -co --exclude-standard)
 
 # Maintainer chore, never CI: downloads every digest-pinnable asset and
-# rewrites src/mulder/assets/assets.lock. Re-run it in the same PR as any
+# rewrites src/lade/assets/assets.lock. Re-run it in the same PR as any
 # Dockerfile version bump -- tests/test_manifest_parity.py fails otherwise.
 assets-lock:
-	uv run python -m mulder.assets.lockgen
+	uv run python -m lade.assets.lockgen
 
 build:
 	uv build
@@ -66,7 +66,7 @@ container-build:
 container-run:
 	$(CONTAINER_ENGINE) run -it --privileged \
 		-v $(EVIDENCE_DIR):/evidence:ro \
-		-v $(CASE_DIR):/home/mulder/.mulder/cases \
+		-v $(CASE_DIR):/home/lade/.lade/cases \
 		$(IMAGE_NAME):$(IMAGE_TAG)
 
 clean:

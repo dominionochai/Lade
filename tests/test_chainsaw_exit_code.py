@@ -32,7 +32,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.chainsaw import run_chainsaw
+from lade.server.tools.chainsaw import run_chainsaw
 
 _MODES = ["hunt", "search", "srum", "timeline"]
 
@@ -60,11 +60,11 @@ def _invoke(evidence: Path, mode: str, run: Any, rules: Path) -> tuple[Any, list
     hive.write_bytes(b"regf")
     kwargs = {"side_effect": run} if callable(run) else {"return_value": run}
     with (
-        patch("mulder.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
-        patch("mulder.server.tools.chainsaw._default_chainsaw_mapping", return_value=mapping),
-        patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-        patch("mulder.server.tools.chainsaw.subprocess.run", **kwargs),
-        patch("mulder.server.tools.chainsaw.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
+        patch("lade.server.tools.chainsaw._default_chainsaw_mapping", return_value=mapping),
+        patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.chainsaw.subprocess.run", **kwargs),
+        patch("lade.server.tools.chainsaw.extract_and_index", side_effect=_record),
     ):
         result = run_chainsaw.__wrapped__(  # type: ignore[attr-defined]
             str(evidence),

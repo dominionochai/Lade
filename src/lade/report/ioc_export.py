@@ -14,8 +14,8 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from mulder.models import Finding
-from mulder.report.renderer import _extract_iocs
+from lade.models import Finding
+from lade.report.renderer import _extract_iocs
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +126,7 @@ def _build_stix_bundle_with_library(
     )
 
     identity = Identity(
-        name=f"Mulder Investigation {case_id}",
+        name=f"Lade Investigation {case_id}",
         identity_class="system",
     )
     objects: list[Any] = [identity]
@@ -201,7 +201,7 @@ def _build_stix_bundle_manual(
         "id": identity_id,
         "created": now,
         "modified": now,
-        "name": f"Mulder Investigation {case_id}",
+        "name": f"Lade Investigation {case_id}",
         "identity_class": "system",
     }
     objects: list[dict[str, Any]] = [identity]

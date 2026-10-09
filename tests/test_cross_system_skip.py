@@ -7,14 +7,14 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.orchestrator.phases import CROSS_SYSTEM
-from mulder.orchestrator.runner import Orchestrator
-from mulder.orchestrator.types import InvestigationResult, PhaseResult
+from lade.orchestrator.phases import CROSS_SYSTEM
+from lade.orchestrator.runner import Orchestrator
+from lade.orchestrator.types import InvestigationResult, PhaseResult
 
 
 def _make_orchestrator(**kwargs: object) -> Orchestrator:
     """Create an Orchestrator with a mocked dashboard."""
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         if "evidence_path" not in kwargs:
             kwargs["evidence_path"] = "/evidence"
         return Orchestrator(**kwargs)  # type: ignore[arg-type]

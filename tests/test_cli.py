@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
-from mulder.cli import cli
+from lade.cli import cli
 
 
 class TestCliHelp:
@@ -18,14 +18,14 @@ class TestCliHelp:
         result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
         assert "Usage" in result.output
-        assert "forensic" in result.output.lower() or "mulder" in result.output.lower()
+        assert "forensic" in result.output.lower() or "lade" in result.output.lower()
 
     def test_version_succeeds(self) -> None:
         """--version flag exits 0 with version info."""
         runner = CliRunner()
         result = runner.invoke(cli, ["--version"])
         assert result.exit_code == 0
-        assert "mulder" in result.output.lower()
+        assert "lade" in result.output.lower()
 
 
 class TestCliInvalidOptions:
@@ -81,13 +81,13 @@ class TestCliExportCommands:
 
 
 class TestMaxCompactions:
-    """``--max-compactions`` and ``MULDER_MAX_COMPACTIONS`` reach the orchestrator."""
+    """``--max-compactions`` and ``LADE_MAX_COMPACTIONS`` reach the orchestrator."""
 
     @staticmethod
     def _invoke(args: list[str], env: dict[str, str] | None = None) -> tuple[int, MagicMock]:
         runner = CliRunner()
         with (
-            patch("mulder.orchestrator.runner.Orchestrator") as orchestrator_cls,
+            patch("lade.orchestrator.runner.Orchestrator") as orchestrator_cls,
             patch("asyncio.run", return_value=MagicMock(success=True)),
         ):
             result = runner.invoke(cli, ["investigate", "/evidence", "case-1", *args], env=env)
@@ -106,11 +106,11 @@ class TestMaxCompactions:
         assert self._max_compactions(["--max-compactions", "7"]) == 7
 
     def test_env_var(self) -> None:
-        assert self._max_compactions([], env={"MULDER_MAX_COMPACTIONS": "5"}) == 5
+        assert self._max_compactions([], env={"LADE_MAX_COMPACTIONS": "5"}) == 5
 
     def test_flag_beats_env_var(self) -> None:
         args = ["--max-compactions", "7"]
-        assert self._max_compactions(args, env={"MULDER_MAX_COMPACTIONS": "5"}) == 7
+        assert self._max_compactions(args, env={"LADE_MAX_COMPACTIONS": "5"}) == 7
 
     def test_negative_is_rejected(self) -> None:
         exit_code, _ = self._invoke(["--max-compactions", "-1"])

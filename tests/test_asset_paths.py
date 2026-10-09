@@ -2,7 +2,7 @@
 
 The read-root / write-root split is the highest-risk decision in the asset
 work: a single writability-tested resolver breaks the container, where ``/opt``
-is ``root:root 0755`` and the server runs as ``mulder``.  These tests pin both
+is ``root:root 0755`` and the server runs as ``lade``.  These tests pin both
 halves and the display helpers built on them.
 """
 
@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from mulder.assets import paths
+from lade.assets import paths
 
 
 @pytest.fixture(autouse=True)
@@ -36,7 +36,7 @@ def _fake_opt(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, *, exists: bool =
 
 class TestReadRoots:
     def test_env_var_is_exclusive(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-        """A set MULDER_ASSET_ROOT is the *only* root, /opt included."""
+        """A set LADE_ASSET_ROOT is the *only* root, /opt included."""
         _fake_opt(monkeypatch, tmp_path)
         monkeypatch.setenv(paths.ENV_ASSET_ROOT, str(tmp_path / "pinned"))
         paths.reset_asset_caches()
@@ -65,7 +65,7 @@ class TestDisplayPath:
         """Regression guard: naming ``/opt/...`` in a message is a lie.
 
         ``/opt`` exists on essentially every Linux host, so it is always read
-        root #1 -- but with it unwritable, ``mulder setup`` provisions the user
+        root #1 -- but with it unwritable, ``lade setup`` provisions the user
         root instead.  A message (or a copy-pasteable ``pipx inject`` line)
         built from ``asset_roots()[0]`` names a path that will never exist.
         """
@@ -105,7 +105,7 @@ def test_no_module_outside_paths_uses_the_first_read_root() -> None:
     ``asset_search_summary`` (a failed search); indexing the read roots
     directly reintroduces the ``/opt``-that-will-never-exist message.
     """
-    src = Path(__file__).resolve().parents[1] / "src" / "mulder"
+    src = Path(__file__).resolve().parents[1] / "src" / "lade"
     pattern = re.compile(r"asset_roots\(\)\s*\[")
     offenders = [
         str(path.relative_to(src))

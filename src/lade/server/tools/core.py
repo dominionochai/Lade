@@ -1,7 +1,7 @@
-"""Core read-only MCP tool implementations for Mulder.
+"""Core read-only MCP tool implementations for Lade.
 
 Every tool in this module is a pure query; no destructive operations exist
-in the Mulder MCP surface.  Evidence integrity is enforced by the API design,
+in the Lade MCP surface.  Evidence integrity is enforced by the API design,
 not by prompts.
 """
 
@@ -18,10 +18,10 @@ from typing import Any
 
 from sqlalchemy import select as sa_select
 
-from mulder.db import windows_t
-from mulder.server import source_names as _sn
-from mulder.server.app import get_ctx, mcp
-from mulder.server.helpers import (
+from lade.db import windows_t
+from lade.server import source_names as _sn
+from lade.server.app import get_ctx, mcp
+from lade.server.helpers import (
     _DEFAULT_SEARCH_LIMIT,
     _HINT_CHAR_LIMIT,
     _PREVIEW_CHAR_LIMIT,
@@ -35,7 +35,7 @@ from mulder.server.helpers import (
     window_has_pid,
     windowed_response,
 )
-from mulder.server.tool_access import PLANNERS, Role, tool_access
+from lade.server.tool_access import PLANNERS, Role, tool_access
 
 logger = logging.getLogger(__name__)
 
@@ -484,7 +484,7 @@ def correlate_across_sources(
     }
 
     # Index results so later phases can search them
-    from mulder.server.extract_helpers import extract_and_index
+    from lade.server.extract_helpers import extract_and_index
 
     source_name = "composite.correlation"
     try:

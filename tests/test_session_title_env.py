@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 from claude_agent_sdk import ClaudeAgentOptions
 
-from mulder.orchestrator.runner import Orchestrator
+from lade.orchestrator.runner import Orchestrator
 
 _VAR = "CLAUDE_CODE_DISABLE_TERMINAL_TITLE"
 
@@ -19,7 +19,7 @@ _VAR = "CLAUDE_CODE_DISABLE_TERMINAL_TITLE"
 async def test_session_title_disabled_unless_caller_overrides(
     utility: bool, caller_value: str | None
 ) -> None:
-    env = {"MULDER_TEST_MARKER": "x"}
+    env = {"LADE_TEST_MARKER": "x"}
     if caller_value is not None:
         env[_VAR] = caller_value
     orchestrator = Orchestrator("/evidence", env=env)
@@ -30,7 +30,7 @@ async def test_session_title_disabled_unless_caller_overrides(
         return
         yield  # pragma: no cover
 
-    with patch("mulder.orchestrator.session.query", capture_query):
+    with patch("lade.orchestrator.session.query", capture_query):
         if utility:
             await orchestrator._session.execute_utility("wait", [], "wait_all")
         else:
@@ -38,4 +38,4 @@ async def test_session_title_disabled_unless_caller_overrides(
 
     assert len(seen) == 1
     assert seen[0][_VAR] == (caller_value or "1")
-    assert seen[0]["MULDER_TEST_MARKER"] == "x"
+    assert seen[0]["LADE_TEST_MARKER"] == "x"

@@ -5,16 +5,16 @@ from __future__ import annotations
 import json
 from unittest.mock import patch
 
-from mulder.orchestrator.evidence import EvidenceContext
-from mulder.orchestrator.runner import (
+from lade.orchestrator.evidence import EvidenceContext
+from lade.orchestrator.runner import (
     Orchestrator,
 )
-from mulder.orchestrator.types import PhaseResult, extract_catalog_result, extract_json_from_text
+from lade.orchestrator.types import PhaseResult, extract_catalog_result, extract_json_from_text
 
 
 def _make_orchestrator(evidence_path: str = "/evidence") -> Orchestrator:
     """Create an Orchestrator with a mocked dashboard for unit testing."""
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         return Orchestrator(evidence_path=evidence_path)
 
 

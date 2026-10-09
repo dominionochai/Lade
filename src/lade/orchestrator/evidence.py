@@ -6,7 +6,7 @@ Contains two collaborators extracted from the Orchestrator:
   strings, identifies systems from catalog output, and groups them for
   extraction sessions.
 - ``ServerBridge``: performs zero-LLM-cost direct tool invocations against
-  the mulder server for summaries, readiness checks, and consistency reports.
+  the lade server for summaries, readiness checks, and consistency reports.
 """
 
 from __future__ import annotations
@@ -15,9 +15,9 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from mulder.extractors.optical import probe_optical
-from mulder.orchestrator.types import PhaseResult, extract_catalog_result
-from mulder.patterns import DISK_IMAGE_EXTS, extract_iocs_from_text, resolve_db_dir
+from lade.extractors.optical import probe_optical
+from lade.orchestrator.types import PhaseResult, extract_catalog_result
+from lade.patterns import DISK_IMAGE_EXTS, extract_iocs_from_text, resolve_db_dir
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +49,9 @@ class EvidenceContext:
         self.evidence_path = evidence_path
 
     def load_case_briefing(self) -> str:
-        """Load optional MULDER.md case briefing from the evidence directory.
+        """Load optional LADE.md case briefing from the evidence directory.
 
-        If a MULDER.md file exists in the evidence root, its contents are
+        If a LADE.md file exists in the evidence root, its contents are
         returned wrapped with an INVESTIGATOR BRIEFING header. This context
         is injected into planner, analyst, and report prompts to guide the
         investigation toward user-specified questions and known facts.
@@ -59,7 +59,7 @@ class EvidenceContext:
         Returns:
             Formatted briefing string, or empty string if no file exists.
         """
-        briefing_path = Path(self.evidence_path) / "MULDER.md"
+        briefing_path = Path(self.evidence_path) / "LADE.md"
         if briefing_path.is_file():
             content = briefing_path.read_text(encoding="utf-8", errors="replace").strip()
             if content:
@@ -86,7 +86,7 @@ class EvidenceContext:
             fallback instruction when no files are found.
         """
         evidence_path = Path(self.evidence_path)
-        extracted_dir = Path.home() / ".mulder" / "cases" / "extracted"
+        extracted_dir = Path.home() / ".lade" / "cases" / "extracted"
 
         sys_lower = system_name.lower()
 
@@ -267,7 +267,7 @@ class EvidenceContext:
 class ServerBridge:
     """Zero-cost direct tool invocations bypassing the LLM layer.
 
-    Encapsulates coupling to ``mulder.server.app`` internals, providing
+    Encapsulates coupling to ``lade.server.app`` internals, providing
     direct access to the investigation database for summaries, readiness
     checks, and consistency analysis without spending LLM tokens.
     """
@@ -278,7 +278,7 @@ class ServerBridge:
         Args:
             case_id: Case identifier for loading the correct database.
             db_dir: Directory holding the case database. Falls back to
-                ``$MULDER_DB_DIR`` and then the default when not given.
+                ``$LADE_DB_DIR`` and then the default when not given.
         """
         self._case_id = case_id
         self._db_dir = db_dir
@@ -289,10 +289,10 @@ class ServerBridge:
         Always rebuilds the context to ensure the DB and audit log reflect
         the latest state (tools may have indexed data since last call).
         """
-        import mulder.server.app as server_app
+        import lade.server.app as server_app
 
         if server_app._cfg is None:
-            from mulder.server.app import ServerConfig
+            from lade.server.app import ServerConfig
 
             server_app._cfg = ServerConfig(db_dir=resolve_db_dir(self._db_dir))
 
@@ -302,7 +302,7 @@ class ServerBridge:
     def cleanup(self) -> None:
         """Close the local server context opened for direct tool calls."""
         try:
-            import mulder.server.app as server_app
+            import lade.server.app as server_app
 
             if server_app._ctx is not None:
                 server_app._close_current_ctx()
@@ -320,7 +320,7 @@ class ServerBridge:
         """
         try:
             self.ensure_context()
-            from mulder.server.app import _tool_dispatch_sync
+            from lade.server.app import _tool_dispatch_sync
 
             fn = _tool_dispatch_sync["get_investigation_summary"]
             result: dict[str, Any] = dict(fn())
@@ -340,7 +340,7 @@ class ServerBridge:
         """
         try:
             self.ensure_context()
-            from mulder.server.app import _tool_dispatch_sync
+            from lade.server.app import _tool_dispatch_sync
 
             fn = _tool_dispatch_sync["check_finalize_readiness"]
             result: dict[str, Any] = dict(fn())
@@ -362,7 +362,7 @@ class ServerBridge:
         """
         try:
             self.ensure_context()
-            from mulder.server.app import get_ctx
+            from lade.server.app import get_ctx
 
             findings = get_ctx().db.get_findings()
         except Exception:

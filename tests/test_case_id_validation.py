@@ -8,12 +8,12 @@
 An ID supplied by an agent skipped that and went to the filesystem verbatim,
 as ``db_dir / f"{case_id}.db"`` and every sidecar path beside it::
 
-    db_dir  = /home/analyst/.mulder/cases
+    db_dir  = /home/analyst/.lade/cases
     case_id = "../../../../home/analyst/cases/CASE-2024-007"
     ->        /home/analyst/cases/CASE-2024-007.db
 
 ``open_case`` had the same hole and one more: ``scan_evidence`` and
-``create_case`` both refuse to work on a case other than ``MULDER_CASE_ID``
+``create_case`` both refuse to work on a case other than ``LADE_CASE_ID``
 when it is set, and ``open_case`` did not consult it at all. An agent pinned
 to CASE-A could call ``open_case("CASE-B")``, and every subsequent finding,
 note and export would be written to CASE-B.
@@ -24,7 +24,7 @@ that" is not a control.
 
 The check is containment only. A case ID that contains no path separator is
 exactly one component once a suffix is appended, and one component cannot be
-``.`` or ``..``, so it cannot leave ``db_dir``. IDs that mulder accepted before
+``.`` or ``..``, so it cannot leave ``db_dir``. IDs that lade accepted before
 and that do not escape -- spaces, accents, leading dashes, embedded ``..`` --
 still work, and the tests below pin that as hard as they pin the traversal.
 """
@@ -37,7 +37,7 @@ from pathlib import Path
 
 import pytest
 
-from mulder.server.app import slugify, validate_case_id
+from lade.server.app import slugify, validate_case_id
 
 
 class TestWhatAValidIdLooksLike:
@@ -49,7 +49,7 @@ class TestWhatAValidIdLooksLike:
             "a",
             "host_1.image",
             "0",
-            # Accepted by mulder's CLI today, and none of them escape db_dir.
+            # Accepted by lade's CLI today, and none of them escape db_dir.
             "Incident 2026",
             "café",
             "-case",
@@ -142,7 +142,7 @@ class TestTheTraversalItWasBlocking:
 @pytest.fixture
 def initialised_server(tmp_path: Path) -> None:
     """open_case reaches get_cfg() only after the enforcement checks pass."""
-    from mulder.server.app import init_server
+    from lade.server.app import init_server
 
     init_server(db_dir=tmp_path)
 
@@ -151,9 +151,9 @@ class TestOpenCaseHonoursTheEnforcedCase:
     def test_a_different_case_is_refused(
         self, monkeypatch: pytest.MonkeyPatch, initialised_server: None
     ) -> None:
-        from mulder.server.tools.case import open_case
+        from lade.server.tools.case import open_case
 
-        monkeypatch.setenv("MULDER_CASE_ID", "CASE-A")
+        monkeypatch.setenv("LADE_CASE_ID", "CASE-A")
         result = open_case.__wrapped__("CASE-B")  # type: ignore[attr-defined]
         assert result["status"] == "error"
         assert result["error_type"] == "forbidden"
@@ -163,9 +163,9 @@ class TestOpenCaseHonoursTheEnforcedCase:
         self, monkeypatch: pytest.MonkeyPatch, initialised_server: None
     ) -> None:
         """The guard must not block the case the agent is pinned to."""
-        from mulder.server.tools.case import open_case
+        from lade.server.tools.case import open_case
 
-        monkeypatch.setenv("MULDER_CASE_ID", "CASE-A")
+        monkeypatch.setenv("LADE_CASE_ID", "CASE-A")
         result = open_case.__wrapped__("CASE-A")  # type: ignore[attr-defined]
         # It gets past the guard; the case does not exist in this environment.
         assert result["error_type"] == "not_found"
@@ -173,18 +173,18 @@ class TestOpenCaseHonoursTheEnforcedCase:
     def test_a_traversal_is_refused_before_anything_else(
         self, monkeypatch: pytest.MonkeyPatch, initialised_server: None
     ) -> None:
-        from mulder.server.tools.case import open_case
+        from lade.server.tools.case import open_case
 
-        monkeypatch.delenv("MULDER_CASE_ID", raising=False)
+        monkeypatch.delenv("LADE_CASE_ID", raising=False)
         result = open_case.__wrapped__("../../shared/cases/CASE-B")  # type: ignore[attr-defined]
         assert result["error_type"] == "invalid_input"
 
     def test_no_enforcement_leaves_ordinary_use_alone(
         self, monkeypatch: pytest.MonkeyPatch, initialised_server: None
     ) -> None:
-        from mulder.server.tools.case import open_case
+        from lade.server.tools.case import open_case
 
-        monkeypatch.delenv("MULDER_CASE_ID", raising=False)
+        monkeypatch.delenv("LADE_CASE_ID", raising=False)
         result = open_case.__wrapped__("CASE-B")  # type: ignore[attr-defined]
         assert result["error_type"] == "not_found"
 
@@ -201,8 +201,8 @@ class TestLoadCaseIsTheChokePoint:
     """
 
     def test_load_case_refuses_a_traversal(self, tmp_path: Path) -> None:
-        from mulder.db import CaseDB
-        from mulder.server.app import init_server, load_case
+        from lade.db import CaseDB
+        from lade.server.app import init_server, load_case
 
         db_dir = tmp_path / "cases"
         db_dir.mkdir()
@@ -224,8 +224,8 @@ class TestLoadCaseIsTheChokePoint:
 
     def test_load_case_still_opens_a_legitimate_case(self, tmp_path: Path) -> None:
         """The guard must not break the ordinary path."""
-        from mulder.db import CaseDB
-        from mulder.server.app import init_server, load_case
+        from lade.db import CaseDB
+        from lade.server.app import init_server, load_case
 
         db_dir = tmp_path / "cases"
         db_dir.mkdir()
@@ -241,12 +241,12 @@ class TestLoadCaseIsTheChokePoint:
     ) -> None:
         """Agent sessions pass --case-id before scan_evidence has created the
         case (issue #230); the server must start in ready state, not crash."""
-        from mulder.server.app import init_server
+        from lade.server.app import init_server
 
         db_dir = tmp_path / "cases"
         db_dir.mkdir()
 
-        with caplog.at_level(logging.WARNING, logger="mulder.server.app"):
+        with caplog.at_level(logging.WARNING, logger="lade.server.app"):
             init_server(db_dir=db_dir, case_id="CASE-230")
 
         assert "CASE-230" in caplog.text
@@ -254,7 +254,7 @@ class TestLoadCaseIsTheChokePoint:
 
     def test_init_server_refuses_a_traversal_case_id(self, tmp_path: Path) -> None:
         """init_server(case_id=...) reaches load_case without passing open_case."""
-        from mulder.server.app import init_server
+        from lade.server.app import init_server
 
         db_dir = tmp_path / "cases"
         db_dir.mkdir()

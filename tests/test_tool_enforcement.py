@@ -14,19 +14,19 @@ from claude_agent_sdk import ClaudeAgentOptions
 from claude_agent_sdk._internal.transport.subprocess_cli import SubprocessCLITransport
 from claude_agent_sdk.types import AssistantMessage, SystemMessage, TextBlock
 
-from mulder.orchestrator.phases import CATALOG, CROSS_SYSTEM, EXTRACTION, REPORT
-from mulder.orchestrator.roles import _EXECUTOR_CONTROL_TOOLS, RoleRunner
-from mulder.orchestrator.runner import Orchestrator
-from mulder.orchestrator.session import _MCP_CONNECT_ATTEMPTS, builtin_tools, off_role_tools
-from mulder.orchestrator.types import AnalystResult, ExecutionResults, PhaseResult, Plan
-from mulder.server.tool_access import ALL_ROLES, get_tools_for_role
+from lade.orchestrator.phases import CATALOG, CROSS_SYSTEM, EXTRACTION, REPORT
+from lade.orchestrator.roles import _EXECUTOR_CONTROL_TOOLS, RoleRunner
+from lade.orchestrator.runner import Orchestrator
+from lade.orchestrator.session import _MCP_CONNECT_ATTEMPTS, builtin_tools, off_role_tools
+from lade.orchestrator.types import AnalystResult, ExecutionResults, PhaseResult, Plan
+from lade.server.tool_access import ALL_ROLES, get_tools_for_role
 
 ALL_TOOLS = frozenset(get_tools_for_role(ALL_ROLES))
 
 #: ``@tool_access(Role.EXTRACT_EXECUTOR)`` only; the analyst called all six
 #: in the benchmark run that exposed the bug.
 EXECUTOR_ONLY = [
-    f"mcp__mulder__{name}"
+    f"mcp__lade__{name}"
     for name in (
         "run_mmls",
         "run_fls",
@@ -58,7 +58,7 @@ def _plan(*tools: str) -> Plan:
 
 
 def _init(status: str | None, tools: list[str]) -> SystemMessage:
-    servers = [] if status is None else [{"name": "mulder", "status": status}]
+    servers = [] if status is None else [{"name": "lade", "status": status}]
     return SystemMessage(subtype="init", data={"mcp_servers": servers, "tools": tools})
 
 
@@ -83,7 +83,7 @@ async def _capture_options(
         return
         yield  # pragma: no cover
 
-    with patch("mulder.orchestrator.session.query", fake_query):
+    with patch("lade.orchestrator.session.query", fake_query):
         if utility:
             await orch._session.execute_utility("wait", allowed, "wait_all")
         else:
@@ -117,11 +117,11 @@ def test_dynamic_executor_allowlist_keeps_control_tools() -> None:
         _plan("run_mmls"), EXTRACTION.executor_allowed_tools
     )
     off = set(off_role_tools(allowed))
-    assert "mcp__mulder__run_mmls" in allowed
+    assert "mcp__lade__run_mmls" in allowed
     assert set(allowed) >= _EXECUTOR_CONTROL_TOOLS
     assert _EXECUTOR_CONTROL_TOOLS.isdisjoint(off)
     # Executor-role tools the plan did not ask for are hidden too.
-    assert "mcp__mulder__run_bulk_extractor" in off
+    assert "mcp__lade__run_bulk_extractor" in off
 
 
 @pytest.mark.asyncio()
@@ -153,7 +153,7 @@ async def test_cli_command_disallows_off_role_tools(tmp_path: Path) -> None:
 @pytest.mark.asyncio()
 async def test_cli_command_uses_workspace_mcp_config(tmp_path: Path) -> None:
     mcp_json = tmp_path / ".mcp.json"
-    mcp_json.write_text('{"mcpServers": {"mulder": {"command": "mulder", "args": ["serve"]}}}')
+    mcp_json.write_text('{"mcpServers": {"lade": {"command": "lade", "args": ["serve"]}}}')
     orch = Orchestrator("/evidence", cwd=str(tmp_path))
     cmd = _cli_args(await _capture_options(orch, CATALOG.single_allowed_tools, ["Bash"]))
     assert _flag(cmd, "--mcp-config") == [str(mcp_json)]
@@ -162,17 +162,17 @@ async def test_cli_command_uses_workspace_mcp_config(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio()
 async def test_session_with_case_id_preloads_case_in_mcp_server(tmp_path: Path) -> None:
-    """The mulder server starts with the case so query tools work before
+    """The lade server starts with the case so query tools work before
     the model calls open_case; other servers in .mcp.json are kept (issue #230)."""
     (tmp_path / ".mcp.json").write_text(
-        '{"mcpServers": {"mulder": {"command": "mulder", "args": ["serve"]},'
+        '{"mcpServers": {"lade": {"command": "lade", "args": ["serve"]},'
         ' "other": {"command": "other-server"}}}'
     )
     orch = Orchestrator("/evidence", cwd=str(tmp_path), case_id="CASE-230")
     options = await _capture_options(orch, CATALOG.single_allowed_tools, ["Bash"])
     servers = cast("dict[str, dict[str, object]]", options.mcp_servers)
-    assert servers["mulder"]["command"] == "mulder"
-    assert servers["mulder"]["args"] == ["serve", "--case-id", "CASE-230"]
+    assert servers["lade"]["command"] == "lade"
+    assert servers["lade"]["args"] == ["serve", "--case-id", "CASE-230"]
     assert servers["other"] == {"command": "other-server"}
     assert options.strict_mcp_config is True
 
@@ -180,7 +180,7 @@ async def test_session_with_case_id_preloads_case_in_mcp_server(tmp_path: Path) 
 @pytest.mark.asyncio()
 async def test_session_without_case_id_keeps_workspace_mcp_config(tmp_path: Path) -> None:
     mcp_json = tmp_path / ".mcp.json"
-    mcp_json.write_text('{"mcpServers": {"mulder": {"command": "mulder", "args": ["serve"]}}}')
+    mcp_json.write_text('{"mcpServers": {"lade": {"command": "lade", "args": ["serve"]}}}')
     orch = Orchestrator("/evidence", cwd=str(tmp_path))
     options = await _capture_options(orch, CATALOG.single_allowed_tools, ["Bash"])
     assert options.mcp_servers == str(mcp_json)
@@ -190,7 +190,7 @@ async def test_session_without_case_id_keeps_workspace_mcp_config(tmp_path: Path
 @pytest.mark.asyncio()
 async def test_utility_query_is_restricted_too(tmp_path: Path) -> None:
     orch = Orchestrator("/evidence", cwd=str(tmp_path))
-    allowed = ["mcp__mulder__wait_all", "mcp__mulder__open_case", "mcp__mulder__list_cases"]
+    allowed = ["mcp__lade__wait_all", "mcp__lade__open_case", "mcp__lade__list_cases"]
     options = await _capture_options(orch, allowed, [], utility=True)
     assert set(options.disallowed_tools) == ALL_TOOLS - set(allowed)
     assert options.tools == []
@@ -212,7 +212,7 @@ async def test_proxy_env_added_after_construction_still_reaches_sessions(
 # (a) sessions must start with their MCP tools
 # ---------------------------------------------------------------------------
 
-ALLOWED = ["mcp__mulder__open_case", "mcp__mulder__search"]
+ALLOWED = ["mcp__lade__open_case", "mcp__lade__search"]
 
 
 @pytest.mark.parametrize(
@@ -221,7 +221,7 @@ ALLOWED = ["mcp__mulder__open_case", "mcp__mulder__search"]
         ("failed", ["Read", "Edit"]),
         ("pending", ["Read", "Edit"]),
         (None, ["Read", "Edit"]),
-        ("connected", ["Read", "mcp__mulder__open_case"]),
+        ("connected", ["Read", "mcp__lade__open_case"]),
     ],
 )
 @pytest.mark.asyncio()
@@ -243,7 +243,7 @@ async def test_session_without_its_tools_is_aborted_and_retried(
             raise
 
     with (
-        patch("mulder.orchestrator.session.query", no_tools_query),
+        patch("lade.orchestrator.session.query", no_tools_query),
         caplog.at_level(logging.ERROR),
     ):
         result = await orch._session.execute("sys", "p", "test-model", ALLOWED, [], 5, "host-a")
@@ -270,12 +270,12 @@ async def test_session_with_its_tools_proceeds_and_flags_builtins(
     async def healthy_query(*, prompt: str, options: ClaudeAgentOptions) -> AsyncIterator[object]:
         nonlocal calls
         calls += 1
-        yield _init("connected", [*leaked, *ALLOWED, "mcp__mulder__run_mmls"])
+        yield _init("connected", [*leaked, *ALLOWED, "mcp__lade__run_mmls"])
         yield AssistantMessage(content=[TextBlock(text="working")], model="m")
 
     with (
-        patch("mulder.orchestrator.session.query", healthy_query),
-        caplog.at_level(logging.WARNING, logger="mulder.orchestrator.session"),
+        patch("lade.orchestrator.session.query", healthy_query),
+        caplog.at_level(logging.WARNING, logger="lade.orchestrator.session"),
     ):
         result = await orch._session.execute("sys", "p", "test-model", ALLOWED, [], 5)
 
@@ -288,7 +288,7 @@ async def test_session_with_its_tools_proceeds_and_flags_builtins(
 
 
 def test_builtin_tools_is_every_non_mcp_name() -> None:
-    init = _init("connected", ["Write", "mcp__mulder__open_case", "Bash", "mcp__other__x"])
+    init = _init("connected", ["Write", "mcp__lade__open_case", "Bash", "mcp__other__x"])
     assert builtin_tools(init) == ["Bash", "Write"]
     assert builtin_tools(SystemMessage(subtype="init", data={})) == []
 
@@ -302,7 +302,7 @@ async def test_session_without_mcp_allowlist_skips_check() -> None:
         yield _init(None, ["Read"])
         yield AssistantMessage(content=[TextBlock(text='{"tasks": []}')], model="m")
 
-    with patch("mulder.orchestrator.session.query", bare_query):
+    with patch("lade.orchestrator.session.query", bare_query):
         result = await orch._session.execute("sys", "p", "test-model", [], ["Bash"], 1)
 
     assert result.messages == ['{"tasks": []}']
@@ -315,7 +315,7 @@ async def test_session_without_mcp_allowlist_skips_check() -> None:
 
 @pytest.mark.asyncio()
 async def test_run_executor_reports_tool_calls() -> None:
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         orch = Orchestrator("/evidence")
     orch._case_id = "case"
 
@@ -347,7 +347,7 @@ async def test_run_executor_reports_tool_calls() -> None:
 async def test_run_executor_counts_only_extraction_calls(
     tool_names: list[str], expected: int
 ) -> None:
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         orch = Orchestrator("/evidence")
     orch._case_id = "case"
 
@@ -365,7 +365,7 @@ async def test_run_executor_counts_only_extraction_calls(
 @pytest.mark.asyncio()
 async def test_control_only_executor_is_retried() -> None:
     """open_case + wait with no extraction call is idle; one real call is not."""
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         orch = Orchestrator("/evidence")
     orch._case_id = "case"
     sessions = iter([["open_case", "wait"], ["open_case", "run_mmls"]])
@@ -444,7 +444,7 @@ def _split_phase_mocks(
 
 @pytest.mark.asyncio()
 async def test_zero_tool_executor_skips_analyst_and_retries_phase() -> None:
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         orch = Orchestrator("/evidence")
     counts, mocks = _split_phase_mocks([0, 3])
     wait = AsyncMock()
@@ -471,7 +471,7 @@ async def test_zero_tool_executor_skips_analyst_and_retries_phase() -> None:
 
 @pytest.mark.asyncio()
 async def test_zero_tool_executor_on_every_attempt_fails_phase() -> None:
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         orch = Orchestrator("/evidence")
     attempts = 1 + CROSS_SYSTEM.max_retries
     counts, mocks = _split_phase_mocks([0] * attempts)

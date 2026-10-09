@@ -11,17 +11,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from mulder.patterns import IP_RE, UNIX_PATH_RE, WIN_PATH_RE
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.patterns import IP_RE, UNIX_PATH_RE, WIN_PATH_RE
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     adaptive_timeout,
     error_response,
     make_tool_call_id,
     require_binary,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 __all__ = [
     "run_capa",
@@ -99,7 +99,7 @@ SUSPICIOUS_API_CATEGORIES: dict[str, list[str]] = {
     ],
 }
 
-# _URL_RE and _REGISTRY_RE have no counterpart in mulder.patterns and no other
+# _URL_RE and _REGISTRY_RE have no counterpart in lade.patterns and no other
 # caller, so they stay local. IP and filesystem paths do have one, and the
 # copies here had drifted: the local Unix pattern knew only /usr, /etc, /tmp
 # and /var, so strings like /root/.bash_history and /home/victim/.ssh/id_rsa

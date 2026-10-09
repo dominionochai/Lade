@@ -1,11 +1,11 @@
-"""Tests for mulder.models -- Pydantic model validation."""
+"""Tests for lade.models -- Pydantic model validation."""
 
 from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError
 
-from mulder.models import Finding
+from lade.models import Finding
 
 
 class TestFinding:

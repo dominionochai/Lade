@@ -23,7 +23,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.documents import _analyze_macros_olevba, analyze_office_document
+from lade.server.tools.documents import _analyze_macros_olevba, analyze_office_document
 
 _META = {
     "script_name": "olevba",
@@ -62,8 +62,8 @@ def _invoke(document: Path, proc: Any) -> tuple[Any, list[str]]:
         return {}
 
     with (
-        patch("mulder.server.tools.documents.subprocess.run", return_value=proc),
-        patch("mulder.server.tools.documents.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.documents.subprocess.run", return_value=proc),
+        patch("lade.server.tools.documents.extract_and_index", side_effect=_record),
     ):
         result = analyze_office_document.__wrapped__(  # type: ignore[attr-defined]
             "case-1", str(document), analyze_dde=False
@@ -161,9 +161,9 @@ def test_macros_found_before_a_non_zero_exit_are_kept(document: Path) -> None:
     reason="oletools not installed",
 )
 def test_the_real_olevba_binary_rejects_a_corrupt_document(tmp_path: Path) -> None:
-    """No mocks: drive the actual olevba that ships as a mulder dependency.
+    """No mocks: drive the actual olevba that ships as a lade dependency.
 
-    A random-bytes .doc passes mulder's existence and extension checks, so this
+    A random-bytes .doc passes lade's existence and extension checks, so this
     is reachable through the MCP tool. olevba exits 5 and prints a FileOpenError
     record; before this fix the wrapper turned that into ([], [], False).
     """

@@ -1,12 +1,12 @@
-"""Tests for mulder.report.renderer -- IOC extraction, provenance, rendering."""
+"""Tests for lade.report.renderer -- IOC extraction, provenance, rendering."""
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
 
-from mulder.models import AuditSummary, CaseMetadataRow, Finding
-from mulder.report.renderer import (
+from lade.models import AuditSummary, CaseMetadataRow, Finding
+from lade.report.renderer import (
     ReportRenderer,
     _attack_id_to_url,
     _build_executive_summary_md,
@@ -303,7 +303,7 @@ class TestRenderAll:
 
 class TestSourceCountReconciliation:
     def test_uses_breakdown_sum_when_present(self) -> None:
-        from mulder.models import SourceRow
+        from lade.models import SourceRow
 
         sources = [
             SourceRow(

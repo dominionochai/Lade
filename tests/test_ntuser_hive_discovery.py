@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from mulder.server.tools.extract.registry import (
+from lade.server.tools.extract.registry import (
     _NTUSER_PLUGINS,
     _USRCLASS_PLUGINS,
     _discover_user_hives_via_tsk,
@@ -69,8 +69,8 @@ class TestDiscoverUserHivesViaTsk:
         """Create a single fls output line."""
         return f"r/r {inode}:\t{path}"
 
-    @patch("mulder.server.tools.extract.registry.subprocess.run")
-    @patch("mulder.server.tools.extract.registry._collect_fls_chunks")
+    @patch("lade.server.tools.extract.registry.subprocess.run")
+    @patch("lade.server.tools.extract.registry._collect_fls_chunks")
     def test_discovers_xp_ntuser(
         self,
         mock_chunks: MagicMock,
@@ -100,8 +100,8 @@ class TestDiscoverUserHivesViaTsk:
         assert all(h[1] == "ntuser" for h in hives)
         assert extract_dir is not None
 
-    @patch("mulder.server.tools.extract.registry.subprocess.run")
-    @patch("mulder.server.tools.extract.registry._collect_fls_chunks")
+    @patch("lade.server.tools.extract.registry.subprocess.run")
+    @patch("lade.server.tools.extract.registry._collect_fls_chunks")
     def test_discovers_modern_ntuser(
         self,
         mock_chunks: MagicMock,
@@ -122,8 +122,8 @@ class TestDiscoverUserHivesViaTsk:
         assert hives[0][1] == "ntuser"
         assert hives[0][2] == "Alice"
 
-    @patch("mulder.server.tools.extract.registry.subprocess.run")
-    @patch("mulder.server.tools.extract.registry._collect_fls_chunks")
+    @patch("lade.server.tools.extract.registry.subprocess.run")
+    @patch("lade.server.tools.extract.registry._collect_fls_chunks")
     def test_discovers_usrclass(
         self,
         mock_chunks: MagicMock,
@@ -147,8 +147,8 @@ class TestDiscoverUserHivesViaTsk:
         assert hives[0][1] == "usrclass"
         assert hives[0][2] == "jdoe"
 
-    @patch("mulder.server.tools.extract.registry.subprocess.run")
-    @patch("mulder.server.tools.extract.registry._collect_fls_chunks")
+    @patch("lade.server.tools.extract.registry.subprocess.run")
+    @patch("lade.server.tools.extract.registry._collect_fls_chunks")
     def test_mixed_layout_discovery(
         self,
         mock_chunks: MagicMock,
@@ -180,7 +180,7 @@ class TestDiscoverUserHivesViaTsk:
         assert ("ntuser", "newuser") in types
         assert ("usrclass", "newuser") in types
 
-    @patch("mulder.server.tools.extract.registry._collect_fls_chunks")
+    @patch("lade.server.tools.extract.registry._collect_fls_chunks")
     def test_no_fls_data_returns_empty(self, mock_chunks: MagicMock) -> None:
         """Returns empty list when no fls data is available."""
         mock_chunks.return_value = []
@@ -190,8 +190,8 @@ class TestDiscoverUserHivesViaTsk:
         assert hives == []
         assert extract_dir is None
 
-    @patch("mulder.server.tools.extract.registry.subprocess.run")
-    @patch("mulder.server.tools.extract.registry._collect_fls_chunks")
+    @patch("lade.server.tools.extract.registry.subprocess.run")
+    @patch("lade.server.tools.extract.registry._collect_fls_chunks")
     def test_icat_failure_skips_hive(
         self,
         mock_chunks: MagicMock,
@@ -229,9 +229,9 @@ class TestDiscoverUserHivesViaTsk:
 class TestParseAllUserHives:
     """Tests for _parse_all_user_hives and integration with run_registry_parser."""
 
-    @patch("mulder.server.tools.extract.registry._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry._parse_single_hive")
-    @patch("mulder.server.tools.extract.registry._discover_user_hives_via_tsk")
+    @patch("lade.server.tools.extract.registry._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry._parse_single_hive")
+    @patch("lade.server.tools.extract.registry._discover_user_hives_via_tsk")
     def test_plugin_selection_ntuser(
         self,
         mock_discover: MagicMock,
@@ -256,9 +256,9 @@ class TestParseAllUserHives:
             hive_path, "registry.ntuser.jdoe", "/images/disk.dd", plugins=_NTUSER_PLUGINS
         )
 
-    @patch("mulder.server.tools.extract.registry._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry._parse_single_hive")
-    @patch("mulder.server.tools.extract.registry._discover_user_hives_via_tsk")
+    @patch("lade.server.tools.extract.registry._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry._parse_single_hive")
+    @patch("lade.server.tools.extract.registry._discover_user_hives_via_tsk")
     def test_plugin_selection_usrclass(
         self,
         mock_discover: MagicMock,
@@ -283,9 +283,9 @@ class TestParseAllUserHives:
             hive_path, "registry.usrclass.alice", "/images/disk.dd", plugins=_USRCLASS_PLUGINS
         )
 
-    @patch("mulder.server.tools.extract.registry._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry._parse_single_hive")
-    @patch("mulder.server.tools.extract.registry._discover_user_hives_via_tsk")
+    @patch("lade.server.tools.extract.registry._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry._parse_single_hive")
+    @patch("lade.server.tools.extract.registry._discover_user_hives_via_tsk")
     def test_source_naming(
         self,
         mock_discover: MagicMock,
@@ -308,9 +308,9 @@ class TestParseAllUserHives:
         assert calls[0][0][1] == "registry.ntuser.jdoe"
         assert calls[1][0][1] == "registry.usrclass.jdoe"
 
-    @patch("mulder.server.tools.extract.registry._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry._parse_single_hive")
-    @patch("mulder.server.tools.extract.registry._discover_user_hives_via_tsk")
+    @patch("lade.server.tools.extract.registry._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry._parse_single_hive")
+    @patch("lade.server.tools.extract.registry._discover_user_hives_via_tsk")
     def test_isolated_error_handling(
         self,
         mock_discover: MagicMock,
@@ -344,7 +344,7 @@ class TestParseAllUserHives:
         assert bad_result["status"] == "error"
         assert "bad_user" in bad_result["error"]
 
-    @patch("mulder.server.tools.extract.registry._discover_user_hives_via_tsk")
+    @patch("lade.server.tools.extract.registry._discover_user_hives_via_tsk")
     def test_no_user_hives_returns_empty(self, mock_discover: MagicMock) -> None:
         """Returns empty list when no user hives are found."""
         mock_discover.return_value = ([], None)
@@ -360,15 +360,15 @@ class TestRunRegistryParserUserHives:
     @staticmethod
     def _get_sync_fn() -> Any:
         """Get the unwrapped sync function from the tool dispatch."""
-        from mulder.server.app import _tool_dispatch_sync
+        from lade.server.app import _tool_dispatch_sync
 
         return _tool_dispatch_sync["run_registry_parser"]
 
-    @patch("mulder.server.tools.extract.registry._parse_all_user_hives")
-    @patch("mulder.server.tools.extract.registry._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry._parse_single_hive")
-    @patch("mulder.server.tools.extract.registry._discover_hives_via_tsk")
-    @patch("mulder.server.tools.extract.registry.sources_already_indexed")
+    @patch("lade.server.tools.extract.registry._parse_all_user_hives")
+    @patch("lade.server.tools.extract.registry._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry._parse_single_hive")
+    @patch("lade.server.tools.extract.registry._discover_hives_via_tsk")
+    @patch("lade.server.tools.extract.registry.sources_already_indexed")
     def test_include_user_hives_true_by_default(
         self,
         mock_indexed: MagicMock,
@@ -393,11 +393,11 @@ class TestRunRegistryParserUserHives:
 
         mock_user_hives.assert_called_once_with("/images/disk.dd")
 
-    @patch("mulder.server.tools.extract.registry._parse_all_user_hives")
-    @patch("mulder.server.tools.extract.registry._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry._parse_single_hive")
-    @patch("mulder.server.tools.extract.registry._discover_hives_via_tsk")
-    @patch("mulder.server.tools.extract.registry.sources_already_indexed")
+    @patch("lade.server.tools.extract.registry._parse_all_user_hives")
+    @patch("lade.server.tools.extract.registry._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry._parse_single_hive")
+    @patch("lade.server.tools.extract.registry._discover_hives_via_tsk")
+    @patch("lade.server.tools.extract.registry.sources_already_indexed")
     def test_include_user_hives_false_skips_user_parsing(
         self,
         mock_indexed: MagicMock,
@@ -419,11 +419,11 @@ class TestRunRegistryParserUserHives:
 
         mock_user_hives.assert_not_called()
 
-    @patch("mulder.server.tools.extract.registry._parse_all_user_hives")
-    @patch("mulder.server.tools.extract.registry._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry._parse_single_hive")
-    @patch("mulder.server.tools.extract.registry._discover_hives_via_tsk")
-    @patch("mulder.server.tools.extract.registry.sources_already_indexed")
+    @patch("lade.server.tools.extract.registry._parse_all_user_hives")
+    @patch("lade.server.tools.extract.registry._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry._parse_single_hive")
+    @patch("lade.server.tools.extract.registry._discover_hives_via_tsk")
+    @patch("lade.server.tools.extract.registry.sources_already_indexed")
     def test_specific_hive_skips_user_hives(
         self,
         mock_indexed: MagicMock,
@@ -445,11 +445,11 @@ class TestRunRegistryParserUserHives:
 
         mock_user_hives.assert_not_called()
 
-    @patch("mulder.server.tools.extract.registry._parse_all_user_hives")
-    @patch("mulder.server.tools.extract.registry._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry._parse_single_hive")
-    @patch("mulder.server.tools.extract.registry._discover_hives_via_tsk")
-    @patch("mulder.server.tools.extract.registry.sources_already_indexed")
+    @patch("lade.server.tools.extract.registry._parse_all_user_hives")
+    @patch("lade.server.tools.extract.registry._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry._parse_single_hive")
+    @patch("lade.server.tools.extract.registry._discover_hives_via_tsk")
+    @patch("lade.server.tools.extract.registry.sources_already_indexed")
     def test_skip_already_indexed(
         self,
         mock_indexed: MagicMock,

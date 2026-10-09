@@ -17,7 +17,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.extractors import disk
+from lade.extractors import disk
 
 _MMLS_NTFS = """DOS Partition Table
 Offset Sector: 0
@@ -60,8 +60,8 @@ def _fake_run(
 def test_e01_is_xmounted_at_partition_offset_then_fuse_mounted(tmp_path: Path) -> None:
     calls: list[list[str]] = []
     with (
-        patch("mulder.extractors.disk.shutil.which", _which),
-        patch("mulder.extractors.disk.subprocess.run", _fake_run(calls, mmls=_MMLS_NTFS)),
+        patch("lade.extractors.disk.shutil.which", _which),
+        patch("lade.extractors.disk.subprocess.run", _fake_run(calls, mmls=_MMLS_NTFS)),
     ):
         assert disk._mount_image(tmp_path / "image.E01", tmp_path / "mnt") is True
 
@@ -89,8 +89,8 @@ def test_split_ewf_passes_every_segment_to_xmount_in_order(tmp_path: Path, first
         (tmp_path / name).touch()
     calls: list[list[str]] = []
     with (
-        patch("mulder.extractors.disk.shutil.which", _which),
-        patch("mulder.extractors.disk.subprocess.run", _fake_run(calls)),
+        patch("lade.extractors.disk.shutil.which", _which),
+        patch("lade.extractors.disk.subprocess.run", _fake_run(calls)),
     ):
         assert disk._mount_image(tmp_path / first, tmp_path / "mnt") is True
 
@@ -106,9 +106,9 @@ def test_split_ewf_with_missing_middle_segment_stops_at_the_gap(
         (tmp_path / name).touch()
     calls: list[list[str]] = []
     with (
-        patch("mulder.extractors.disk.shutil.which", _which),
-        patch("mulder.extractors.disk.subprocess.run", _fake_run(calls)),
-        caplog.at_level("WARNING", logger="mulder.extractors.disk"),
+        patch("lade.extractors.disk.shutil.which", _which),
+        patch("lade.extractors.disk.subprocess.run", _fake_run(calls)),
+        caplog.at_level("WARNING", logger="lade.extractors.disk"),
     ):
         disk._mount_image(tmp_path / "image.E01", tmp_path / "mnt")
 
@@ -141,8 +141,8 @@ def test_failed_command_logs_stdout_and_argv_when_stderr_is_empty(
         )
 
     with (
-        patch("mulder.extractors.disk.subprocess.run", run),
-        caplog.at_level("WARNING", logger="mulder.extractors.disk"),
+        patch("lade.extractors.disk.subprocess.run", run),
+        caplog.at_level("WARNING", logger="lade.extractors.disk"),
     ):
         assert disk._run(["xmount", "--in", "ewf", "a b.E01"], 1) is False
 
@@ -155,8 +155,8 @@ def test_failed_command_logs_stdout_and_argv_when_stderr_is_empty(
 def test_raw_image_without_partition_table_falls_through_to_next_driver(tmp_path: Path) -> None:
     calls: list[list[str]] = []
     with (
-        patch("mulder.extractors.disk.shutil.which", _which),
-        patch("mulder.extractors.disk.subprocess.run", _fake_run(calls, {"ntfs-3g"})),
+        patch("lade.extractors.disk.shutil.which", _which),
+        patch("lade.extractors.disk.subprocess.run", _fake_run(calls, {"ntfs-3g"})),
     ):
         assert disk._mount_image(tmp_path / "image.dd", tmp_path / "mnt") is True
 
@@ -169,8 +169,8 @@ def test_raw_image_without_partition_table_falls_through_to_next_driver(tmp_path
 def test_xmount_failure_stops_before_any_driver(tmp_path: Path, name: str) -> None:
     calls: list[list[str]] = []
     with (
-        patch("mulder.extractors.disk.shutil.which", _which),
-        patch("mulder.extractors.disk.subprocess.run", _fake_run(calls, {"xmount"})),
+        patch("lade.extractors.disk.shutil.which", _which),
+        patch("lade.extractors.disk.subprocess.run", _fake_run(calls, {"xmount"})),
     ):
         assert disk._mount_image(tmp_path / name, tmp_path / "mnt") is False
 
@@ -181,8 +181,8 @@ def test_xmount_failure_stops_before_any_driver(tmp_path: Path, name: str) -> No
 def test_all_drivers_failing_unmounts_the_raw_file(tmp_path: Path) -> None:
     calls: list[list[str]] = []
     with (
-        patch("mulder.extractors.disk.shutil.which", _which),
-        patch("mulder.extractors.disk.subprocess.run", _fake_run(calls, {"ntfs-3g", "fuse2fs"})),
+        patch("lade.extractors.disk.shutil.which", _which),
+        patch("lade.extractors.disk.subprocess.run", _fake_run(calls, {"ntfs-3g", "fuse2fs"})),
     ):
         assert disk._mount_image(tmp_path / "image.dd", tmp_path / "mnt") is False
 
@@ -194,7 +194,7 @@ def test_all_drivers_failing_unmounts_the_raw_file(tmp_path: Path) -> None:
 def test_unmount_releases_filesystem_then_raw_file(tmp_path: Path) -> None:
     calls: list[list[str]] = []
     (tmp_path / "mnt.raw").mkdir(parents=True)
-    with patch("mulder.extractors.disk.subprocess.run", _fake_run(calls)):
+    with patch("lade.extractors.disk.subprocess.run", _fake_run(calls)):
         disk._unmount_image(tmp_path / "mnt")
 
     assert calls == [

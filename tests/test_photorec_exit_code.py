@@ -17,7 +17,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.extract.carving import run_photorec
+from lade.server.tools.extract.carving import run_photorec
 
 
 @pytest.fixture
@@ -37,14 +37,14 @@ def _invoke(image: Path, proc_or_fn: Any) -> tuple[Any, list[str]]:
 
     kwargs = {"side_effect": proc_or_fn} if callable(proc_or_fn) else {"return_value": proc_or_fn}
     with (
-        patch("mulder.server.tools.extract.carving.require_binary", return_value=True),
+        patch("lade.server.tools.extract.carving.require_binary", return_value=True),
         patch(
-            "mulder.server.tools.extract.carving.sources_already_indexed",
+            "lade.server.tools.extract.carving.sources_already_indexed",
             return_value=[],
         ),
-        patch("mulder.server.tools.extract.carving._check_disk_space", return_value=None),
-        patch("mulder.server.tools.extract.carving.subprocess.run", **kwargs),
-        patch("mulder.server.tools.extract.carving.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.extract.carving._check_disk_space", return_value=None),
+        patch("lade.server.tools.extract.carving.subprocess.run", **kwargs),
+        patch("lade.server.tools.extract.carving.extract_and_index", side_effect=_record),
     ):
         result = run_photorec.__wrapped__(str(image))  # type: ignore[attr-defined]
     return result, indexed

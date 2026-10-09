@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.extractors.optical import (
+from lade.extractors.optical import (
     SECTOR,
     OpticalError,
     extract_optical,
@@ -28,12 +28,12 @@ from mulder.extractors.optical import (
     probe_optical,
     signature_from_vrs,
 )
-from mulder.server.tool_access import Role, get_tools_for_role
+from lade.server.tool_access import Role, get_tools_for_role
 
 _FIXTURE = Path(__file__).parent / "fixtures" / "rm3_udf_metadata.json.gz"
 _RM3_SECTORS = 52513
-_TSK = "mulder.server.tools.extract.tsk"
-_OPT = "mulder.server.tools.extract.optical"
+_TSK = "lade.server.tools.extract.tsk"
+_OPT = "lade.server.tools.extract.optical"
 
 _CONFIDENTIAL = {
     "/design/winter_storm.amr",
@@ -153,14 +153,14 @@ class TestSignature:
         """EWF images are probed through TSK img_cat with 2048-byte sectors, no mount."""
         proc = subprocess.CompletedProcess(["img_cat"], 0, stdout=_vrs(b"BEA01", b"NSR03"))
         with (
-            patch("mulder.extractors.optical.shutil.which", return_value="/usr/bin/img_cat"),
-            patch("mulder.extractors.optical.subprocess.run", return_value=proc) as run,
+            patch("lade.extractors.optical.shutil.which", return_value="/usr/bin/img_cat"),
+            patch("lade.extractors.optical.subprocess.run", return_value=proc) as run,
         ):
             assert probe_optical("/evidence/rm3.E01") == "udf"
         cmd = run.call_args.args[0]
         assert cmd[:7] == ["img_cat", "-b", "2048", "-s", "16", "-e", "31"]
 
-        with patch("mulder.extractors.optical.shutil.which", return_value=None):
+        with patch("lade.extractors.optical.shutil.which", return_value=None):
             assert probe_optical("/evidence/rm3.E01") is None
 
 
@@ -262,7 +262,7 @@ class TestFlsFallback:
     @patch(f"{_TSK}.subprocess.run", return_value=_TSK_FAIL)
     @patch(f"{_TSK}.probe_optical", return_value="udf")
     def test_run_fls_names_optical_media(self, probe: MagicMock, *_: MagicMock) -> None:
-        from mulder.server.tools.extract.tsk import run_fls
+        from lade.server.tools.extract.tsk import run_fls
 
         result = run_fls.__wrapped__("/evidence/rm3.E01")  # type: ignore[attr-defined]
 
@@ -281,7 +281,7 @@ class TestFlsFallback:
     @patch(f"{_TSK}.subprocess.run", return_value=_TSK_FAIL)
     @patch(f"{_TSK}.probe_optical", return_value=None)
     def test_run_fls_keeps_tsk_error_for_hard_disks(self, *_: MagicMock) -> None:
-        from mulder.server.tools.extract.tsk import run_fls
+        from lade.server.tools.extract.tsk import run_fls
 
         result = run_fls.__wrapped__("/evidence/pc.E01")  # type: ignore[attr-defined]
 
@@ -294,7 +294,7 @@ class TestFlsFallback:
     @patch(f"{_TSK}.subprocess.run", return_value=_TSK_FAIL)
     @patch(f"{_TSK}.probe_optical", return_value="udf")
     def test_run_fsstat_and_mmls_redirect(self, *_: MagicMock) -> None:
-        from mulder.server.tools.extract.tsk import run_fsstat, run_mmls
+        from lade.server.tools.extract.tsk import run_fsstat, run_mmls
 
         for tool in (run_fsstat, run_mmls):
             result = tool.__wrapped__("/evidence/rm3.E01")  # type: ignore[attr-defined]
@@ -310,8 +310,8 @@ def test_tools_are_extract_executor_only() -> None:
     executor = set(get_tools_for_role(Role.EXTRACT_EXECUTOR))
     analyst = set(get_tools_for_role(Role.EXTRACT_ANALYST))
 
-    assert {"mcp__mulder__run_optical_listing", "mcp__mulder__extract_optical_file"} <= executor
-    assert "mcp__mulder__run_optical_listing" not in analyst
+    assert {"mcp__lade__run_optical_listing", "mcp__lade__extract_optical_file"} <= executor
+    assert "mcp__lade__run_optical_listing" not in analyst
 
 
 @contextmanager
@@ -321,7 +321,7 @@ def _raw(path: Path) -> Iterator[Path]:
 
 class TestOpticalTools:
     def test_run_optical_listing_indexes_the_disc(self, rm3_image: Path) -> None:
-        from mulder.server.tools.extract.optical import run_optical_listing
+        from lade.server.tools.extract.optical import run_optical_listing
 
         with (
             patch(f"{_OPT}.raw_image", side_effect=lambda p: _raw(rm3_image)),
@@ -340,7 +340,7 @@ class TestOpticalTools:
         assert "/design/winter_storm.amr" in text
 
     def test_run_optical_listing_rejects_hard_disks(self, tmp_path: Path) -> None:
-        from mulder.server.tools.extract.optical import run_optical_listing
+        from lade.server.tools.extract.optical import run_optical_listing
 
         ntfs = tmp_path / "usb.dd"
         ntfs.write_bytes(b"\0" * (40 * SECTOR))
@@ -351,7 +351,7 @@ class TestOpticalTools:
         assert result["error_type"] == "not_optical_media"
 
     def test_extract_optical_file(self, rm3_image: Path, tmp_path: Path) -> None:
-        from mulder.server.tools.extract.optical import extract_optical_file
+        from lade.server.tools.extract.optical import extract_optical_file
 
         cfg = MagicMock(db_dir=tmp_path / "cases")
         with (
@@ -380,14 +380,14 @@ class TestOpticalTools:
 
 
 def test_catalog_marks_optical_disk_images(tmp_path: Path) -> None:
-    from mulder.extractors.classifier import ClassifiedEvidence
-    from mulder.server.tools.case import _manifest_entry
+    from lade.extractors.classifier import ClassifiedEvidence
+    from lade.server.tools.case import _manifest_entry
 
     disc = tmp_path / "rm3.E01"
     disc.write_bytes(b"x")
-    with patch("mulder.server.tools.case.probe_optical", return_value="udf"):
+    with patch("lade.server.tools.case.probe_optical", return_value="udf"):
         entry = _manifest_entry(ClassifiedEvidence(path=disc, artifact_type="disk_image"))
-    with patch("mulder.server.tools.case.probe_optical", return_value=None):
+    with patch("lade.server.tools.case.probe_optical", return_value=None):
         plain = _manifest_entry(ClassifiedEvidence(path=disc, artifact_type="disk_image"))
 
     assert entry["media"] == "optical (udf)"

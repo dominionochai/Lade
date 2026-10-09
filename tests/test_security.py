@@ -7,8 +7,8 @@ import tarfile
 
 import pytest
 
-from mulder.server.tools.artifacts import _readonly_authorizer
-from mulder.server.tools.case import _safe_tar_filter
+from lade.server.tools.artifacts import _readonly_authorizer
+from lade.server.tools.case import _safe_tar_filter
 
 
 class TestSqliteAuthorizer:

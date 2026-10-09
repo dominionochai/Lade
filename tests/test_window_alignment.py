@@ -9,7 +9,7 @@ row paired with the PID from another.
 
 from __future__ import annotations
 
-from mulder.server.extract_helpers import _WINDOW_CHAR_BUDGET, _line_aligned_windows
+from lade.server.extract_helpers import _WINDOW_CHAR_BUDGET, _line_aligned_windows
 
 
 def _pslist(rows: int = 200) -> str:

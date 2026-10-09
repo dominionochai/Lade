@@ -12,16 +12,16 @@ import time
 from pathlib import Path
 from typing import Any
 
-from mulder.assets.paths import asset_path, asset_search_summary
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.assets.paths import asset_path, asset_search_summary
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     error_response,
     make_tool_call_id,
     require_binary,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 __all__ = [
     "analyze_office_document",
@@ -260,7 +260,7 @@ def _analyze_macros_olevba(
             producing a usable result -- no output at all, output that is not
             JSON, or JSON whose only content is olevba's own error records.
     """
-    # oletools is a mulder dependency, so its console scripts live in mulder's
+    # oletools is a lade dependency, so its console scripts live in lade's
     # own venv bin/ — which pipx does not link onto PATH.  Invoke the module.
     cmd = [sys.executable, "-m", "oletools.olevba", "--json", str(file_path)]
 
@@ -807,11 +807,11 @@ def analyze_office_document(
             tc_id,
             "analyze_office_document",
             params,
-            "oletools is not importable from mulder's interpreter",
+            "oletools is not importable from lade's interpreter",
             error_type="binary_missing",
             suggestion=(
-                "oletools is a mulder dependency; reinstall mulder "
-                "(pipx install --force mulder-dfir) or pip install oletools"
+                "oletools is a lade dependency; reinstall lade "
+                "(pipx install --force lade-dfir) or pip install oletools"
             ),
         )
 
@@ -987,7 +987,7 @@ def analyze_pdf(
             "pdfid not found on PATH or under "
             f"{asset_search_summary(_DIDIER_STEVENS_DIRNAME, 'pdfid.py')}",
             error_type="binary_missing",
-            suggestion="Run 'mulder setup --minimal' (installs the Didier Stevens suite).",
+            suggestion="Run 'lade setup --minimal' (installs the Didier Stevens suite).",
         )
 
     target = Path(file_path)

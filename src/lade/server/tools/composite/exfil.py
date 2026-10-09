@@ -6,14 +6,14 @@ import re
 import time
 from typing import Any
 
-from mulder.server.app import get_ctx, mcp
-from mulder.server.helpers import (
+from lade.server.app import get_ctx, mcp
+from lade.server.helpers import (
     _PREVIEW_CHAR_LIMIT,
     make_tool_call_id,
     slim_window,
 )
-from mulder.server.tool_access import Role, tool_access
-from mulder.server.tools.composite.core import (
+from lade.server.tool_access import Role, tool_access
+from lade.server.tools.composite.core import (
     _LATERAL_PORTS,
     _SRC_BULK_DOMAIN,
     _SRC_BULK_EMAIL,

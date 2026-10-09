@@ -15,11 +15,11 @@ import time
 from datetime import datetime
 from typing import Any
 
-from mulder.models import SourceRow, WindowRow
-from mulder.server import source_names as _sn
-from mulder.server.app import get_ctx
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.models import SourceRow, WindowRow
+from lade.server import source_names as _sn
+from lade.server.app import get_ctx
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     extract_pid,
     hash_output,
     make_tool_call_id,
@@ -49,7 +49,7 @@ _TOOL_SOURCE_MAP: dict[str, str] = {
 }
 
 # ---------------------------------------------------------------------------
-# Source-name constants (canonical definitions in mulder.server.source_names)
+# Source-name constants (canonical definitions in lade.server.source_names)
 # ---------------------------------------------------------------------------
 
 _SRC_NETSCAN = _sn.SRC_NETSCAN

@@ -17,10 +17,10 @@ import tempfile
 import time
 from pathlib import Path
 
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import error_response, make_tool_call_id, tool_response
-from mulder.server.tool_access import Role, tool_access
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import error_response, make_tool_call_id, tool_response
+from lade.server.tool_access import Role, tool_access
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ def run_mvt_android(
             error_type="file_not_found",
         )
 
-    with tempfile.TemporaryDirectory(prefix="mulder_mvt_android_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_mvt_android_") as tmpdir:
         if Path(evidence_path).is_dir():
             cmd = ["mvt-android", "check-backup", "-o", tmpdir, evidence_path]
         else:
@@ -211,7 +211,7 @@ def run_mvt_ios(
             error_type="file_not_found",
         )
 
-    with tempfile.TemporaryDirectory(prefix="mulder_mvt_ios_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_mvt_ios_") as tmpdir:
         subcommand = "check-fs" if mode == "fs" else "check-backup"
         cmd = ["mvt-ios", subcommand, "-o", tmpdir, evidence_path]
 
