@@ -1,4 +1,4 @@
-"""Tests for mulder.server.jobs -- JobStore batch lifecycle."""
+"""Tests for lade.server.jobs -- JobStore batch lifecycle."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from mulder.server.jobs import (
+from lade.server.jobs import (
     JobStore,
     _extract_error_detail,
     fill_case_id,
@@ -69,7 +69,7 @@ class TestSubmitBatch:
 
 
 class TestBatchStatus:
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
     def test_completed_status(self, _mock_wait: object) -> None:
         store = JobStore(max_workers=2, tool_dispatch={"fast_tool": _noop_dispatch})
         batch = store.submit_batch([{"tool": "fast_tool", "args": {}}])
@@ -104,7 +104,7 @@ class TestUnknownTool:
 
 
 class TestCompletedResults:
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
     def test_only_new_skips_delivered(self, _mock_wait: object) -> None:
         store = JobStore(max_workers=2, tool_dispatch={"tool_a": _noop_dispatch})
         batch = store.submit_batch(
@@ -124,7 +124,7 @@ class TestCompletedResults:
         assert len(second) == 0
         store.shutdown(wait=True)
 
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
     def test_tool_names_filter(self, _mock_wait: object) -> None:
         store = JobStore(
             max_workers=2,
@@ -151,8 +151,8 @@ class TestCompletedResults:
 class TestDeferredRetry:
     """Tests for the deferred retry system (SPEC-009b)."""
 
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
-    @patch("mulder.server.jobs.should_defer", return_value=True)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.jobs.should_defer", return_value=True)
     @patch.object(JobStore, "_retry_deferred")
     def test_timeout_deferred_under_load(
         self,
@@ -179,8 +179,8 @@ class TestDeferredRetry:
             assert "Deferred" in job.error
         store.shutdown(wait=True)
 
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
-    @patch("mulder.server.jobs.should_defer", return_value=False)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.jobs.should_defer", return_value=False)
     def test_timeout_failed_low_load(
         self,
         _mock_defer: object,
@@ -198,8 +198,8 @@ class TestDeferredRetry:
             assert "timed out" in job.error
         store.shutdown(wait=True)
 
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
-    @patch("mulder.server.jobs.should_defer", return_value=True)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.jobs.should_defer", return_value=True)
     def test_deferred_retry_after_batch(
         self,
         _mock_defer: object,
@@ -228,8 +228,8 @@ class TestDeferredRetry:
         assert status["all_done"]
         store.shutdown(wait=True)
 
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
-    @patch("mulder.server.jobs.should_defer", return_value=True)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.jobs.should_defer", return_value=True)
     def test_deferred_retry_succeeds(
         self,
         _mock_defer: object,
@@ -248,8 +248,8 @@ class TestDeferredRetry:
         assert tracker.calls == 2
         store.shutdown(wait=True)
 
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
-    @patch("mulder.server.jobs.should_defer", return_value=True)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.jobs.should_defer", return_value=True)
     def test_deferred_retry_still_fails(
         self,
         _mock_defer: object,
@@ -274,8 +274,8 @@ class TestDeferredRetry:
             assert job.status == "failed"
         store.shutdown(wait=True)
 
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
-    @patch("mulder.server.jobs.should_defer", return_value=True)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.jobs.should_defer", return_value=True)
     @patch.object(JobStore, "_retry_deferred")
     def test_batch_done_waits_for_deferred(
         self,
@@ -324,7 +324,7 @@ def _raising_dispatch(**kwargs: object) -> dict[str, str]:
 class TestRunJobException:
     """Tests for JobStore._run_job exception handling."""
 
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
     def test_exception_marks_job_failed(self, _mock_wait: object) -> None:
         """Unhandled exception in tool sets status='failed' with message."""
         store = JobStore(max_workers=1, tool_dispatch={"boom": _raising_dispatch})
@@ -366,19 +366,19 @@ class TestValidateToolArgs:
 class TestBatchRejectsBadArgs:
     """start_extraction_batch drops tasks with bad args and still runs the rest."""
 
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
     def test_rest_of_batch_still_runs(self, _mock_wait: object) -> None:
-        from mulder.server import app
-        from mulder.server.tools import jobs as job_tools
+        from lade.server import app
+        from lade.server.tools import jobs as job_tools
 
         start_extraction_batch = app._tool_dispatch_sync[job_tools.start_extraction_batch.__name__]
 
         dispatch = {"typed_tool": _typed_tool}
         store = JobStore(max_workers=2, tool_dispatch=dispatch)
         with (
-            patch("mulder.server.app._tool_dispatch_sync", dispatch),
-            patch("mulder.server.app.get_job_store", return_value=store),
-            patch("mulder.server.tools.jobs.tool_already_indexed", return_value=None),
+            patch("lade.server.app._tool_dispatch_sync", dispatch),
+            patch("lade.server.app.get_job_store", return_value=store),
+            patch("lade.server.tools.jobs.tool_already_indexed", return_value=None),
         ):
             result = start_extraction_batch(
                 [
@@ -397,16 +397,16 @@ class TestBatchRejectsBadArgs:
         store.shutdown(wait=True)
 
     def test_all_rejected_is_error(self) -> None:
-        from mulder.server import app
-        from mulder.server.tools import jobs as job_tools
+        from lade.server import app
+        from lade.server.tools import jobs as job_tools
 
         start_extraction_batch = app._tool_dispatch_sync[job_tools.start_extraction_batch.__name__]
 
         dispatch = {"typed_tool": _typed_tool}
         store = JobStore(max_workers=1, tool_dispatch=dispatch)
         with (
-            patch("mulder.server.app._tool_dispatch_sync", dispatch),
-            patch("mulder.server.app.get_job_store", return_value=store),
+            patch("lade.server.app._tool_dispatch_sync", dispatch),
+            patch("lade.server.app.get_job_store", return_value=store),
         ):
             result = start_extraction_batch([{"tool": "typed_tool", "args": {}}])
         assert result["status"] == "error"
@@ -421,7 +421,7 @@ class TestRunParallelRejectsBadArgs:
     def test_bad_task_errors_without_calling_tool(self) -> None:
         import anyio
 
-        from mulder.server import app
+        from lade.server import app
 
         calls: list[dict[str, object]] = []
 
@@ -431,7 +431,7 @@ class TestRunParallelRejectsBadArgs:
 
         with (
             patch.dict(app._tool_dispatch, {"typed_tool": typed_tool}),
-            patch("mulder.server.app.has_ctx", return_value=False),
+            patch("lade.server.app.has_ctx", return_value=False),
         ):
             result = anyio.run(
                 app.run_parallel,
@@ -481,10 +481,10 @@ class TestFillCaseId:
 class TestBatchFillsCaseId:
     """start_extraction_batch fills case_id from the open case instead of rejecting."""
 
-    @patch("mulder.server.app.wait_for_resources", return_value=None)
+    @patch("lade.server.app.wait_for_resources", return_value=None)
     def test_omitted_case_id_filled_and_task_runs(self, _mock_wait: object) -> None:
-        from mulder.server import app
-        from mulder.server.tools import jobs as job_tools
+        from lade.server import app
+        from lade.server.tools import jobs as job_tools
 
         start_extraction_batch = app._tool_dispatch_sync[job_tools.start_extraction_batch.__name__]
         dispatch: dict[str, Callable[..., Any]] = {
@@ -494,10 +494,10 @@ class TestBatchFillsCaseId:
         store = JobStore(max_workers=2, tool_dispatch=dispatch)
         _case_calls.clear()
         with (
-            patch("mulder.server.app._tool_dispatch_sync", dispatch),
-            patch("mulder.server.app.get_job_store", return_value=store),
-            patch("mulder.server.app._ctx", _open_case("case-1")),
-            patch("mulder.server.tools.jobs.tool_already_indexed", return_value=None),
+            patch("lade.server.app._tool_dispatch_sync", dispatch),
+            patch("lade.server.app.get_job_store", return_value=store),
+            patch("lade.server.app._ctx", _open_case("case-1")),
+            patch("lade.server.tools.jobs.tool_already_indexed", return_value=None),
         ):
             result = start_extraction_batch(
                 [
@@ -523,16 +523,16 @@ class TestBatchFillsCaseId:
         store.shutdown(wait=True)
 
     def test_no_open_case_still_rejected(self) -> None:
-        from mulder.server import app
-        from mulder.server.tools import jobs as job_tools
+        from lade.server import app
+        from lade.server.tools import jobs as job_tools
 
         start_extraction_batch = app._tool_dispatch_sync[job_tools.start_extraction_batch.__name__]
         dispatch = {"case_tool": _case_tool}
         store = JobStore(max_workers=1, tool_dispatch=dispatch)
         with (
-            patch("mulder.server.app._tool_dispatch_sync", dispatch),
-            patch("mulder.server.app.get_job_store", return_value=store),
-            patch("mulder.server.app._ctx", None),
+            patch("lade.server.app._tool_dispatch_sync", dispatch),
+            patch("lade.server.app.get_job_store", return_value=store),
+            patch("lade.server.app._ctx", None),
         ):
             result = start_extraction_batch([{"tool": "case_tool", "args": {"image_path": "/a"}}])
         assert result["status"] == "error"
@@ -548,7 +548,7 @@ class TestRunParallelFillsCaseId:
     ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
         import anyio
 
-        from mulder.server import app
+        from lade.server import app
 
         calls: list[dict[str, str]] = []
 
@@ -562,7 +562,7 @@ class TestRunParallelFillsCaseId:
 
         with (
             patch.dict(app._tool_dispatch, {"case_tool": case_tool, "typed_tool": typed_tool}),
-            patch("mulder.server.app._ctx", ctx),
+            patch("lade.server.app._ctx", ctx),
         ):
             result = anyio.run(app.run_parallel, tasks)
         return [r["result"] for r in result["parallel_results"]], calls

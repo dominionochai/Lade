@@ -1,4 +1,4 @@
-"""Declarative tool-role access registry for the Mulder MCP surface.
+"""Declarative tool-role access registry for the Lade MCP surface.
 
 Tools self-declare which pipeline roles may invoke them via the
 ``@tool_access`` decorator. The ``get_tools_for_role`` function
@@ -75,4 +75,4 @@ def tool_access(*roles: Role, unthrottled: bool = False) -> Callable[[F], F]:
 
 def get_tools_for_role(role: Role) -> list[str]:
     """Return sorted MCP tool names accessible by a given role."""
-    return sorted(f"mcp__mulder__{name}" for name, allowed in _registry.items() if role & allowed)
+    return sorted(f"mcp__lade__{name}" for name, allowed in _registry.items() if role & allowed)

@@ -19,7 +19,7 @@ from typing import Any
 
 import pytest
 
-from mulder.server.tools.email import _parse_extracted_emails
+from lade.server.tools.email import _parse_extracted_emails
 
 _MESSAGES = {
     "2019.eml": "Tue, 15 Jan 2019 09:14:02 +0000",

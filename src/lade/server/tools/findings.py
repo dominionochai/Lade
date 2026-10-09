@@ -23,12 +23,12 @@ from uuid import uuid4
 
 from pydantic import ValidationError
 
-from mulder.models import AuditSummary, CaseMetadataRow, Finding, SourceRow
-from mulder.patterns import SEVERITY_ORDER, source_is_cited
-from mulder.report.renderer import ReportRenderer
-from mulder.server.app import get_ctx, get_job_store, mcp
-from mulder.server.helpers import error_response, hash_output, make_tool_call_id
-from mulder.server.tool_access import ANALYSTS, Role, tool_access
+from lade.models import AuditSummary, CaseMetadataRow, Finding, SourceRow
+from lade.patterns import SEVERITY_ORDER, source_is_cited
+from lade.report.renderer import ReportRenderer
+from lade.server.app import get_ctx, get_job_store, mcp
+from lade.server.helpers import error_response, hash_output, make_tool_call_id
+from lade.server.tool_access import ANALYSTS, Role, tool_access
 
 logger = logging.getLogger(__name__)
 
@@ -758,8 +758,8 @@ def finalize_report() -> dict[str, object]:
     if html_path is not None and html_text:
         html_path.write_text(html_text, encoding="utf-8")
 
-    log_src = report_dir / "mulder.log"
-    log_dest = report_dir / f"{case_metadata.case_id}.mulder.log"
+    log_src = report_dir / "lade.log"
+    log_dest = report_dir / f"{case_metadata.case_id}.lade.log"
     if log_src.exists() and log_src != log_dest:
         try:
             import shutil

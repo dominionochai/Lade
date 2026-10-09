@@ -17,16 +17,16 @@ from typing import Any
 import click
 import yaml
 
-from mulder.orchestrator.proxy import ModelOverride, is_proxy_model
+from lade.orchestrator.proxy import ModelOverride, is_proxy_model
 
 logger = logging.getLogger(__name__)
 
 #: Env vars that override the same-named ``models:`` keys for every proxy
 #: model in the run. A coarse knob for container runs with one model.
 _OVERRIDE_ENV: dict[str, str] = {
-    "context_window": "MULDER_MODEL_CONTEXT_WINDOW",
-    "max_output_tokens": "MULDER_MODEL_MAX_OUTPUT_TOKENS",
-    "reasoning": "MULDER_MODEL_REASONING",
+    "context_window": "LADE_MODEL_CONTEXT_WINDOW",
+    "max_output_tokens": "LADE_MODEL_MAX_OUTPUT_TOKENS",
+    "reasoning": "LADE_MODEL_REASONING",
 }
 _TRUE, _FALSE = {"1", "true", "yes", "on"}, {"0", "false", "no", "off"}
 
@@ -85,7 +85,7 @@ class ModelConfig:
             with inner dicts mapping role names to model identifiers.
         model_overrides: Context/output/reasoning overrides keyed by model
             identifier, from the config file's ``models:`` mapping.
-        env_override: The same overrides from ``MULDER_MODEL_*`` env vars,
+        env_override: The same overrides from ``LADE_MODEL_*`` env vars,
             applied to every proxy model ahead of the file.
     """
 
@@ -182,7 +182,7 @@ class ModelConfig:
                     file_models[str(key)] = str(value)
 
         env_raw = {k: os.environ[v] for k, v in _OVERRIDE_ENV.items() if v in os.environ}
-        env_override = _parse_override(env_raw, "env", "MULDER_MODEL_* environment")
+        env_override = _parse_override(env_raw, "env", "LADE_MODEL_* environment")
 
         phase_overrides: dict[str, dict[str, str]] = {}
         raw_phases = file_config.get("phases")

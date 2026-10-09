@@ -1,6 +1,6 @@
-# NDLC on Claude Opus 4.6, run 2 of 3 (Mulder v1.5.2)
+# NDLC on Claude Opus 4.6, run 2 of 3 (Lade v1.5.2)
 
-Mulder's autonomous investigation of the [NIST CFReDS Data Leakage Case](https://cfreds-archive.nist.gov/data_leakage_case/data-leakage-case.html) using `claude-opus-4-6` directly through the Anthropic API with extended thinking, run on the v1.5.2 release image. This is the reference run for the three open-weight models in this directory, which used the same evidence, prompts, tools and scoring rubric. The original v1.5.1 Opus run of this case is kept in [examples/ndlc](../../ndlc/).
+Lade's autonomous investigation of the [NIST CFReDS Data Leakage Case](https://cfreds-archive.nist.gov/data_leakage_case/data-leakage-case.html) using `claude-opus-4-6` directly through the Anthropic API with extended thinking, run on the v1.5.2 release image. This is the reference run for the three open-weight models in this directory, which used the same evidence, prompts, tools and scoring rubric. The original v1.5.1 Opus run of this case is kept in [examples/ndlc](../../ndlc/).
 
 > **Evidence:** PC disk image + 3 removable media (USB x2, CD-R). No memory dumps, no network capture.
 
@@ -38,16 +38,16 @@ Scored against the [published NIST answer key](https://cfreds-archive.nist.gov/d
 | Model | claude-opus-4-6 (extended thinking, effort max) |
 | Tokens | 27K uncached input / 189K output (prompt-cache reads not counted) |
 | Exit code | 0, all quality gates passed on the first attempt |
-| Mulder | v1.5.2 |
+| Lade | v1.5.2 |
 
 ## How It Was Run
 
 ```bash
 docker run --privileged \
-  -v /evidence:/evidence:ro -v cases:/home/mulder/.mulder/cases \
+  -v /evidence:/evidence:ro -v cases:/home/lade/.lade/cases \
   -e ANTHROPIC_API_KEY \
-  ghcr.io/calebevans/mulder:1.5.2 \
-  mulder investigate /evidence ndlc --model claude-opus-4-6 --show-cli-stderr
+  ghcr.io/dominionochai/lade:1.5.2 \
+  lade investigate /evidence ndlc --model claude-opus-4-6 --show-cli-stderr
 ```
 
 ## Evidence Dataset
@@ -75,5 +75,5 @@ docker run --privileged \
 | `ndlc.report.html` | Investigation report (HTML with navigation) |
 | `ndlc.audit.jsonl` | Structured tool execution audit log (552 entries) |
 | `orchestrator.log` | Agent phase transitions and reasoning (1,225 lines) |
-| `mulder.log` | MCP server tool execution log (167 lines) |
+| `lade.log` | MCP server tool execution log (167 lines) |
 | `ACCURACY-REPORT.md` | Ground truth comparison against the published answer key |

@@ -1,4 +1,4 @@
-"""Tests for mulder.server.tools.extract.disk_pcap.
+"""Tests for lade.server.tools.extract.disk_pcap.
 
 Covers PCAP discovery from fls output, size filtering, protocol
 analysis, credential extraction, IDS integration, source naming,
@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from mulder.server.tools.extract.disk_pcap import (
+from lade.server.tools.extract.disk_pcap import (
     _CREDENTIAL_FILTERS,
     _discover_pcap_files,
     _extract_credentials,
@@ -102,7 +102,7 @@ class TestDiscoverPcapFiles:
 class TestExtractCredentials:
     """Tests for the _extract_credentials function."""
 
-    @patch("mulder.server.tools.extract.disk_pcap.subprocess.run")
+    @patch("lade.server.tools.extract.disk_pcap.subprocess.run")
     def test_ftp_credentials_extracted(self, mock_run: MagicMock) -> None:
         """FTP USER/PASS lines are parsed into credential records."""
         ftp_output = "2004-03-15 12:00:00\t192.168.1.10\t10.0.0.1\tUSER admin"
@@ -118,7 +118,7 @@ class TestExtractCredentials:
         assert ftp_creds[0]["dest_ip"] == "10.0.0.1"
         assert "admin" in ftp_creds[0]["raw_data"]
 
-    @patch("mulder.server.tools.extract.disk_pcap.subprocess.run")
+    @patch("lade.server.tools.extract.disk_pcap.subprocess.run")
     def test_http_basic_auth_extracted(self, mock_run: MagicMock) -> None:
         """HTTP Basic Auth header is captured."""
         http_output = "2004-03-15 13:00:00\t192.168.1.10\t10.0.0.2\tBasic YWRtaW46cGFzcw=="
@@ -132,7 +132,7 @@ class TestExtractCredentials:
         assert len(http_creds) >= 1
         assert "Basic" in http_creds[0]["raw_data"]
 
-    @patch("mulder.server.tools.extract.disk_pcap.subprocess.run")
+    @patch("lade.server.tools.extract.disk_pcap.subprocess.run")
     def test_empty_credentials_on_encrypted_traffic(self, mock_run: MagicMock) -> None:
         """Returns empty list when no cleartext credentials found."""
         mock_run.return_value = MagicMock(
@@ -143,7 +143,7 @@ class TestExtractCredentials:
         creds = _extract_credentials(Path("/tmp/encrypted.pcap"))
         assert creds == []
 
-    @patch("mulder.server.tools.extract.disk_pcap.subprocess.run")
+    @patch("lade.server.tools.extract.disk_pcap.subprocess.run")
     def test_tshark_failure_handled_gracefully(self, mock_run: MagicMock) -> None:
         """tshark errors do not crash; returns empty list."""
         mock_run.return_value = MagicMock(
@@ -154,7 +154,7 @@ class TestExtractCredentials:
         creds = _extract_credentials(Path("/tmp/corrupt.pcap"))
         assert creds == []
 
-    @patch("mulder.server.tools.extract.disk_pcap.subprocess.run")
+    @patch("lade.server.tools.extract.disk_pcap.subprocess.run")
     def test_timeout_handled_gracefully(self, mock_run: MagicMock) -> None:
         """Subprocess timeout does not crash; returns empty list."""
         from subprocess import TimeoutExpired
@@ -177,7 +177,7 @@ class TestExtractCredentials:
 class TestTsharkSummary:
     """Tests for the _run_tshark_summary function."""
 
-    @patch("mulder.server.tools.extract.disk_pcap.subprocess.run")
+    @patch("lade.server.tools.extract.disk_pcap.subprocess.run")
     def test_produces_protocol_hierarchy(self, mock_run: MagicMock) -> None:
         """Successful tshark run produces protocol hierarchy output."""
         mock_run.return_value = MagicMock(
@@ -189,7 +189,7 @@ class TestTsharkSummary:
         output = _run_tshark_summary(Path("/tmp/test.pcap"))
         assert "Protocol Hierarchy" in output
 
-    @patch("mulder.server.tools.extract.disk_pcap.subprocess.run")
+    @patch("lade.server.tools.extract.disk_pcap.subprocess.run")
     def test_tshark_error_reported(self, mock_run: MagicMock) -> None:
         """tshark errors are reported in output without crashing."""
         mock_run.return_value = MagicMock(
@@ -201,7 +201,7 @@ class TestTsharkSummary:
         output = _run_tshark_summary(Path("/tmp/corrupt.pcap"))
         assert "tshark error" in output
 
-    @patch("mulder.server.tools.extract.disk_pcap.subprocess.run")
+    @patch("lade.server.tools.extract.disk_pcap.subprocess.run")
     def test_timeout_reported(self, mock_run: MagicMock) -> None:
         """Timeout during tshark is reported without crashing."""
         from subprocess import TimeoutExpired
@@ -218,13 +218,13 @@ class TestAnalyzeDiskPcapsTool:
     @staticmethod
     def _get_sync_fn() -> Any:
         """Get the unwrapped sync function from the tool dispatch."""
-        from mulder.server.app import _tool_dispatch_sync
+        from lade.server.app import _tool_dispatch_sync
 
         return _tool_dispatch_sync["analyze_disk_pcaps"]
 
-    @patch("mulder.server.tools.extract.disk_pcap.require_binary")
-    @patch("mulder.server.tools.extract.disk_pcap._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.disk_pcap.get_ctx")
+    @patch("lade.server.tools.extract.disk_pcap.require_binary")
+    @patch("lade.server.tools.extract.disk_pcap._collect_fls_chunks")
+    @patch("lade.server.tools.extract.disk_pcap.get_ctx")
     def test_no_filelist_returns_error(
         self,
         mock_ctx: MagicMock,
@@ -246,9 +246,9 @@ class TestAnalyzeDiskPcapsTool:
         assert result["status"] == "error"
         assert result["error_type"] == "no_filelist"
 
-    @patch("mulder.server.tools.extract.disk_pcap.require_binary")
-    @patch("mulder.server.tools.extract.disk_pcap._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.disk_pcap.get_ctx")
+    @patch("lade.server.tools.extract.disk_pcap.require_binary")
+    @patch("lade.server.tools.extract.disk_pcap._collect_fls_chunks")
+    @patch("lade.server.tools.extract.disk_pcap.get_ctx")
     def test_no_pcaps_found_returns_zero_results(
         self,
         mock_ctx: MagicMock,
@@ -271,12 +271,12 @@ class TestAnalyzeDiskPcapsTool:
         assert result["results"]["pcaps_discovered"] == 0
         assert result["results"]["pcaps_analyzed"] == 0
 
-    @patch("mulder.server.tools.extract.disk_pcap.extract_and_index")
-    @patch("mulder.server.tools.extract.disk_pcap._extract_pcap_via_icat")
-    @patch("mulder.server.tools.extract.disk_pcap._run_tshark_summary")
-    @patch("mulder.server.tools.extract.disk_pcap.require_binary")
-    @patch("mulder.server.tools.extract.disk_pcap._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.disk_pcap.get_ctx")
+    @patch("lade.server.tools.extract.disk_pcap.extract_and_index")
+    @patch("lade.server.tools.extract.disk_pcap._extract_pcap_via_icat")
+    @patch("lade.server.tools.extract.disk_pcap._run_tshark_summary")
+    @patch("lade.server.tools.extract.disk_pcap.require_binary")
+    @patch("lade.server.tools.extract.disk_pcap._collect_fls_chunks")
+    @patch("lade.server.tools.extract.disk_pcap.get_ctx")
     def test_size_filtering_skips_large_pcaps(
         self,
         mock_ctx: MagicMock,
@@ -313,13 +313,13 @@ class TestAnalyzeDiskPcapsTool:
         assert "Captures/huge.pcap" in result["results"]["pcaps_skipped_oversize"]
         assert result["results"]["pcaps_analyzed"] == 0
 
-    @patch("mulder.server.tools.extract.disk_pcap.extract_and_index")
-    @patch("mulder.server.tools.extract.disk_pcap._extract_pcap_via_icat")
-    @patch("mulder.server.tools.extract.disk_pcap._run_tshark_summary")
-    @patch("mulder.server.tools.extract.disk_pcap._extract_credentials")
-    @patch("mulder.server.tools.extract.disk_pcap.require_binary")
-    @patch("mulder.server.tools.extract.disk_pcap._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.disk_pcap.get_ctx")
+    @patch("lade.server.tools.extract.disk_pcap.extract_and_index")
+    @patch("lade.server.tools.extract.disk_pcap._extract_pcap_via_icat")
+    @patch("lade.server.tools.extract.disk_pcap._run_tshark_summary")
+    @patch("lade.server.tools.extract.disk_pcap._extract_credentials")
+    @patch("lade.server.tools.extract.disk_pcap.require_binary")
+    @patch("lade.server.tools.extract.disk_pcap._collect_fls_chunks")
+    @patch("lade.server.tools.extract.disk_pcap.get_ctx")
     def test_successful_analysis_pipeline(
         self,
         mock_ctx: MagicMock,
@@ -369,13 +369,13 @@ class TestAnalyzeDiskPcapsTool:
         assert result["results"]["total_credentials_found"] == 1
         assert result["results"]["analyses"][0]["source_name"] == "pcap.disk.network"
 
-    @patch("mulder.server.tools.extract.disk_pcap.extract_and_index")
-    @patch("mulder.server.tools.extract.disk_pcap._extract_pcap_via_icat")
-    @patch("mulder.server.tools.extract.disk_pcap._run_tshark_summary")
-    @patch("mulder.server.tools.extract.disk_pcap._extract_credentials")
-    @patch("mulder.server.tools.extract.disk_pcap.require_binary")
-    @patch("mulder.server.tools.extract.disk_pcap._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.disk_pcap.get_ctx")
+    @patch("lade.server.tools.extract.disk_pcap.extract_and_index")
+    @patch("lade.server.tools.extract.disk_pcap._extract_pcap_via_icat")
+    @patch("lade.server.tools.extract.disk_pcap._run_tshark_summary")
+    @patch("lade.server.tools.extract.disk_pcap._extract_credentials")
+    @patch("lade.server.tools.extract.disk_pcap.require_binary")
+    @patch("lade.server.tools.extract.disk_pcap._collect_fls_chunks")
+    @patch("lade.server.tools.extract.disk_pcap.get_ctx")
     def test_multiple_pcaps_analyzed_independently(
         self,
         mock_ctx: MagicMock,
@@ -417,10 +417,10 @@ class TestAnalyzeDiskPcapsTool:
         assert "pcap.disk.external_traffic" in source_names
         assert "pcap.disk.wifi_monitor" in source_names
 
-    @patch("mulder.server.tools.extract.disk_pcap._extract_pcap_via_icat")
-    @patch("mulder.server.tools.extract.disk_pcap.require_binary")
-    @patch("mulder.server.tools.extract.disk_pcap._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.disk_pcap.get_ctx")
+    @patch("lade.server.tools.extract.disk_pcap._extract_pcap_via_icat")
+    @patch("lade.server.tools.extract.disk_pcap.require_binary")
+    @patch("lade.server.tools.extract.disk_pcap._collect_fls_chunks")
+    @patch("lade.server.tools.extract.disk_pcap.get_ctx")
     def test_corrupt_pcap_handled_without_crash(
         self,
         mock_ctx: MagicMock,
@@ -451,8 +451,8 @@ class TestAnalyzeDiskPcapsTool:
         assert len(result["results"]["pcaps_failed"]) == 1
         assert "corrupt.pcap" in result["results"]["pcaps_failed"][0]["filename"]
 
-    @patch("mulder.server.tools.extract.disk_pcap.require_binary")
-    @patch("mulder.server.tools.extract.disk_pcap.get_ctx")
+    @patch("lade.server.tools.extract.disk_pcap.require_binary")
+    @patch("lade.server.tools.extract.disk_pcap.get_ctx")
     def test_missing_tshark_returns_error(
         self,
         mock_ctx: MagicMock,
@@ -476,8 +476,8 @@ class TestAnalyzeDiskPcapsTool:
         assert result["status"] == "error"
         assert result["error_type"] == "binary_missing"
 
-    @patch("mulder.server.tools.extract.disk_pcap.require_binary")
-    @patch("mulder.server.tools.extract.disk_pcap.get_ctx")
+    @patch("lade.server.tools.extract.disk_pcap.require_binary")
+    @patch("lade.server.tools.extract.disk_pcap.get_ctx")
     def test_missing_icat_returns_error(
         self,
         mock_ctx: MagicMock,

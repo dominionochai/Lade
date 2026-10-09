@@ -6,7 +6,7 @@ non-blank stdout line as a DDE link therefore reports five ``risk: high``
 findings for a perfectly clean document — one of which discloses the absolute
 evidence path as a "DDE command".
 
-mulder's central claim is that fabricated findings are structurally impossible,
+lade's central claim is that fabricated findings are structurally impossible,
 so these tests pin the parser against the *real* captured output of oletools
 0.60.2 (the pinned dependency) in both its plain-text and ``--json`` forms.
 """
@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.server.tools.documents import _parse_msodde_output
+from lade.server.tools.documents import _parse_msodde_output
 
 # Verbatim stdout from `python -m oletools.msodde <clean.docx>`, oletools
 # 0.60.2, exit code 0. Note the absolute evidence path on the "Opening file"
@@ -108,23 +108,23 @@ class TestAnalyzeOfficeDocumentDdeIntegration:
     """The parser is wired into the tool, not just unit-tested beside it."""
 
     def _run(self, proc: MagicMock) -> dict[str, object]:
-        from mulder.server.tools.documents import analyze_office_document
+        from lade.server.tools.documents import analyze_office_document
 
         with (
             patch(
-                "mulder.server.tools.documents.importlib.util.find_spec",
+                "lade.server.tools.documents.importlib.util.find_spec",
                 return_value=MagicMock(),
             ),
-            patch("mulder.server.tools.documents.Path.exists", return_value=True),
+            patch("lade.server.tools.documents.Path.exists", return_value=True),
             patch(
-                "mulder.server.tools.documents._analyze_macros_olevba",
+                "lade.server.tools.documents._analyze_macros_olevba",
                 return_value=([], [], False),
             ),
             patch(
-                "mulder.server.tools.documents.extract_and_index",
+                "lade.server.tools.documents.extract_and_index",
                 return_value={},
             ),
-            patch("mulder.server.tools.documents.subprocess.run", return_value=proc),
+            patch("lade.server.tools.documents.subprocess.run", return_value=proc),
         ):
             return analyze_office_document.__wrapped__(  # type: ignore[attr-defined,no-any-return]
                 "case-1", "/evidence/case-1/t.docx", analyze_dde=True
@@ -142,11 +142,11 @@ class TestAnalyzeOfficeDocumentDdeIntegration:
 
 
 class TestPackagedMcpConfig:
-    """``src/mulder/data/mcp.json`` is what a fresh workspace is seeded with."""
+    """``src/lade/data/mcp.json`` is what a fresh workspace is seeded with."""
 
     def test_packaged_mcp_config_is_valid_json(self) -> None:
-        from mulder.cli import DEFAULT_MCP_CONFIG
+        from lade.cli import DEFAULT_MCP_CONFIG
 
         config = json.loads(DEFAULT_MCP_CONFIG.read_text(encoding="utf-8"))
-        assert config["mcpServers"]["mulder"]["command"] == "mulder"
-        assert config["mcpServers"]["mulder"]["args"] == ["serve"]
+        assert config["mcpServers"]["lade"]["command"] == "lade"
+        assert config["mcpServers"]["lade"]["args"] == ["serve"]

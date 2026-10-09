@@ -24,7 +24,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.binary import triage_binary
+from lade.server.tools.binary import triage_binary
 
 # A packed, network-capable sample with an injection-flavoured import set.
 _INFO = {
@@ -86,9 +86,9 @@ def _indexed_text(sample: Path) -> str:
         return {}
 
     with (
-        patch("mulder.server.tools.binary.require_binary", return_value="/usr/bin/rabin2"),
-        patch("mulder.server.tools.binary.subprocess.run", side_effect=_fake_rabin2),
-        patch("mulder.server.tools.binary.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.binary.require_binary", return_value="/usr/bin/rabin2"),
+        patch("lade.server.tools.binary.subprocess.run", side_effect=_fake_rabin2),
+        patch("lade.server.tools.binary.extract_and_index", side_effect=_record),
     ):
         triage_binary.__wrapped__("case-1", str(sample))  # type: ignore[attr-defined]
 
@@ -150,15 +150,15 @@ def test_the_raw_rabin2_output_is_still_indexed(sample: Path) -> None:
 def test_the_summary_fields_are_unchanged(sample: Path) -> None:
     """Narrowness guard: this PR changes what is indexed, not the response."""
     with (
-        patch("mulder.server.tools.binary.require_binary", return_value="/usr/bin/rabin2"),
+        patch("lade.server.tools.binary.require_binary", return_value="/usr/bin/rabin2"),
         patch(
-            "mulder.server.tools.binary.subprocess.run",
+            "lade.server.tools.binary.subprocess.run",
             side_effect=lambda cmd, **_: subprocess.CompletedProcess(
                 args=cmd, returncode=0, stdout=json.dumps(_INFO), stderr=""
             ),
         ),
         patch(
-            "mulder.server.tools.binary.extract_and_index",
+            "lade.server.tools.binary.extract_and_index",
             return_value={"line_count": 3},
         ),
     ):

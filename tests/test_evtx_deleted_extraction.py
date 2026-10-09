@@ -18,7 +18,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.server.tools.extract.evtx import _extract_evtx_from_image
+from lade.server.tools.extract.evtx import _extract_evtx_from_image
 
 #: Genuine ``fls -r -p`` output (TSK 4.12.1). Inode 22 is deleted.
 FLS_WITH_DELETED_EVTX = (
@@ -45,10 +45,10 @@ def _run_extraction(dest: Path, calls: list[list[str]]) -> list[Path]:
 
     with (
         patch(
-            "mulder.server.tools.extract.evtx._collect_fls_chunks",
+            "lade.server.tools.extract.evtx._collect_fls_chunks",
             return_value=[([FLS_WITH_DELETED_EVTX], 0)],
         ),
-        patch("mulder.server.tools.extract.evtx.subprocess.run", side_effect=fake_run),
+        patch("lade.server.tools.extract.evtx.subprocess.run", side_effect=fake_run),
     ):
         return _extract_evtx_from_image("/evidence/disk.dd", str(dest))
 
@@ -105,10 +105,10 @@ def test_a_timeout_on_one_file_does_not_abort_the_rest(tmp_path: Path) -> None:
 
     with (
         patch(
-            "mulder.server.tools.extract.evtx._collect_fls_chunks",
+            "lade.server.tools.extract.evtx._collect_fls_chunks",
             return_value=[([FLS_WITH_DELETED_EVTX], 0)],
         ),
-        patch("mulder.server.tools.extract.evtx.subprocess.run", side_effect=flaky),
+        patch("lade.server.tools.extract.evtx.subprocess.run", side_effect=flaky),
     ):
         extracted = _extract_evtx_from_image("/evidence/disk.dd", str(tmp_path))
 

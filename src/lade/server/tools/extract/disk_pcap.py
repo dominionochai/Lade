@@ -14,17 +14,17 @@ import time
 from pathlib import Path
 from typing import Any
 
-from mulder.patterns import fls_file_entries
-from mulder.server.app import get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.patterns import fls_file_entries
+from lade.server.app import get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     error_response,
     make_tool_call_id,
     require_binary,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
-from mulder.server.tools.extract.tsk import (
+from lade.server.tool_access import Role, tool_access
+from lade.server.tools.extract.tsk import (
     _collect_fls_chunks,
 )
 
@@ -274,7 +274,7 @@ def _analyze_single_pcap(
     else:
         result["protocol_summary"] = {"status": "no_output"}
 
-    from mulder.server.tools.extract.pcap import (
+    from lade.server.tools.extract.pcap import (
         _parse_eve_json,
         _run_suricata_process,
         _suricata_binary,
@@ -286,7 +286,7 @@ def _analyze_single_pcap(
     suricata_bin = _suricata_binary() if run_ids else None
     if suricata_bin is not None:
         try:
-            with tempfile.TemporaryDirectory(prefix="mulder_suri_disk_") as suri_dir:
+            with tempfile.TemporaryDirectory(prefix="lade_suri_disk_") as suri_dir:
                 eve_path = _run_suricata_process(suricata_bin, pcap_path, Path(suri_dir))
                 ids_result = _parse_eve_json(eve_path)
                 result["ids_alerts"] = {
@@ -405,7 +405,7 @@ def analyze_disk_pcaps(
     pcaps_failed: list[dict[str, str]] = []
     all_credentials: list[dict[str, str]] = []
 
-    with tempfile.TemporaryDirectory(prefix="mulder_disk_pcap_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_disk_pcap_") as tmpdir:
         tmp_path = Path(tmpdir)
 
         for inode_str, rel_path, offset in all_pcaps:

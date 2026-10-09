@@ -21,7 +21,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.hayabusa import run_hayabusa
+from lade.server.tools.hayabusa import run_hayabusa
 
 # A stand-in Hayabusa: given the argv and its resolved -o path, decide what to
 # write and how to exit.
@@ -58,12 +58,12 @@ def _invoke(evtx_dir: Path, run: Runner) -> tuple[Any, list[str], list[bool]]:
 
     with (
         patch(
-            "mulder.server.tools.hayabusa._hayabusa_binary",
+            "lade.server.tools.hayabusa._hayabusa_binary",
             return_value="/usr/bin/hayabusa",
         ),
-        patch("mulder.server.tools.hayabusa.sources_already_indexed", return_value=[]),
-        patch("mulder.server.tools.hayabusa.subprocess.run", side_effect=_wrap),
-        patch("mulder.server.tools.hayabusa.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.hayabusa.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.hayabusa.subprocess.run", side_effect=_wrap),
+        patch("lade.server.tools.hayabusa.extract_and_index", side_effect=_record),
     ):
         result = run_hayabusa.__wrapped__(str(evtx_dir))  # type: ignore[attr-defined]
     return result, indexed, out_path_existed

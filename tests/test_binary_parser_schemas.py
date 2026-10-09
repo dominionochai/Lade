@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from mulder.server.tools.binary import _parse_capa_output, _parse_floss_output
+from lade.server.tools.binary import _parse_capa_output, _parse_floss_output
 
 # Captured verbatim from `floss --json --format sc32 --minimum-length 4`
 # against a 64-byte NOP sled containing one ASCII string.

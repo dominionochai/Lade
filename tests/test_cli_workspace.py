@@ -1,8 +1,8 @@
-"""Workspace bootstrap tests for ``mulder investigate``.
+"""Workspace bootstrap tests for ``lade investigate``.
 
-A ``pipx install mulder-dfir`` box has no ``/mulder-investigation`` and never
-will, so the working directory defaults to ``~/.mulder/workspace`` (overridable
-with ``--cwd`` / ``MULDER_CWD``) and mulder materialises the packaged
+A ``pipx install lade-dfir`` box has no ``/lade-investigation`` and never
+will, so the working directory defaults to ``~/.lade/workspace`` (overridable
+with ``--cwd`` / ``LADE_CWD``) and lade materialises the packaged
 ``.mcp.json`` into it on first run instead of hard-erroring.
 """
 
@@ -16,8 +16,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from mulder.cli import cli
-from mulder.patterns import DEFAULT_WORKSPACE_DIR
+from lade.cli import cli
+from lade.patterns import DEFAULT_WORKSPACE_DIR
 
 
 def _invoke(
@@ -25,10 +25,10 @@ def _invoke(
     db_dir: Path,
     env: dict[str, str] | None = None,
 ) -> tuple[Any, MagicMock]:
-    """Run ``mulder investigate`` with the orchestrator stubbed out."""
+    """Run ``lade investigate`` with the orchestrator stubbed out."""
     runner = CliRunner()
     with (
-        patch("mulder.orchestrator.runner.Orchestrator") as orchestrator_cls,
+        patch("lade.orchestrator.runner.Orchestrator") as orchestrator_cls,
         patch("asyncio.run", return_value=MagicMock(success=True)),
     ):
         result = runner.invoke(
@@ -50,7 +50,7 @@ class TestWorkspaceBootstrap:
         config_file = workspace / ".mcp.json"
         assert config_file.exists()
         config = json.loads(config_file.read_text(encoding="utf-8"))
-        assert config["mcpServers"]["mulder"]["command"] == "mulder"
+        assert config["mcpServers"]["lade"]["command"] == "lade"
 
     def test_investigate_does_not_overwrite_existing_mcp_config(self, tmp_path: Path) -> None:
         workspace = tmp_path / "workspace"

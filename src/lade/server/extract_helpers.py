@@ -20,8 +20,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from mulder.extractors.disk import _mount_image, _unmount_image
-from mulder.models import WindowRow
+from lade.extractors.disk import _mount_image, _unmount_image
+from lade.models import WindowRow
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +168,7 @@ def extract_and_index(
     Returns a summary dict with ``source_name``, ``windows_indexed``,
     ``line_count``, and ``status``.
     """
-    from mulder.server.app import get_ctx
+    from lade.server.app import get_ctx
 
     ctx = get_ctx()
 
@@ -286,7 +286,7 @@ class _MountCache:
 
         with self._lock:
             if canonical not in self._entries:
-                mount_dir = Path(tempfile.mkdtemp(prefix="mulder_mount_"))
+                mount_dir = Path(tempfile.mkdtemp(prefix="lade_mount_"))
                 self._entries[canonical] = _MountEntry(mount_dir=mount_dir)
                 is_owner = True
             entry = self._entries[canonical]

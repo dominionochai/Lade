@@ -12,11 +12,11 @@ import time
 from pathlib import Path
 from typing import Any, Literal
 
-from mulder.assets.paths import asset_display_path, asset_path, asset_search_summary
-from mulder.patterns import DISK_IMAGE_EXTS
-from mulder.server.app import get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.assets.paths import asset_display_path, asset_path, asset_search_summary
+from lade.patterns import DISK_IMAGE_EXTS
+from lade.server.app import get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     adaptive_timeout,
     error_response,
     make_tool_call_id,
@@ -24,7 +24,7 @@ from mulder.server.helpers import (
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 __all__ = [
     "run_chainsaw",
@@ -57,7 +57,7 @@ def _chainsaw_binary() -> str | None:
 
 
 def _default_sigma_rules() -> Path:
-    """The Sigma rules directory ``mulder setup`` provisions for hunt mode."""
+    """The Sigma rules directory ``lade setup`` provisions for hunt mode."""
     return asset_display_path("sigma-rules", "rules", "windows")
 
 
@@ -67,7 +67,7 @@ def _default_chainsaw_mapping() -> Path:
     Chainsaw cannot apply third-party Sigma rules without a mapping that tells
     it which event fields those rules refer to, so ``--sigma`` *requires*
     ``--mapping``.  The mapping ships in the Chainsaw release tarball and is
-    also pulled by the asset supplement, so ``mulder setup`` always provides it.
+    also pulled by the asset supplement, so ``lade setup`` always provides it.
     """
     return asset_display_path("chainsaw", "mappings", "sigma-event-logs-all.yml")
 
@@ -94,7 +94,7 @@ def _resolve_evtx_evidence(evidence_path: str) -> str:
     if ep.suffix.lower() not in DISK_IMAGE_EXTS:
         return evidence_path
 
-    from mulder.server.tools.extract.evtx import _evtx_extract_dirs
+    from lade.server.tools.extract.evtx import _evtx_extract_dirs
 
     if evidence_path in _evtx_extract_dirs:
         d = _evtx_extract_dirs[evidence_path]
@@ -555,14 +555,14 @@ def run_chainsaw(
             parses the SRUM database for process resource usage,
             "timeline" dumps all events chronologically.
         sigma_rules_path: Path to the Sigma rules directory. Empty
-            resolves to the rules installed by 'mulder setup'.
+            resolves to the rules installed by 'lade setup'.
         software_hive_path: Path to the SOFTWARE registry hive. Required
             when mode="srum"; Chainsaw needs it to resolve the SRUM
             extension GUIDs into table names.
         mapping_path: Path to the Chainsaw mapping file that tells it how
             to read third-party Sigma rules. Chainsaw requires this
             whenever Sigma rules are supplied. Empty resolves to the
-            mapping installed by 'mulder setup'.
+            mapping installed by 'lade setup'.
         search_term: Required when mode="search". The keyword or
             regex pattern to search for in EVTX records.
         time_range_start: Optional ISO 8601 timestamp to filter results
@@ -610,7 +610,7 @@ def run_chainsaw(
             f"chainsaw not found on PATH or under {asset_search_summary('chainsaw', 'chainsaw')}",
             error_type="binary_missing",
             suggestion=(
-                "Run 'mulder setup' (installs Chainsaw 2.16.0), or install it "
+                "Run 'lade setup' (installs Chainsaw 2.16.0), or install it "
                 "from https://github.com/WithSecureLabs/chainsaw"
             ),
         )
@@ -667,13 +667,13 @@ def run_chainsaw(
             f"Chainsaw Sigma mapping not found: {mapping}",
             error_type="file_not_found",
             suggestion=(
-                "Run 'mulder setup' (provisions Chainsaw 2.16.0 and its "
+                "Run 'lade setup' (provisions Chainsaw 2.16.0 and its "
                 "mappings/ directory), or pass mapping_path explicitly."
             ),
         )
 
     timeout = adaptive_timeout(evidence_path, base=_CHAINSAW_TIMEOUT)
-    with tempfile.TemporaryDirectory(prefix="mulder_chainsaw_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_chainsaw_") as tmpdir:
         output_dir = Path(tmpdir)
         try:
             if mode == "hunt":

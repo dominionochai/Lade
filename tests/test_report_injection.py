@@ -19,7 +19,7 @@ from typing import cast
 import jinja2
 import pytest
 
-from mulder.report.renderer import ReportRenderer, _markdown_to_safe_html
+from lade.report.renderer import ReportRenderer, _markdown_to_safe_html
 
 SSTI_PAYLOADS = [
     "{{ cycler.__init__.__globals__.os.popen('id').read() }}",
@@ -150,9 +150,9 @@ class TestScriptBlockInterpolation:
         import re
         from pathlib import Path
 
-        import mulder
+        import lade
 
-        tpl = Path(mulder.__file__).parent / "report" / "templates" / "report.html.j2"
+        tpl = Path(lade.__file__).parent / "report" / "templates" / "report.html.j2"
         offenders = []
         inside = False
         for lineno, line in enumerate(tpl.read_text().splitlines(), start=1):

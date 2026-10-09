@@ -13,8 +13,8 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from mulder.models import Finding
-from mulder.patterns import SEVERITY_ORDER
+from lade.models import Finding
+from lade.patterns import SEVERITY_ORDER
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ def build_navigator_layer(
         techniques.append(entry)
 
     return {
-        "name": f"Mulder Investigation: {case_id}",
+        "name": f"Lade Investigation: {case_id}",
         "versions": {"attack": "16", "navigator": "4.5", "layer": "4.5"},
         "domain": domain,
         "description": f"Techniques observed during investigation {case_id}",

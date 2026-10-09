@@ -14,18 +14,18 @@ import subprocess
 import time
 from typing import NamedTuple
 
-from mulder.patterns import parse_mmls_rows
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.patterns import parse_mmls_rows
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     error_response,
     make_tool_call_id,
     require_binary,
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
-from mulder.server.tools.extract.tsk import (
+from lade.server.tool_access import Role, tool_access
+from lade.server.tools.extract.tsk import (
     _partition_table_text,
     _resolve_partition_offset,
 )

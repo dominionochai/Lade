@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.orchestrator.proxy import (
+from lade.orchestrator.proxy import (
     ModelSettings,
     ProxyManager,
     _build_proxy_config,
@@ -71,7 +71,7 @@ class TestBuildProxyConfig:
 
     def test_config_has_master_key(self) -> None:
         config = _build_proxy_config(["bedrock/test"], 4000)
-        assert config["general_settings"]["master_key"] == "sk-mulder-proxy"
+        assert config["general_settings"]["master_key"] == "sk-lade-proxy"
 
     def test_drop_params_enabled(self) -> None:
         config = _build_proxy_config(["bedrock/test"], 4000)
@@ -85,7 +85,7 @@ class TestProxyManager:
         pm = ProxyManager(models=["bedrock/test"], port=4000)
         overrides = pm.env_overrides
         assert overrides["ANTHROPIC_BASE_URL"] == "http://localhost:4000"
-        assert overrides["ANTHROPIC_AUTH_TOKEN"] == "sk-mulder-proxy"
+        assert overrides["ANTHROPIC_AUTH_TOKEN"] == "sk-lade-proxy"
 
     def test_custom_port(self) -> None:
         pm = ProxyManager(models=["bedrock/test"], port=8080)
@@ -93,8 +93,8 @@ class TestProxyManager:
         assert "8080" in pm.env_overrides["ANTHROPIC_BASE_URL"]
 
     @patch("shutil.which", return_value="/usr/local/bin/litellm")
-    @patch("mulder.orchestrator.proxy.fetch_model_windows", MagicMock(return_value={}))
-    @patch("mulder.orchestrator.proxy._wait_for_health", return_value=True)
+    @patch("lade.orchestrator.proxy.fetch_model_windows", MagicMock(return_value={}))
+    @patch("lade.orchestrator.proxy._wait_for_health", return_value=True)
     @patch("subprocess.Popen")
     def test_start_success(
         self, mock_popen: MagicMock, mock_health: MagicMock, mock_which: MagicMock
@@ -110,7 +110,7 @@ class TestProxyManager:
         assert pm._process is mock_proc
 
     @patch("shutil.which", return_value="/usr/local/bin/litellm")
-    @patch("mulder.orchestrator.proxy._wait_for_health", return_value=False)
+    @patch("lade.orchestrator.proxy._wait_for_health", return_value=False)
     @patch("subprocess.Popen")
     def test_start_health_check_fails(
         self, mock_popen: MagicMock, mock_health: MagicMock, mock_which: MagicMock
@@ -127,8 +127,8 @@ class TestProxyManager:
         mock_proc.terminate.assert_called_once()
 
     @patch("shutil.which", return_value="/usr/local/bin/litellm")
-    @patch("mulder.orchestrator.proxy.fetch_model_windows", MagicMock(return_value={}))
-    @patch("mulder.orchestrator.proxy._wait_for_health", return_value=True)
+    @patch("lade.orchestrator.proxy.fetch_model_windows", MagicMock(return_value={}))
+    @patch("lade.orchestrator.proxy._wait_for_health", return_value=True)
     @patch("subprocess.Popen")
     def test_stop_terminates_process(
         self, mock_popen: MagicMock, mock_health: MagicMock, mock_which: MagicMock
@@ -149,8 +149,8 @@ class TestProxyManager:
         pm.stop()  # Should not raise
 
     @patch("shutil.which", return_value="/usr/local/bin/litellm")
-    @patch("mulder.orchestrator.proxy.fetch_model_windows", MagicMock(return_value={}))
-    @patch("mulder.orchestrator.proxy._wait_for_health", return_value=True)
+    @patch("lade.orchestrator.proxy.fetch_model_windows", MagicMock(return_value={}))
+    @patch("lade.orchestrator.proxy._wait_for_health", return_value=True)
     @patch("subprocess.Popen")
     def test_context_manager(
         self, mock_popen: MagicMock, mock_health: MagicMock, mock_which: MagicMock

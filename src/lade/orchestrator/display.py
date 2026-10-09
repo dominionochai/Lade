@@ -20,7 +20,7 @@ from typing import IO, TYPE_CHECKING, Any, Literal
 import psutil
 
 if TYPE_CHECKING:
-    from mulder.orchestrator.types import InvestigationResult
+    from lade.orchestrator.types import InvestigationResult
 from rich.console import Console
 from rich.layout import Layout
 from rich.live import Live
@@ -28,7 +28,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from mulder.patterns import format_token_count
+from lade.patterns import format_token_count
 
 logger = logging.getLogger(__name__)
 
@@ -320,7 +320,7 @@ class InvestigationDashboard:
         """Log a tool call in the scrolling panel.
 
         Args:
-            name: MCP tool name (without mcp__mulder__ prefix).
+            name: MCP tool name (without mcp__lade__ prefix).
         """
         self._tool_count += 1
         self._log_and_display(f"  ▸ {name}", style="dim green")
@@ -844,7 +844,7 @@ class InvestigationDashboard:
             "",
         )
 
-        return Panel(table, title="Mulder", border_style="blue", height=_HEADER_SIZE)
+        return Panel(table, title="Lade", border_style="blue", height=_HEADER_SIZE)
 
     def _build_log_panel(self, body_height: int) -> Panel:
         """Build the scrolling log panel with a fixed viewport height.

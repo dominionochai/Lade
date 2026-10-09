@@ -1,6 +1,6 @@
-# NDLC on Kimi K3, run 3 of 3 (Mulder v1.5.2)
+# NDLC on Kimi K3, run 3 of 3 (Lade v1.5.2)
 
-Mulder's autonomous investigation of the [NIST CFReDS Data Leakage Case](https://cfreds-archive.nist.gov/data_leakage_case/data-leakage-case.html) using the open-weight model `bedrock/us.moonshotai.kimi-k3` on Amazon Bedrock through Mulder's LiteLLM proxy, run on the v1.5.2 release image with the model's native reasoning. The same evidence, prompts, tools and scoring rubric as the [Claude Opus 4.6 run](../opus-4.6-run1/) in this directory.
+Lade's autonomous investigation of the [NIST CFReDS Data Leakage Case](https://cfreds-archive.nist.gov/data_leakage_case/data-leakage-case.html) using the open-weight model `bedrock/us.moonshotai.kimi-k3` on Amazon Bedrock through Lade's LiteLLM proxy, run on the v1.5.2 release image with the model's native reasoning. The same evidence, prompts, tools and scoring rubric as the [Claude Opus 4.6 run](../opus-4.6-run1/) in this directory.
 
 > **Evidence:** PC disk image + 3 removable media (USB x2, CD-R). No memory dumps, no network capture.
 
@@ -39,7 +39,7 @@ Scored against the [published NIST answer key](https://cfreds-archive.nist.gov/d
 | Model | bedrock/us.moonshotai.kimi-k3 (native reasoning) |
 | Tokens | 170K output (LiteLLM does not report input tokens for this model) |
 | Exit code | 0, all quality gates passed |
-| Mulder | v1.5.2 |
+| Lade | v1.5.2 |
 
 ## How It Was Run
 
@@ -47,13 +47,13 @@ Kimi K3 is absent from LiteLLM's model map, so its context window, output cap an
 
 ```bash
 docker run --privileged \
-  -v /evidence:/evidence:ro -v cases:/home/mulder/.mulder/cases \
+  -v /evidence:/evidence:ro -v cases:/home/lade/.lade/cases \
   -e AWS_REGION=us-west-2 \
-  -e MULDER_MODEL_CONTEXT_WINDOW=262144 \
-  -e MULDER_MODEL_MAX_OUTPUT_TOKENS=32768 \
-  -e MULDER_MODEL_REASONING=1 \
-  ghcr.io/calebevans/mulder:1.5.2 \
-  mulder investigate /evidence ndlc --model bedrock/us.moonshotai.kimi-k3 --show-cli-stderr
+  -e LADE_MODEL_CONTEXT_WINDOW=262144 \
+  -e LADE_MODEL_MAX_OUTPUT_TOKENS=32768 \
+  -e LADE_MODEL_REASONING=1 \
+  ghcr.io/dominionochai/lade:1.5.2 \
+  lade investigate /evidence ndlc --model bedrock/us.moonshotai.kimi-k3 --show-cli-stderr
 ```
 
 Bedrock credentials came from the EC2 instance role.
@@ -83,5 +83,5 @@ Bedrock credentials came from the EC2 instance role.
 | `ndlc.report.html` | Investigation report (HTML with navigation) |
 | `ndlc.audit.jsonl` | Structured tool execution audit log (1,116 entries) |
 | `orchestrator.log` | Agent phase transitions and reasoning (2,465 lines) |
-| `mulder.log` | MCP server tool execution log (1,225 lines) |
+| `lade.log` | MCP server tool execution log (1,225 lines) |
 | `ACCURACY-REPORT.md` | Ground truth comparison against the published answer key |

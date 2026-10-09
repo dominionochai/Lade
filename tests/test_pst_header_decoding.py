@@ -16,7 +16,7 @@ from base64 import b64encode
 from pathlib import Path
 from typing import Any
 
-from mulder.server.tools.email import _parse_email_message, _parse_extracted_emails
+from lade.server.tools.email import _parse_email_message, _parse_extracted_emails
 
 
 def _encoded(text: str) -> str:

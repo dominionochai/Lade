@@ -29,7 +29,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.chainsaw import run_chainsaw
+from lade.server.tools.chainsaw import run_chainsaw
 
 
 @pytest.fixture
@@ -55,11 +55,11 @@ def _run(evidence: Path, mode: str, payload: list[dict[str, Any]]) -> tuple[str,
     mapping = evidence / "mapping.yml"
     mapping.write_text("---\n")
     with (
-        patch("mulder.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
-        patch("mulder.server.tools.chainsaw._default_chainsaw_mapping", return_value=mapping),
-        patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-        patch("mulder.server.tools.chainsaw.subprocess.run", side_effect=_write),
-        patch("mulder.server.tools.chainsaw.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
+        patch("lade.server.tools.chainsaw._default_chainsaw_mapping", return_value=mapping),
+        patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.chainsaw.subprocess.run", side_effect=_write),
+        patch("lade.server.tools.chainsaw.extract_and_index", side_effect=_record),
     ):
         response = run_chainsaw.__wrapped__(  # type: ignore[attr-defined]
             str(evidence), mode=mode
@@ -157,12 +157,12 @@ def test_the_response_is_still_capped(evidence: Path) -> None:
     mapping = evidence / "mapping.yml"
     mapping.write_text("---\n")
     with (
-        patch("mulder.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
-        patch("mulder.server.tools.chainsaw._default_chainsaw_mapping", return_value=mapping),
-        patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-        patch("mulder.server.tools.chainsaw.subprocess.run", side_effect=_write),
-        patch("mulder.server.tools.chainsaw.extract_and_index", side_effect=_record),
-        patch("mulder.server.tools.chainsaw.tool_response", side_effect=_tool_response),
+        patch("lade.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
+        patch("lade.server.tools.chainsaw._default_chainsaw_mapping", return_value=mapping),
+        patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.chainsaw.subprocess.run", side_effect=_write),
+        patch("lade.server.tools.chainsaw.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.chainsaw.tool_response", side_effect=_tool_response),
     ):
         run_chainsaw.__wrapped__(str(evidence), mode="hunt")  # type: ignore[attr-defined]
 

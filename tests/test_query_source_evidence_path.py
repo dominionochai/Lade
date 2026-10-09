@@ -14,10 +14,10 @@ from pathlib import Path
 
 import pytest
 
-from mulder.db import CaseDB
-from mulder.models import WindowRow
-from mulder.server import helpers
-from mulder.server.tools import core
+from lade.db import CaseDB
+from lade.models import WindowRow
+from lade.server import helpers
+from lade.server.tools import core
 
 RM1 = "/evidence/rm1.E01"
 RM2 = "/evidence/rm2.E01"

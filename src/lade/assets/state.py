@@ -1,9 +1,9 @@
-"""``.mulder-assets.json`` -- what ``mulder setup`` installed, and where.
+"""``.lade-assets.json`` -- what ``lade setup`` installed, and where.
 
 The state file is what makes three otherwise-unanswerable questions decidable:
-is this copy of an asset one mulder owns (SPEC §2.4 rule 3), is mulder reading
+is this copy of an asset one lade owns (SPEC §2.4 rule 3), is lade reading
 its own copy or somebody else's (§3.10), and which ``bin_dir()`` entries are
-shims mulder wrote (§4.2).
+shims lade wrote (§4.2).
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-STATE_FILENAME = ".mulder-assets.json"
+STATE_FILENAME = ".lade-assets.json"
 SCHEMA_VERSION = 1
 
 
@@ -42,7 +42,7 @@ class AssetState:
     """The whole state document for one write root."""
 
     schema: int = SCHEMA_VERSION
-    mulder_version: str = ""
+    lade_version: str = ""
     root: str = ""
     euid: int = 0
     owner_uid: int = 0
@@ -65,7 +65,7 @@ class AssetState:
         }
         return cls(
             schema=int(raw.get("schema", SCHEMA_VERSION)),
-            mulder_version=str(raw.get("mulder_version", "")),
+            lade_version=str(raw.get("lade_version", "")),
             root=str(raw.get("root", root)),
             euid=int(raw.get("euid", 0)),
             owner_uid=int(raw.get("owner_uid", 0)),
@@ -82,14 +82,14 @@ class AssetState:
         path = root / STATE_FILENAME
         payload = {
             "schema": self.schema,
-            "mulder_version": self.mulder_version,
+            "lade_version": self.lade_version,
             "root": str(root),
             "euid": self.euid,
             "owner_uid": self.owner_uid,
             "assets": {key: asdict(record) for key, record in sorted(self.assets.items())},
         }
         root.mkdir(parents=True, exist_ok=True)
-        handle, tmp_name = tempfile.mkstemp(dir=str(root), prefix=".mulder-assets.", suffix=".tmp")
+        handle, tmp_name = tempfile.mkstemp(dir=str(root), prefix=".lade-assets.", suffix=".tmp")
         try:
             with os.fdopen(handle, "w", encoding="utf-8") as out:
                 json.dump(payload, out, indent=2, sort_keys=False)

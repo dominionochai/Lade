@@ -1,4 +1,4 @@
-"""Pydantic models shared across the Mulder project."""
+"""Pydantic models shared across the Lade project."""
 
 from __future__ import annotations
 

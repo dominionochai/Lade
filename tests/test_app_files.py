@@ -1,4 +1,4 @@
-"""Tests for mulder.server.tools.extract.app_files.
+"""Tests for lade.server.tools.extract.app_files.
 
 Covers file discovery from fls output, extension filtering, size limits,
 file count caps, binary content detection, source name derivation, and
@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from mulder.server.tools.extract.app_files import (
+from lade.server.tools.extract.app_files import (
     _DEFAULT_EXTENSIONS,
     _derive_source_name,
     _extract_and_read_file,
@@ -219,12 +219,12 @@ class TestIndexAppFilesTool:
     @staticmethod
     def _get_sync_fn() -> Any:
         """Get the unwrapped sync function from the tool dispatch."""
-        from mulder.server.app import _tool_dispatch_sync
+        from lade.server.app import _tool_dispatch_sync
 
         return _tool_dispatch_sync["index_app_files"]
 
-    @patch("mulder.server.tools.extract.app_files._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.app_files.get_ctx")
+    @patch("lade.server.tools.extract.app_files._collect_fls_chunks")
+    @patch("lade.server.tools.extract.app_files.get_ctx")
     def test_no_filelist_returns_error(
         self,
         mock_ctx: MagicMock,
@@ -245,8 +245,8 @@ class TestIndexAppFilesTool:
         assert result["status"] == "error"
         assert result["error_type"] == "no_filelist"
 
-    @patch("mulder.server.tools.extract.app_files._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.app_files.get_ctx")
+    @patch("lade.server.tools.extract.app_files._collect_fls_chunks")
+    @patch("lade.server.tools.extract.app_files.get_ctx")
     def test_empty_directory_returns_zero_results(
         self,
         mock_ctx: MagicMock,
@@ -268,10 +268,10 @@ class TestIndexAppFilesTool:
         assert result["results"]["files_discovered"] == 0
         assert "NonExistent/Path" in result["results"]["pattern"]
 
-    @patch("mulder.server.tools.extract.app_files.extract_and_index")
-    @patch("mulder.server.tools.extract.app_files._extract_and_read_file")
-    @patch("mulder.server.tools.extract.app_files._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.app_files.get_ctx")
+    @patch("lade.server.tools.extract.app_files.extract_and_index")
+    @patch("lade.server.tools.extract.app_files._extract_and_read_file")
+    @patch("lade.server.tools.extract.app_files._collect_fls_chunks")
+    @patch("lade.server.tools.extract.app_files.get_ctx")
     def test_file_count_cap(
         self,
         mock_ctx: MagicMock,
@@ -301,10 +301,10 @@ class TestIndexAppFilesTool:
         assert result["results"]["files_capped_at"] == 50
         assert mock_extract.call_count == 50
 
-    @patch("mulder.server.tools.extract.app_files.extract_and_index")
-    @patch("mulder.server.tools.extract.app_files._extract_and_read_file")
-    @patch("mulder.server.tools.extract.app_files._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.app_files.get_ctx")
+    @patch("lade.server.tools.extract.app_files.extract_and_index")
+    @patch("lade.server.tools.extract.app_files._extract_and_read_file")
+    @patch("lade.server.tools.extract.app_files._collect_fls_chunks")
+    @patch("lade.server.tools.extract.app_files.get_ctx")
     def test_binary_files_skipped(
         self,
         mock_ctx: MagicMock,
@@ -330,10 +330,10 @@ class TestIndexAppFilesTool:
         assert result["results"]["files_extracted"] == 0
         assert result["results"]["files_skipped_binary"] > 0
 
-    @patch("mulder.server.tools.extract.app_files.extract_and_index")
-    @patch("mulder.server.tools.extract.app_files._extract_and_read_file")
-    @patch("mulder.server.tools.extract.app_files._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.app_files.get_ctx")
+    @patch("lade.server.tools.extract.app_files.extract_and_index")
+    @patch("lade.server.tools.extract.app_files._extract_and_read_file")
+    @patch("lade.server.tools.extract.app_files._collect_fls_chunks")
+    @patch("lade.server.tools.extract.app_files.get_ctx")
     def test_successful_indexing(
         self,
         mock_ctx: MagicMock,
@@ -360,10 +360,10 @@ class TestIndexAppFilesTool:
         assert result["results"]["source_prefix"] == "appfiles.program_files.mirc"
         assert len(result["results"]["sample_files"]) > 0
 
-    @patch("mulder.server.tools.extract.app_files.extract_and_index")
-    @patch("mulder.server.tools.extract.app_files._extract_and_read_file")
-    @patch("mulder.server.tools.extract.app_files._collect_fls_chunks")
-    @patch("mulder.server.tools.extract.app_files.get_ctx")
+    @patch("lade.server.tools.extract.app_files.extract_and_index")
+    @patch("lade.server.tools.extract.app_files._extract_and_read_file")
+    @patch("lade.server.tools.extract.app_files._collect_fls_chunks")
+    @patch("lade.server.tools.extract.app_files.get_ctx")
     def test_custom_extensions_passed_through(
         self,
         mock_ctx: MagicMock,
@@ -443,9 +443,9 @@ class TestSizeLimitAppliesToExtractedBytes:
     def test_a_file_over_the_limit_is_skipped(self) -> None:
         big = b"A" * 4096
         with (
-            patch("mulder.server.tools.extract.app_files.shutil.which", return_value="/bin/icat"),
+            patch("lade.server.tools.extract.app_files.shutil.which", return_value="/bin/icat"),
             patch(
-                "mulder.server.tools.extract.app_files.subprocess.run",
+                "lade.server.tools.extract.app_files.subprocess.run",
                 return_value=self._icat_returning(big),
             ),
         ):
@@ -456,9 +456,9 @@ class TestSizeLimitAppliesToExtractedBytes:
     def test_a_file_under_the_limit_is_read(self) -> None:
         small = b"hello evidence"
         with (
-            patch("mulder.server.tools.extract.app_files.shutil.which", return_value="/bin/icat"),
+            patch("lade.server.tools.extract.app_files.shutil.which", return_value="/bin/icat"),
             patch(
-                "mulder.server.tools.extract.app_files.subprocess.run",
+                "lade.server.tools.extract.app_files.subprocess.run",
                 return_value=self._icat_returning(small),
             ),
         ):

@@ -1,4 +1,4 @@
-"""Tests for mulder.audit -- AuditLog persistence, provenance, summary."""
+"""Tests for lade.audit -- AuditLog persistence, provenance, summary."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from mulder.audit import AuditLog
-from mulder.models import SourceRow
+from lade.audit import AuditLog
+from lade.models import SourceRow
 
 
 class TestToolCallPersistence:

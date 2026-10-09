@@ -14,9 +14,9 @@ import time
 from pathlib import Path
 from typing import cast
 
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     _FILE_LIST_CAP,
     _PREVIEW_CHAR_LIMIT,
     adaptive_timeout,
@@ -26,7 +26,7 @@ from mulder.server.helpers import (
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 __all__ = [
     "run_binwalk",
@@ -442,7 +442,7 @@ def run_bulk_extractor(
 
     timeout = adaptive_timeout(image_path, base=_BULK_TIMEOUT)
 
-    with tempfile.TemporaryDirectory(prefix="mulder_bulk_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_bulk_") as tmpdir:
         cmd = _build_bulk_extractor_cmd(image_path, tmpdir, scanners, max_depth)
         timed_out = False
 
@@ -532,7 +532,7 @@ def run_foremost(image_path: str) -> dict[str, object]:
 
     timeout = adaptive_timeout(image_path, base=_BULK_TIMEOUT)
 
-    with tempfile.TemporaryDirectory(prefix="mulder_foremost_") as parent:
+    with tempfile.TemporaryDirectory(prefix="lade_foremost_") as parent:
         outdir = os.path.join(parent, "output")
         try:
             subprocess.run(
@@ -602,7 +602,7 @@ def run_scalpel(image_path: str) -> dict[str, object]:
 
     timeout = adaptive_timeout(image_path, base=_SCALPEL_TIMEOUT)
 
-    with tempfile.TemporaryDirectory(prefix="mulder_scalpel_") as parent:
+    with tempfile.TemporaryDirectory(prefix="lade_scalpel_") as parent:
         outdir = os.path.join(parent, "output")
         cmd = ["scalpel", "-o", outdir, image_path]
         try:
@@ -742,7 +742,7 @@ def run_photorec(image_path: str) -> dict[str, object]:
 
     timeout = adaptive_timeout(image_path, base=_PHOTOREC_TIMEOUT)
 
-    with tempfile.TemporaryDirectory(prefix="mulder_photorec_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_photorec_") as tmpdir:
         cmd = [
             "photorec",
             "/cmd",

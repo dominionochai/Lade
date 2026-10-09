@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-from mulder.models import Finding
-from mulder.report.navigator import (
+from lade.models import Finding
+from lade.report.navigator import (
     _SEVERITY_COLOR,
     _SEVERITY_SCORE,
     build_navigator_layer,
@@ -45,7 +45,7 @@ class TestLayerStructure:
         findings = [_make_finding(mitre_ids=["T1059.001"])]
         layer = build_navigator_layer("test-case", findings)
 
-        assert layer["name"] == "Mulder Investigation: test-case"
+        assert layer["name"] == "Lade Investigation: test-case"
         assert "versions" in layer
         assert layer["versions"]["attack"] == "16"
         assert layer["domain"] == "enterprise-attack"

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from mulder.models import (
+from lade.models import (
     AuditSummary,
     ProvenanceChain,
     SourceProvenance,
@@ -20,7 +20,7 @@ from mulder.models import (
 )
 
 if TYPE_CHECKING:
-    from mulder.db import CaseDB
+    from lade.db import CaseDB
 
 logger = logging.getLogger(__name__)
 

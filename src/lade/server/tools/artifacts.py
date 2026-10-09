@@ -23,16 +23,16 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from mulder.path_policy import PathPolicyError, resolve_allowed_path
-from mulder.patterns import fls_file_entries, parse_mmls_rows
-from mulder.server.app import get_cfg, get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.path_policy import PathPolicyError, resolve_allowed_path
+from lade.patterns import fls_file_entries, parse_mmls_rows
+from lade.server.app import get_cfg, get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     hash_output,
     make_tool_call_id,
     readonly_sqlite_uri,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ def _resolve_image_and_offset() -> tuple[str, int]:
     Returns:
         Tuple of ``(image_path, primary_partition_offset)``.
     """
-    from mulder.server.tools.extract.tsk import _partition_table_text
+    from lade.server.tools.extract.tsk import _partition_table_text
 
     ctx = get_ctx()
     sources = ctx.db.get_sources()
@@ -189,7 +189,7 @@ def parse_browser_history() -> dict[str, object]:
 
     all_results: list[str] = []
 
-    with tempfile.TemporaryDirectory(prefix="mulder_browser_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_browser_") as tmpdir:
         for pattern, browser in browser_patterns:
             matches = _find_inodes_by_path(pattern)
             for inode_str, rel_path, match_offset in matches:
@@ -298,7 +298,7 @@ def parse_plist(plist_filter: str | None = None) -> dict[str, object]:
     matches = _find_inodes_by_path(pattern)
     all_results: list[str] = []
 
-    with tempfile.TemporaryDirectory(prefix="mulder_plist_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_plist_") as tmpdir:
         for inode_str, rel_path, match_offset in matches[:50]:
             plist_path = Path(tmpdir) / f"plist_{inode_str}.plist"
             if not _icat_extract(image_path, match_offset, inode_str, plist_path):
@@ -376,7 +376,7 @@ def query_sqlite_from_image(inode: int, query: str, description: str = "") -> di
             "error_message": "Multi-statement queries are not allowed",
         }
 
-    with tempfile.TemporaryDirectory(prefix="mulder_sqlite_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_sqlite_") as tmpdir:
         db_path = Path(tmpdir) / f"inode_{inode}.sqlite"
         if not _icat_extract(image_path, offset, str(inode), db_path):
             elapsed = (time.monotonic() - t0) * 1000
@@ -694,7 +694,7 @@ def detect_steganography(target_path: str) -> dict[str, object]:
         pngs = [target] if ext == ".png" else []
         heics = [target] if ext in (".heic", ".heif") else []
 
-    with tempfile.TemporaryDirectory(prefix="mulder_steg_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_steg_") as tmpdir:
         if heics:
             converted = _convert_heic_to_jpeg(heics, tmpdir)
             if converted:
@@ -867,7 +867,7 @@ def extract_steganography(
 
     passwords = list(passwords) + ["", "password", "123456"]
 
-    with tempfile.TemporaryDirectory(prefix="mulder_steg_extract_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_steg_extract_") as tmpdir:
         out_file = Path(tmpdir) / "extracted.bin"
 
         # Try jpseek (jphide extraction) with each password
@@ -1392,7 +1392,7 @@ def parse_autoruns(csv_path: str = "", force: bool = False) -> dict[str, object]
             evidence/extracted directories if empty).
         force: Re-run even if already indexed.
     """
-    from mulder.server.helpers import sources_already_indexed
+    from lade.server.helpers import sources_already_indexed
 
     ctx = get_ctx()
     tc_id = make_tool_call_id()

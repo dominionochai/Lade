@@ -6,8 +6,8 @@ import csv
 import io
 from typing import Any
 
-from mulder.models import Finding
-from mulder.report.ioc_export import (
+from lade.models import Finding
+from lade.report.ioc_export import (
     _ioc_to_stix_pattern,
     build_csv,
     build_stix_bundle,
@@ -94,7 +94,7 @@ class TestBuildStixBundle:
 
         identity = bundle["objects"][0]
         assert identity["type"] == "identity"
-        assert "Mulder Investigation" in identity["name"]
+        assert "Lade Investigation" in identity["name"]
 
     def test_bundle_contains_indicator(self) -> None:
         """STIX bundle contains an indicator for the provided IOC."""

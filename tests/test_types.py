@@ -1,10 +1,10 @@
-"""Tests for mulder.orchestrator.types -- data structures and JSON parsing."""
+"""Tests for lade.orchestrator.types -- data structures and JSON parsing."""
 
 from __future__ import annotations
 
 import json
 
-from mulder.orchestrator.types import (
+from lade.orchestrator.types import (
     extract_follow_up_request,
     extract_json_plan,
 )

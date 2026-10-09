@@ -3,12 +3,12 @@
 Three copies of the partition-row regex were anchored on ``^\\d+:\\d+``, which
 never matches real ``mmls`` output: every row is indented and the slot column
 is ``000:000`` (DOS) or a bare ``000`` (GPT).  All of them now go through
-``mulder.patterns.parse_mmls_rows``.
+``lade.patterns.parse_mmls_rows``.
 """
 
 from __future__ import annotations
 
-from mulder.patterns import parse_mmls_rows
+from lade.patterns import parse_mmls_rows
 
 DOS_MMLS = """DOS Partition Table
 Offset Sector: 0
@@ -56,12 +56,12 @@ class TestTskToolOffset:
     """``server.tools.tsk`` previously returned 0 for every real image."""
 
     def test_ntfs_partition_offset_is_found(self) -> None:
-        from mulder.server.tools.tsk import _parse_offset_from_windows
+        from lade.server.tools.tsk import _parse_offset_from_windows
 
         assert _parse_offset_from_windows(DOS_MMLS) == 2048
 
     def test_gpt_falls_through_to_basic_data(self) -> None:
-        from mulder.server.tools.tsk import _parse_offset_from_windows
+        from lade.server.tools.tsk import _parse_offset_from_windows
 
         # No NTFS/Linux indicator in GPT descriptions; must not crash.
         assert isinstance(_parse_offset_from_windows(GPT_MMLS), int)
@@ -71,6 +71,6 @@ class TestExtractTskOffset:
     """The already-correct copy must keep behaving identically."""
 
     def test_offset_matches_shared_parser(self) -> None:
-        from mulder.server.tools.extract.tsk import _parse_partition_offset
+        from lade.server.tools.extract.tsk import _parse_partition_offset
 
         assert _parse_partition_offset(DOS_MMLS) == 2048

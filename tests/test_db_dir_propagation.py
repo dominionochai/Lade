@@ -1,11 +1,11 @@
 """``--db-dir`` has to reach the thing that writes the database.
 
-``mulder investigate --db-dir /cases`` accepted the flag, wrote its log file
+``lade investigate --db-dir /cases`` accepted the flag, wrote its log file
 there, and then dropped it: the orchestrator was constructed without it, the
-log tailer read ``~/.mulder/cases/mulder.log``, the model-usage sidecar was
-written to a hardcoded ``~/.mulder/cases``, and the ``mulder serve``
+log tailer read ``~/.lade/cases/lade.log``, the model-usage sidecar was
+written to a hardcoded ``~/.lade/cases``, and the ``lade serve``
 processes the agent sessions spawn got no hint at all. The case therefore
-landed in the default directory, and the matching ``mulder report --db-dir
+landed in the default directory, and the matching ``lade report --db-dir
 /cases`` could never find it.
 """
 
@@ -19,10 +19,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from click.testing import CliRunner
 
-from mulder.cli import cli
-from mulder.orchestrator.evidence import ServerBridge
-from mulder.orchestrator.runner import Orchestrator
-from mulder.patterns import DB_DIR_ENV_VAR, DEFAULT_DB_DIR, resolve_db_dir
+from lade.cli import cli
+from lade.orchestrator.evidence import ServerBridge
+from lade.orchestrator.runner import Orchestrator
+from lade.patterns import DB_DIR_ENV_VAR, DEFAULT_DB_DIR, resolve_db_dir
 
 
 class TestResolveDbDir:
@@ -51,10 +51,10 @@ class TestOrchestratorHonoursDbDir:
 
     def test_the_log_tailer_reads_the_chosen_directory(self, tmp_path: Path) -> None:
         orch = self._make(tmp_path)
-        assert orch._log_tailer._log_path == tmp_path / "mulder.log"
+        assert orch._log_tailer._log_path == tmp_path / "lade.log"
 
     def test_agent_sessions_inherit_the_directory(self, tmp_path: Path) -> None:
-        """Sessions spawn their own ``mulder serve``; without this it defaults."""
+        """Sessions spawn their own ``lade serve``; without this it defaults."""
         orch = self._make(tmp_path)
         assert orch.env[DB_DIR_ENV_VAR] == str(tmp_path)
 
@@ -75,12 +75,12 @@ class TestOrchestratorHonoursDbDir:
     def test_the_environment_is_the_fallback(self, tmp_path: Path, monkeypatch: Any) -> None:
         monkeypatch.setenv(DB_DIR_ENV_VAR, str(tmp_path))
         orch = Orchestrator(evidence_path="/evidence", case_id="case-1")
-        assert orch._log_tailer._log_path == tmp_path / "mulder.log"
+        assert orch._log_tailer._log_path == tmp_path / "lade.log"
 
 
 class TestServerBridgeHonoursDbDir:
     def test_the_server_config_uses_the_chosen_directory(self, tmp_path: Path) -> None:
-        import mulder.server.app as server_app
+        import lade.server.app as server_app
 
         bridge = ServerBridge(case_id="", db_dir=tmp_path)
         with (
@@ -98,7 +98,7 @@ class TestInvestigateForwardsDbDir:
     def _invoke(args: list[str], env: dict[str, str] | None = None) -> MagicMock:
         runner = CliRunner()
         with (
-            patch("mulder.orchestrator.runner.Orchestrator") as orchestrator_cls,
+            patch("lade.orchestrator.runner.Orchestrator") as orchestrator_cls,
             patch("asyncio.run", return_value=MagicMock(success=True)),
         ):
             result = runner.invoke(

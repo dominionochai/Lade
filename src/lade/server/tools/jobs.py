@@ -18,20 +18,20 @@ import logging
 import time
 from typing import TYPE_CHECKING, Any
 
-from mulder.server.app import get_ctx, has_ctx, mcp
-from mulder.server.jobs import fill_case_id, validate_tool_args
-from mulder.server.tool_access import Role, tool_access
+from lade.server.app import get_ctx, has_ctx, mcp
+from lade.server.jobs import fill_case_id, validate_tool_args
+from lade.server.tool_access import Role, tool_access
 
 if TYPE_CHECKING:
-    from mulder.server.jobs import JobStore
-from mulder.server.helpers import hash_output, make_tool_call_id, tool_already_indexed
+    from lade.server.jobs import JobStore
+from lade.server.helpers import hash_output, make_tool_call_id, tool_already_indexed
 
 logger = logging.getLogger(__name__)
 
 
 def _get_job_store() -> JobStore:
     """Import lazily to avoid circular import at module level."""
-    from mulder.server.app import get_job_store
+    from lade.server.app import get_job_store
 
     return get_job_store()
 
@@ -68,7 +68,7 @@ def start_extraction_batch(tasks: list[dict[str, Any]]) -> dict[str, Any]:
 
     store = _get_job_store()
 
-    from mulder.server.app import _tool_dispatch_sync
+    from lade.server.app import _tool_dispatch_sync
 
     invalid = [t["tool"] for t in tasks if t["tool"] not in _tool_dispatch_sync]
     if invalid:

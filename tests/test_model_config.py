@@ -1,4 +1,4 @@
-"""Tests for mulder.orchestrator.models -- ModelConfig resolution."""
+"""Tests for lade.orchestrator.models -- ModelConfig resolution."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from mulder.orchestrator.models import (
+from lade.orchestrator.models import (
     _BUILT_IN_DEFAULTS,
     ModelConfig,
 )
@@ -136,7 +136,7 @@ class TestUnknownKeysWarning:
         config_file = tmp_path / "config.yaml"
         config_file.write_text(yaml.dump({"models": {}, "banana": True}))
 
-        with caplog.at_level(logging.WARNING, logger="mulder.orchestrator.models"):
+        with caplog.at_level(logging.WARNING, logger="lade.orchestrator.models"):
             config = ModelConfig.from_args(config_path=str(config_file))
         assert "banana" in caplog.text
         assert config.planner == _BUILT_IN_DEFAULTS["planner"]

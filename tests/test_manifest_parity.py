@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from mulder.assets.manifest import ASSETS, ASSETS_BY_KEY
+from lade.assets.manifest import ASSETS, ASSETS_BY_KEY
 
 _DOCKERFILE = Path(__file__).resolve().parents[1] / "Dockerfile"
 
@@ -64,7 +64,7 @@ def test_every_manifest_url_host_appears_in_the_dockerfile(dockerfile: str) -> N
 
 
 def test_the_eztools_member_list_is_a_subset_of_the_dockerfile_s(dockerfile: str) -> None:
-    """mulder invokes six of the eleven DLLs the image unzips."""
+    """lade invokes six of the eleven DLLs the image unzips."""
     match = re.search(r"for tool in ([\w ]+); do", dockerfile)
 
     assert match is not None

@@ -1,4 +1,4 @@
-"""Tests for mulder.server.tools.extract.registry_query.
+"""Tests for lade.server.tools.extract.registry_query.
 
 Covers value decoding, FILETIME conversion, hive extraction logic,
 key/value enumeration, and error handling paths.
@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from mulder.server.tools.extract.registry_query import (
+from lade.server.tools.extract.registry_query import (
     _decode_registry_value,
     _try_decode_filetime,
 )
@@ -152,13 +152,13 @@ class TestQueryRegistryValueTool:
     @staticmethod
     def _get_sync_fn() -> Any:
         """Get the unwrapped sync function from the tool dispatch."""
-        from mulder.server.app import _tool_dispatch_sync
+        from lade.server.app import _tool_dispatch_sync
 
         return _tool_dispatch_sync["query_registry_value"]
 
-    @patch("mulder.server.tools.extract.registry_query.extract_and_index")
-    @patch("mulder.server.tools.extract.registry_query._extract_hive")
-    @patch("mulder.server.tools.extract.registry_query.get_ctx")
+    @patch("lade.server.tools.extract.registry_query.extract_and_index")
+    @patch("lade.server.tools.extract.registry_query._extract_hive")
+    @patch("lade.server.tools.extract.registry_query.get_ctx")
     def test_ntuser_requires_username(
         self,
         mock_ctx: MagicMock,
@@ -184,9 +184,9 @@ class TestQueryRegistryValueTool:
         assert "username" in result["error_message"]
         mock_extract.assert_not_called()
 
-    @patch("mulder.server.tools.extract.registry_query.extract_and_index")
-    @patch("mulder.server.tools.extract.registry_query._extract_hive")
-    @patch("mulder.server.tools.extract.registry_query.get_ctx")
+    @patch("lade.server.tools.extract.registry_query.extract_and_index")
+    @patch("lade.server.tools.extract.registry_query._extract_hive")
+    @patch("lade.server.tools.extract.registry_query.get_ctx")
     def test_usrclass_requires_username(
         self,
         mock_ctx: MagicMock,
@@ -211,10 +211,10 @@ class TestQueryRegistryValueTool:
         assert result["status"] == "error"
         assert "username" in result["error_message"]
 
-    @patch("mulder.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry_query.extract_and_index")
-    @patch("mulder.server.tools.extract.registry_query._extract_hive")
-    @patch("mulder.server.tools.extract.registry_query.get_ctx")
+    @patch("lade.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry_query.extract_and_index")
+    @patch("lade.server.tools.extract.registry_query._extract_hive")
+    @patch("lade.server.tools.extract.registry_query.get_ctx")
     def test_hive_not_found_returns_error(
         self,
         mock_ctx: MagicMock,
@@ -241,11 +241,11 @@ class TestQueryRegistryValueTool:
         assert result["status"] == "error"
         assert result["error_type"] == "hive_not_found"
 
-    @patch("mulder.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry_query.extract_and_index")
-    @patch("mulder.server.tools.extract.registry_query.Registry.Registry")
-    @patch("mulder.server.tools.extract.registry_query._extract_hive")
-    @patch("mulder.server.tools.extract.registry_query.get_ctx")
+    @patch("lade.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry_query.extract_and_index")
+    @patch("lade.server.tools.extract.registry_query.Registry.Registry")
+    @patch("lade.server.tools.extract.registry_query._extract_hive")
+    @patch("lade.server.tools.extract.registry_query.get_ctx")
     def test_key_not_found_returns_error(
         self,
         mock_ctx: MagicMock,
@@ -282,11 +282,11 @@ class TestQueryRegistryValueTool:
         assert result["error_type"] == "key_not_found"
         assert "NonExistent\\Path" in result["error_message"]
 
-    @patch("mulder.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry_query.extract_and_index")
-    @patch("mulder.server.tools.extract.registry_query.Registry.Registry")
-    @patch("mulder.server.tools.extract.registry_query._extract_hive")
-    @patch("mulder.server.tools.extract.registry_query.get_ctx")
+    @patch("lade.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry_query.extract_and_index")
+    @patch("lade.server.tools.extract.registry_query.Registry.Registry")
+    @patch("lade.server.tools.extract.registry_query._extract_hive")
+    @patch("lade.server.tools.extract.registry_query.get_ctx")
     def test_value_not_found_returns_available_values(
         self,
         mock_ctx: MagicMock,
@@ -332,11 +332,11 @@ class TestQueryRegistryValueTool:
         assert "ExistingValue1" in result["error_message"]
         assert "ExistingValue2" in result["error_message"]
 
-    @patch("mulder.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry_query.extract_and_index")
-    @patch("mulder.server.tools.extract.registry_query.Registry.Registry")
-    @patch("mulder.server.tools.extract.registry_query._extract_hive")
-    @patch("mulder.server.tools.extract.registry_query.get_ctx")
+    @patch("lade.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry_query.extract_and_index")
+    @patch("lade.server.tools.extract.registry_query.Registry.Registry")
+    @patch("lade.server.tools.extract.registry_query._extract_hive")
+    @patch("lade.server.tools.extract.registry_query.get_ctx")
     def test_key_enumeration_returns_values_and_subkeys(
         self,
         mock_ctx: MagicMock,
@@ -400,11 +400,11 @@ class TestQueryRegistryValueTool:
         assert len(results_data["values"]) == 3
         assert results_data["subkeys"] == ["Subkey1"]
 
-    @patch("mulder.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry_query.extract_and_index")
-    @patch("mulder.server.tools.extract.registry_query.Registry.Registry")
-    @patch("mulder.server.tools.extract.registry_query._extract_hive")
-    @patch("mulder.server.tools.extract.registry_query.get_ctx")
+    @patch("lade.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry_query.extract_and_index")
+    @patch("lade.server.tools.extract.registry_query.Registry.Registry")
+    @patch("lade.server.tools.extract.registry_query._extract_hive")
+    @patch("lade.server.tools.extract.registry_query.get_ctx")
     def test_result_indexing_system_hive(
         self,
         mock_ctx: MagicMock,
@@ -454,11 +454,11 @@ class TestQueryRegistryValueTool:
         call_args = mock_index.call_args
         assert call_args[0][1] == "registry.query.system"
 
-    @patch("mulder.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry_query.extract_and_index")
-    @patch("mulder.server.tools.extract.registry_query.Registry.Registry")
-    @patch("mulder.server.tools.extract.registry_query._extract_hive")
-    @patch("mulder.server.tools.extract.registry_query.get_ctx")
+    @patch("lade.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry_query.extract_and_index")
+    @patch("lade.server.tools.extract.registry_query.Registry.Registry")
+    @patch("lade.server.tools.extract.registry_query._extract_hive")
+    @patch("lade.server.tools.extract.registry_query.get_ctx")
     def test_result_indexing_ntuser_hive(
         self,
         mock_ctx: MagicMock,
@@ -510,10 +510,10 @@ class TestQueryRegistryValueTool:
         call_args = mock_index.call_args
         assert call_args[0][1] == "registry.query.ntuser.jdoe"
 
-    @patch("mulder.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
-    @patch("mulder.server.tools.extract.registry_query.extract_and_index")
-    @patch("mulder.server.tools.extract.registry_query._tsk_extract_files")
-    @patch("mulder.server.tools.extract.registry_query.get_ctx")
+    @patch("lade.server.tools.extract.registry_query._cleanup_tsk_extract_dir")
+    @patch("lade.server.tools.extract.registry_query.extract_and_index")
+    @patch("lade.server.tools.extract.registry_query._tsk_extract_files")
+    @patch("lade.server.tools.extract.registry_query.get_ctx")
     def test_hive_name_is_case_insensitive(
         self,
         mock_ctx: MagicMock,
@@ -542,9 +542,9 @@ class TestQueryRegistryValueTool:
         patterns = {call.args[1][0] for call in mock_tsk.call_args_list}
         assert patterns == {"config/SYSTEM"}
 
-    @patch("mulder.server.tools.extract.registry_query.extract_and_index")
-    @patch("mulder.server.tools.extract.registry_query._extract_hive")
-    @patch("mulder.server.tools.extract.registry_query.get_ctx")
+    @patch("lade.server.tools.extract.registry_query.extract_and_index")
+    @patch("lade.server.tools.extract.registry_query._extract_hive")
+    @patch("lade.server.tools.extract.registry_query.get_ctx")
     def test_unknown_hive_returns_invalid_params(
         self,
         mock_ctx: MagicMock,

@@ -1,4 +1,4 @@
-"""Tests for mulder.report.redactor: secret redaction."""
+"""Tests for lade.report.redactor: secret redaction."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.report.redactor import Redactor
+from lade.report.redactor import Redactor
 
 
 class TestRedactorAlwaysAvailable:

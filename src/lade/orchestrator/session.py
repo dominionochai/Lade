@@ -27,12 +27,12 @@ from claude_agent_sdk.types import (
 )
 from rich.text import Text
 
-from mulder.orchestrator.display import InvestigationDashboard
-from mulder.orchestrator.errors import AuthenticationError, ModelNotAvailableError
-from mulder.orchestrator.models import ModelConfig
-from mulder.orchestrator.proxy import ModelSettings, is_proxy_model
-from mulder.orchestrator.types import EffortLevel, PhaseResult, extract_json_from_text
-from mulder.server.tool_access import ALL_ROLES, get_tools_for_role
+from lade.orchestrator.display import InvestigationDashboard
+from lade.orchestrator.errors import AuthenticationError, ModelNotAvailableError
+from lade.orchestrator.models import ModelConfig
+from lade.orchestrator.proxy import ModelSettings, is_proxy_model
+from lade.orchestrator.types import EffortLevel, PhaseResult, extract_json_from_text
+from lade.server.tool_access import ALL_ROLES, get_tools_for_role
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ class _MessageStats:
     msg_id: str | None = None
 
 
-_MCP_SERVER_NAME: str = "mulder"
+_MCP_SERVER_NAME: str = "lade"
 _MCP_TOOL_PREFIX: str = f"mcp__{_MCP_SERVER_NAME}__"
 
 #: Sessions that start without their MCP tools are aborted at the CLI's
@@ -61,13 +61,13 @@ _MCP_CONNECT_ATTEMPTS: int = 3
 
 #: Claude Code's tool search (default ``auto``) defers MCP tools behind a
 #: ``ToolSearch`` tool once their schemas pass a context threshold, at which
-#: point the model no longer sees the role's tool list. Every mulder role is
+#: point the model no longer sees the role's tool list. Every lade role is
 #: defined by exactly which tools the model sees, so deferral is off.
 _SESSION_ENV: dict[str, str] = {"ENABLE_TOOL_SEARCH": "false"}
 
 
 def off_role_tools(allowed_tools: list[str]) -> list[str]:
-    """Return every registered mulder MCP tool that is not in *allowed_tools*.
+    """Return every registered lade MCP tool that is not in *allowed_tools*.
 
     ``ClaudeAgentOptions.allowed_tools`` only auto-approves permissions, and
     ``bypassPermissions`` already approves everything, so on its own the
@@ -90,7 +90,7 @@ def _missing_mcp_tools(init: SystemMessage, expected: set[str]) -> str:
 
     Args:
         init: The ``system``/``init`` message emitted before the first turn.
-        expected: Fully qualified mulder tool names the session relies on.
+        expected: Fully qualified lade tool names the session relies on.
 
     Returns:
         Empty string when the server is connected and every expected tool
@@ -334,7 +334,7 @@ _TASK_PANEL_SKIP: frozenset[str] = frozenset(
 _MAX_BUFFER_SIZE_BYTES: int = 50 * 1024 * 1024  # 50 MB
 
 # Claude Code auto-titles every session with an extra model request that
-# mulder never reads. This env var suppresses it in headless/SDK sessions
+# lade never reads. This env var suppresses it in headless/SDK sessions
 # (Claude Code changelog 2.1.110). Caller env still wins.
 _NO_SESSION_TITLE: dict[str, str] = {"CLAUDE_CODE_DISABLE_TERMINAL_TITLE": "1"}
 
@@ -430,8 +430,8 @@ class SessionExecutor:
         The workspace ``.mcp.json`` is handed to the CLI explicitly (with
         ``strict_mcp_config``) so the session does not depend on project
         MCP approval state or pick up unrelated user-level servers. When
-        the run is pinned to a case (``MULDER_CASE_ID`` in *env*, set by the
-        orchestrator) the ``mulder`` server is started with ``--case-id``
+        the run is pinned to a case (``LADE_CASE_ID`` in *env*, set by the
+        orchestrator) the ``lade`` server is started with ``--case-id``
         so query tools work before the model calls ``open_case``
         (issue #230); other servers in ``.mcp.json`` are kept.
 
@@ -446,15 +446,15 @@ class SessionExecutor:
         """
         mcp_config = Path(self._cwd) / ".mcp.json"
         servers: dict[str, Any] | str = str(mcp_config) if mcp_config.is_file() else {}
-        case_id = self._env.get("MULDER_CASE_ID", "")
+        case_id = self._env.get("LADE_CASE_ID", "")
         if case_id:
             if mcp_config.is_file():
                 servers = dict(json.loads(mcp_config.read_text()).get("mcpServers") or {})
             else:
                 servers = {}
-            servers["mulder"] = {
+            servers["lade"] = {
                 "type": "stdio",
-                "command": "mulder",
+                "command": "lade",
                 "args": ["serve", "--case-id", case_id],
             }
         return {
@@ -813,7 +813,7 @@ class SessionExecutor:
             elif isinstance(block, ToolUseBlock):
                 stats.tool_calls += 1
                 stats.has_output = True
-                tool_short = block.name.replace("mcp__mulder__", "")
+                tool_short = block.name.replace("mcp__lade__", "")
                 if tool_names_out is not None:
                     tool_names_out.append(tool_short)
                 if tool_short == "submit_finding":

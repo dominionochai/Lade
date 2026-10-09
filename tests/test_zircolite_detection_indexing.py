@@ -18,8 +18,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.server.helpers import tool_response as real_tool_response
-from mulder.server.tools.zircolite import run_zircolite
+from lade.server.helpers import tool_response as real_tool_response
+from lade.server.tools.zircolite import run_zircolite
 
 _DETECTION = {
     "timestamp": "2024-03-11T09:15:22",
@@ -71,18 +71,18 @@ def _run(evidence: dict[str, Path], raw: list[dict[str, Any]]) -> tuple[Any, str
         return real_tool_response(*args, **kwargs)
 
     with (
-        patch("mulder.server.tools.zircolite.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.zircolite.sources_already_indexed", return_value=[]),
         patch(
-            "mulder.server.tools.zircolite.importlib.util.find_spec",
+            "lade.server.tools.zircolite.importlib.util.find_spec",
             return_value=MagicMock(),
         ),
         patch(
-            "mulder.server.tools.zircolite._zircolite_script",
+            "lade.server.tools.zircolite._zircolite_script",
             return_value=evidence["script"],
         ),
-        patch("mulder.server.tools.zircolite.subprocess.run", side_effect=_write),
-        patch("mulder.server.tools.zircolite.extract_and_index", side_effect=_record),
-        patch("mulder.server.tools.zircolite.tool_response", side_effect=_capture),
+        patch("lade.server.tools.zircolite.subprocess.run", side_effect=_write),
+        patch("lade.server.tools.zircolite.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.zircolite.tool_response", side_effect=_capture),
     ):
         result = run_zircolite.__wrapped__(  # type: ignore[attr-defined]
             str(evidence["events"]),

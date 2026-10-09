@@ -13,7 +13,7 @@ recipient list shown to the examiner was wrong, and a search for
 
 from __future__ import annotations
 
-from mulder.server.tools.email import _parse_recipients
+from lade.server.tools.email import _parse_recipients
 
 
 def test_a_quoted_comma_does_not_split_a_recipient() -> None:

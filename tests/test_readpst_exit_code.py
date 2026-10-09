@@ -17,7 +17,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.email import parse_pst
+from lade.server.tools.email import parse_pst
 
 _FAILURE = "Error: unable to open PST file: not a valid PST"
 
@@ -40,9 +40,9 @@ def _invoke(pst: Path, run: Any) -> tuple[Any, list[str]]:
 
     kwargs = {"side_effect": run} if callable(run) else {"return_value": run}
     with (
-        patch("mulder.server.tools.email.require_binary", return_value="/usr/bin/readpst"),
-        patch("mulder.server.tools.email.subprocess.run", **kwargs),
-        patch("mulder.server.tools.email.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.email.require_binary", return_value="/usr/bin/readpst"),
+        patch("lade.server.tools.email.subprocess.run", **kwargs),
+        patch("lade.server.tools.email.extract_and_index", side_effect=_record),
     ):
         result = parse_pst.__wrapped__("case-1", str(pst))  # type: ignore[attr-defined]
     return result, indexed

@@ -7,17 +7,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.orchestrator.phases import EXTRACTION
-from mulder.server.tool_access import Role, get_tools_for_role
-from mulder.server.tools.extract import masquerade
-from mulder.server.tools.extract.masquerade import (
+from lade.orchestrator.phases import EXTRACTION
+from lade.server.tool_access import Role, get_tools_for_role
+from lade.server.tools.extract import masquerade
+from lade.server.tools.extract.masquerade import (
     detect_masquerading,
     identify_content,
     is_mismatch,
     parse_fls_long,
 )
 
-MOD = "mulder.server.tools.extract.masquerade"
+MOD = "lade.server.tools.extract.masquerade"
 _tool: Any = detect_masquerading.__wrapped__  # type: ignore[attr-defined]  # sync body under the async bridge
 
 
@@ -225,8 +225,8 @@ def test_fls_failure_is_an_error_response() -> None:
 
 
 def test_registered_for_extract_executor_only() -> None:
-    assert "mcp__mulder__detect_masquerading" in get_tools_for_role(Role.EXTRACT_EXECUTOR)
-    assert "mcp__mulder__detect_masquerading" not in get_tools_for_role(Role.EXTRACT_ANALYST)
+    assert "mcp__lade__detect_masquerading" in get_tools_for_role(Role.EXTRACT_EXECUTOR)
+    assert "mcp__lade__detect_masquerading" not in get_tools_for_role(Role.EXTRACT_ANALYST)
     assert masquerade.__name__ == MOD
 
 

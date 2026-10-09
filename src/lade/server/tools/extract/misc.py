@@ -15,10 +15,10 @@ import time
 from collections.abc import Mapping
 from pathlib import Path
 
-from mulder.assets.paths import asset_candidates, asset_search_summary, register_cache_clear
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index, mount_disk_image
-from mulder.server.helpers import (
+from lade.assets.paths import asset_candidates, asset_search_summary, register_cache_clear
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index, mount_disk_image
+from lade.server.helpers import (
     _PREVIEW_CHAR_LIMIT,
     TOOL_TIMEOUT,
     adaptive_timeout,
@@ -29,13 +29,13 @@ from mulder.server.helpers import (
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
-from mulder.server.tools.extract.tsk import (
+from lade.server.tool_access import Role, tool_access
+from lade.server.tools.extract.tsk import (
     _cleanup_tsk_extract_dir,
     _resolve_partition_offset,
     _tsk_extract_files,
 )
-from mulder.server.tools.tsk import _detect_filesystem_type
+from lade.server.tools.tsk import _detect_filesystem_type
 
 __all__ = [
     "_DOTNET",
@@ -134,11 +134,11 @@ def _framework_rank(path: Path, ceiling: int | None) -> tuple[int, int, str]:
 
 @functools.lru_cache(maxsize=32)
 def _find_ez_tool(dll_name: str) -> str | None:
-    """Locate an EZ Tool DLL: platform root first, mulder's assets second.
+    """Locate an EZ Tool DLL: platform root first, lade's assets second.
 
     The platform root is searched first even when it is unwritable, because
     SIFT's DLLs are version-matched to SIFT's ``dotnet`` and shadowing them
-    with mulder's downloads is a regression.  Within a root, ``sorted()``
+    with lade's downloads is a regression.  Within a root, ``sorted()``
     plus the ceilinged rank replaces ``rglob``'s filesystem ordering, which
     picked nondeterministically between ``net6/`` and ``net9/`` copies of the
     same tool.
@@ -189,12 +189,12 @@ def _run_ez_tool(
             tool_name,
             params,
             f"{dll_name} not found under any of: "
-            f"{asset_search_summary(_EZ_TOOL_DIRNAME)}. Run 'mulder setup'.",
+            f"{asset_search_summary(_EZ_TOOL_DIRNAME)}. Run 'lade setup'.",
             (time.monotonic() - t0) * 1000,
             error_type="binary_missing",
         )
 
-    with tempfile.TemporaryDirectory(prefix="mulder_ez_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_ez_") as tmpdir:
         cmd = [_DOTNET, dll, *args, "--csv", tmpdir]
 
         try:
@@ -547,7 +547,7 @@ def run_mft_parser(image_path: str, force: bool = False) -> dict[str, object]:
         )
 
     if require_binary("icat"):
-        with tempfile.TemporaryDirectory(prefix="mulder_mft_") as tmpdir:
+        with tempfile.TemporaryDirectory(prefix="lade_mft_") as tmpdir:
             mft_dest = Path(tmpdir) / "$MFT"
             cmd = ["icat"]
             if offset > 0:
@@ -965,7 +965,7 @@ language can leave r2:
     runs ``cmd`` in a shell. ``#!pipe sh -c cmd`` does the same by another
     route.
 ``oo+`` then ``w``
-    reopens the target read-write and patches it, even though mulder never
+    reopens the target read-write and patches it, even though lade never
     passes ``-w`` -- so a command string can modify the evidence it was asked
     to examine.
 ``o /some/path``
@@ -1088,7 +1088,7 @@ def run_tcpflow(pcap_path: str) -> dict[str, object]:
             error_type="file_not_found",
         )
 
-    with tempfile.TemporaryDirectory(prefix="mulder_tcpflow_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_tcpflow_") as tmpdir:
         try:
             subprocess.run(
                 ["tcpflow", "-r", pcap_path, "-o", tmpdir],
@@ -1162,7 +1162,7 @@ def run_tcpxtract(pcap_path: str) -> dict[str, object]:
             error_type="file_not_found",
         )
 
-    with tempfile.TemporaryDirectory(prefix="mulder_tcpxtract_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_tcpxtract_") as tmpdir:
         try:
             proc = subprocess.run(
                 ["tcpxtract", "-f", pcap_path, "-o", tmpdir],
@@ -1286,7 +1286,7 @@ def _run_dislocker_decrypt_mode(
             error_type="binary_missing",
         )
 
-    mount_point = tempfile.mkdtemp(prefix="mulder_dislocker_")
+    mount_point = tempfile.mkdtemp(prefix="lade_dislocker_")
     cmd = ["dislocker-fuse"]
     if recovery_key:
         cmd.extend(["-p", recovery_key])

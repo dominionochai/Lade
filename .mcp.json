@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "mulder": {
+    "lade": {
       "type": "stdio",
-      "command": "mulder",
+      "command": "lade",
       "args": [
         "serve"
       ]

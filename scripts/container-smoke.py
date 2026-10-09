@@ -32,9 +32,9 @@ def run(*args: str | Path, cwd: Path | None = None, timeout: int = 180) -> str:
 
 
 def main() -> None:
-    assert os.getuid() != 0, "Run through the image entrypoint as mulder"
-    assert Path.home() == Path("/home/mulder"), "Unexpected HOME"
-    report = json.loads(run("mulder", "setup", "--verify", "--json", timeout=300))
+    assert os.getuid() != 0, "Run through the image entrypoint as lade"
+    assert Path.home() == Path("/home/lade"), "Unexpected HOME"
+    report = json.loads(run("lade", "setup", "--verify", "--json", timeout=300))
     assert report["root"] == "/opt", report["root"]
     bad = [
         asset
@@ -83,13 +83,13 @@ def main() -> None:
         ("clamscan", "--version"),
     ):
         run(*command)
-    # The unprivileged mulder user can only mount NTFS through the source-built
+    # The unprivileged lade user can only mount NTFS through the source-built
     # external-FUSE ntfs-3g; the distro binary (integrated FUSE) refuses.
     ntfs_version = subprocess.run(["ntfs-3g", "--version"], capture_output=True, text=True).stderr
     assert "external FUSE" in ntfs_version, (
         f"ntfs-3g is not the external-FUSE build: {ntfs_version!r}"
     )
-    proxy = importlib.import_module("mulder.orchestrator.proxy")
+    proxy = importlib.import_module("lade.orchestrator.proxy")
     with proxy.ProxyManager(models=["ollama/smoke"]):
         print("PASS LiteLLM proxy startup and health", flush=True)
     # Exercise the shared .NET runtime and every installed forensic parser.
@@ -109,7 +109,7 @@ def main() -> None:
         path = next(Path("/opt/zimmermantools").rglob(f"{dll}.dll"))
         run("dotnet", path, "-h")
 
-    with tempfile.TemporaryDirectory(prefix="mulder-smoke-") as directory:
+    with tempfile.TemporaryDirectory(prefix="lade-smoke-") as directory:
         work = Path(directory)
         # One Ethernet/IPv4/UDP DNS query. Offline decoders explicitly ignore
         # checksums so this tiny fixture needs no packet-generation dependency.
@@ -149,7 +149,7 @@ def main() -> None:
         suricata.mkdir()
         rules = work / "smoke.rules"
         rules.write_text(
-            'alert udp any any -> any 53 (msg:"mulder smoke DNS"; sid:1000001; rev:1;)\n'
+            'alert udp any any -> any 53 (msg:"lade smoke DNS"; sid:1000001; rev:1;)\n'
         )
         config = work / "suricata.yaml"
         if not os.access("/etc/suricata/suricata.yaml", os.R_OK):
@@ -209,8 +209,8 @@ def main() -> None:
             if name == "aleapp":
                 fixture = source / "data/misc/adb/adb_keys"
                 fixture.parent.mkdir(parents=True)
-                fixture.write_text("AAAA smoke@mulder-smoke-host\n")
-                expected = "mulder-smoke-host"
+                fixture.write_text("AAAA smoke@lade-smoke-host\n")
+                expected = "lade-smoke-host"
             else:
                 fixture = source / "Library/Preferences/com.apple.wifi-private-mac-networks.plist"
                 fixture.parent.mkdir(parents=True)
@@ -218,12 +218,12 @@ def main() -> None:
                     plistlib.dumps(
                         {
                             "List of scanned networks with private mac": [
-                                {"SSID_STR": "mulder-smoke-wifi", "BSSID": "00:11:22:33:44:55"}
+                                {"SSID_STR": "lade-smoke-wifi", "BSSID": "00:11:22:33:44:55"}
                             ]
                         }
                     )
                 )
-                expected = "mulder-smoke-wifi"
+                expected = "lade-smoke-wifi"
             run(
                 "python3",
                 f"/opt/{name}/{name}.py",

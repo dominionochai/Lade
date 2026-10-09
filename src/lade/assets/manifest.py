@@ -1,4 +1,4 @@
-"""The inert description of everything ``mulder setup`` may provision.
+"""The inert description of everything ``lade setup`` may provision.
 
 Every version here is pinned to the literal the Dockerfile uses, so a native
 install and the container image resolve the same tool at the same version;
@@ -61,7 +61,7 @@ class Asset:
         validate: Shape check applied before publishing.
         cache_dest: Non-empty routes the row outside the asset root; only
             ``"vol-symbols"`` exists, for the reason in ``volatility_cache_dir``.
-        members: For ``kind="eztools"``, the DLL basenames mulder invokes.
+        members: For ``kind="eztools"``, the DLL basenames lade invokes.
         note: Extra text for the ``--list`` table.
     """
 
@@ -152,7 +152,7 @@ _ASSETS: tuple[Asset, ...] = (
         pinnable=False,
         size_estimate=12 * _MB,
         validate="git",
-        note="YARA community rules; keeps its .git so mulder can pull updates",
+        note="YARA community rules; keeps its .git so lade can pull updates",
     ),
     Asset(
         key="didier-stevens",
@@ -274,9 +274,9 @@ _ASSETS: tuple[Asset, ...] = (
             "EvtxECmd",
             "RECmd",
         ),
-        # SPEC §2.4 rule 3: --force means "re-fetch what mulder installed", not
+        # SPEC §2.4 rule 3: --force means "re-fetch what lade installed", not
         # "install on top of the platform's version-matched copies".
-        note="the six EZ Tools DLLs mulder invokes (needs dotnet at runtime)",
+        note="the six EZ Tools DLLs lade invokes (needs dotnet at runtime)",
     ),
     Asset(
         key="floss",
@@ -295,7 +295,7 @@ _ASSETS: tuple[Asset, ...] = (
         chmod_x=("floss",),
         shims=("floss",),
         arch_only=("amd64",),
-        substitute="pipx inject mulder-dfir flare-floss",
+        substitute="pipx inject lade-dfir flare-floss",
         note="obfuscated string extraction",
     ),
     Asset(
@@ -406,8 +406,8 @@ def volatility_cache_dir() -> Path:
 
     Copied from ``volatility3.framework.constants`` rather than imported: that
     import has the side effect of creating the cache directory, and the *system*
-    ``vol`` mulder prefers is a different install of the same package computing
-    the same env-derived path.  ``MULDER_ASSET_ROOT`` deliberately does not
+    ``vol`` lade prefers is a different install of the same package computing
+    the same env-derived path.  ``LADE_ASSET_ROOT`` deliberately does not
     affect this -- re-rooting the symbols would orphan them from the ``vol`` on
     ``$PATH``.
     """

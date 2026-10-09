@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mulder Report: {{ case_id }}</title>
+<title>Lade Report: {{ case_id }}</title>
 <script>
-(function(){var t=localStorage.getItem('mulder-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t)}else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches){document.documentElement.setAttribute('data-theme','light')}})();
+(function(){var t=localStorage.getItem('lade-theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t)}else if(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches){document.documentElement.setAttribute('data-theme','light')}})();
 </script>
 <style>
 /* ===================== DARK THEME (default) ===================== */
@@ -551,7 +551,7 @@ table.data-table code { font-family: var(--mono); font-size: 0.78em; color: var(
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
-    <h1><span>Mulder</span></h1>
+    <h1><span>Lade</span></h1>
     <div class="case-id">{{ case_id }}</div>
   </div>
   <nav class="sidebar-nav">
@@ -600,7 +600,7 @@ table.data-table code { font-family: var(--mono); font-size: 0.78em; color: var(
   </nav>
   <div class="sidebar-footer">
     Generated {{ timestamp | truncate(19, True, '') }}<br>
-    <a href="https://github.com/calebevans/mulder">Mulder</a> &mdash; AI forensics via MCP<br>
+    <a href="https://github.com/dominionochai/Lade">Lade</a> &mdash; AI forensics via MCP<br>
     <span class="shortcut-hint">&#8984;K search</span>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle light/dark theme" id="themeBtn">&#9790;</button>
   </div>
@@ -1353,7 +1353,7 @@ function toggleTheme() {
   var cur = html.getAttribute('data-theme');
   var next = cur === 'dark' ? 'light' : 'dark';
   html.setAttribute('data-theme', next);
-  localStorage.setItem('mulder-theme', next);
+  localStorage.setItem('lade-theme', next);
   updateThemeIcon();
   donutRendered = false; sparkRendered = false;
 }

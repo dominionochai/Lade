@@ -1,10 +1,10 @@
-"""Tests for ``mulder setup``'s planning and provisioning.
+"""Tests for ``lade setup``'s planning and provisioning.
 
 Offline by construction, in three independent layers:
 
 1. ``provision(..., fetch=...)`` takes the downloader as a parameter and every
    test here passes a local one;
-2. ``mulder.assets.manifest`` is inert data whose only I/O is one package-data
+2. ``lade.assets.manifest`` is inert data whose only I/O is one package-data
    read;
 3. ``tests/conftest.py`` patches ``socket.connect`` and ``httpx`` send to raise,
    so a regression that bypasses the injected fetcher fails loudly instead of
@@ -23,11 +23,11 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.assets import install as install_mod
-from mulder.assets.fetch import FetchError, FetchResult, sha256_file
-from mulder.assets.install import Plan, PlanError, SetupOptions, build_plan, provision
-from mulder.assets.manifest import ASSETS_BY_KEY
-from mulder.assets.state import AssetState
+from lade.assets import install as install_mod
+from lade.assets.fetch import FetchError, FetchResult, sha256_file
+from lade.assets.install import Plan, PlanError, SetupOptions, build_plan, provision
+from lade.assets.manifest import ASSETS_BY_KEY
+from lade.assets.state import AssetState
 
 
 class RecordingFetcher:
@@ -79,12 +79,12 @@ def _write_zip(dest: Path, name: str) -> None:
 @pytest.fixture()
 def roots(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
     """A pinned write root and shim directory, with git and root faked out."""
-    from mulder.assets import paths
+    from lade.assets import paths
 
     root = tmp_path / "assets"
     root.mkdir()
     bin_dir = tmp_path / "bin"
-    monkeypatch.setenv("MULDER_ASSET_ROOT", str(root))
+    monkeypatch.setenv("LADE_ASSET_ROOT", str(root))
     monkeypatch.setattr(install_mod.shutil, "which", lambda name: f"/usr/bin/{name}")
     monkeypatch.setattr(install_mod, "_geteuid", lambda: 1000)
     paths.reset_asset_caches()
@@ -96,7 +96,7 @@ def _plan(
 ) -> tuple[Plan, SetupOptions]:
     """Build a plan, optionally narrowed to *keys*.
 
-    `mulder setup` deliberately has no --only/--tier any more: it installs
+    `lade setup` deliberately has no --only/--tier any more: it installs
     everything.  Tests still need to exercise one row at a time, so the
     narrowing lives here rather than as production CLI surface.
     """
@@ -203,7 +203,7 @@ class TestPreflight:
             install_mod.preflight(plan, options)
 
         assert exc.value.exit_code == 1
-        assert "MULDER_ASSET_ROOT" in str(exc.value)
+        assert "LADE_ASSET_ROOT" in str(exc.value)
 
 
 # ---------------------------------------------------------------------------
@@ -263,7 +263,7 @@ class TestProvisioning:
     def test_shims_are_linked_into_bin_dir(self, roots: tuple[Path, Path]) -> None:
         import dataclasses
 
-        from mulder.assets import manifest as manifest_mod
+        from lade.assets import manifest as manifest_mod
 
         unpinned = dataclasses.replace(ASSETS_BY_KEY["capa"], pinnable=False, digests={})
         patched = tuple(unpinned if a.key == "capa" else a for a in manifest_mod.ASSETS)
@@ -280,7 +280,7 @@ class TestProvisioning:
 
 class TestVerify:
     def test_verify_reports_missing_and_exits_4(self, roots: tuple[Path, Path]) -> None:
-        from mulder.assets.fetch import OfflineFetcher
+        from lade.assets.fetch import OfflineFetcher
 
         plan, options = _plan(roots, verify=True)
         result = provision(plan, options, fetch=OfflineFetcher())
@@ -289,7 +289,7 @@ class TestVerify:
         assert result.exit_code == 4
 
     def test_verify_exits_0_when_everything_is_present(self, roots: tuple[Path, Path]) -> None:
-        from mulder.assets.fetch import OfflineFetcher
+        from lade.assets.fetch import OfflineFetcher
 
         _run(roots, RecordingFetcher(roots[0]), {"attack"})
         plan, options = _plan(roots, {"attack"}, verify=True)
@@ -307,7 +307,7 @@ class TestShadowing:
         Without this, setup prints "All N assets present" while every read still
         resolves to the older -- possibly truncated -- copy.
         """
-        from mulder.assets import paths
+        from lade.assets import paths
 
         write_root, bin_dir = roots
         _run(roots, RecordingFetcher(write_root), {"attack"})
@@ -315,7 +315,7 @@ class TestShadowing:
         stale = tmp_path / "opt"
         (stale / "attack").mkdir(parents=True)
         (stale / "attack" / "enterprise-attack.json").write_text('{"objects": []}')
-        monkeypatch.delenv("MULDER_ASSET_ROOT")
+        monkeypatch.delenv("LADE_ASSET_ROOT")
         monkeypatch.setattr(paths, "SYSTEM_ROOT", stale)
         monkeypatch.setattr(Path, "home", lambda: write_root.parent / "fake-home")
         monkeypatch.setattr(paths, "user_root", lambda: write_root)
@@ -324,7 +324,7 @@ class TestShadowing:
         options = SetupOptions(verify=True)
         plan = build_plan(options, write_root, bin_dir)
         plan.selected = [a for a in plan.selected if a.key == "attack"]
-        from mulder.assets.fetch import OfflineFetcher
+        from lade.assets.fetch import OfflineFetcher
 
         result = provision(plan, options, fetch=OfflineFetcher())
 
@@ -337,19 +337,19 @@ class TestShadowing:
     ) -> None:
         """The stock SIFT box, which SPEC 1.6 promises is unaffected.
 
-        A hand-made /opt clone and no 'mulder setup' run is a working install.
+        A hand-made /opt clone and no 'lade setup' run is a working install.
         Deciding presence from the write root alone reported it 'missing' with
         exit 4, sending the user looking for a problem that is not there.
         """
-        from mulder.assets import paths
-        from mulder.assets.fetch import OfflineFetcher
+        from lade.assets import paths
+        from lade.assets.fetch import OfflineFetcher
 
         write_root, bin_dir = roots
         theirs = tmp_path / "opt"
         (theirs / "attack").mkdir(parents=True)
         (theirs / "attack" / "enterprise-attack.json").write_text('{"objects": []}')
 
-        monkeypatch.delenv("MULDER_ASSET_ROOT")
+        monkeypatch.delenv("LADE_ASSET_ROOT")
         monkeypatch.setattr(paths, "SYSTEM_ROOT", theirs)
         monkeypatch.setattr(Path, "home", lambda: write_root.parent / "fake-home")
         monkeypatch.setattr(paths, "user_root", lambda: write_root)
@@ -396,7 +396,7 @@ class TestEzTools:
 
 
 def _record(root: Path) -> Any:
-    from mulder.assets.state import AssetRecord
+    from lade.assets.state import AssetRecord
 
     return AssetRecord(version="net9", url="x", dest=str(root / "zimmermantools"))
 
@@ -428,7 +428,7 @@ def test_zircolite_reports_when_its_linux_rules_could_not_be_seeded(
 ) -> None:
     """An empty rules/linux is silent at analysis time, so say so at install time.
 
-    Zircolite ships no Linux Sigma rules; mulder copies them across from
+    Zircolite ships no Linux Sigma rules; lade copies them across from
     sigma-rules.  When that fetch failed, Zircolite still installs and still
     runs -- it simply detects nothing, forever, with no error.
     """
@@ -457,9 +457,9 @@ def test_zircolite_reports_when_its_linux_rules_could_not_be_seeded(
 
 def test_volatility_symbols_bypass_the_asset_root(monkeypatch: pytest.MonkeyPatch) -> None:
     """Re-rooting them would orphan them from the ``vol`` on $PATH."""
-    from mulder.assets.manifest import volatility_cache_dir
+    from lade.assets.manifest import volatility_cache_dir
 
-    monkeypatch.setenv("MULDER_ASSET_ROOT", "/somewhere/else")
+    monkeypatch.setenv("LADE_ASSET_ROOT", "/somewhere/else")
     monkeypatch.setenv("XDG_CACHE_HOME", "/tmp/xdg")
 
     assert volatility_cache_dir() == Path("/tmp/xdg/volatility3/symbols")
@@ -500,8 +500,8 @@ class TestSummaryLine:
 
         from rich.console import Console
 
-        from mulder.assets.fetch import OfflineFetcher
-        from mulder.cli import _print_summary
+        from lade.assets.fetch import OfflineFetcher
+        from lade.cli import _print_summary
 
         plan, options = _plan(roots, keys, **kwargs)
         result = provision(plan, options, fetch=OfflineFetcher())
@@ -516,14 +516,14 @@ class TestSummaryLine:
         eight 'missing' rows and a Consequences block listing what broke."""
         output = self._render(roots, verify=True)
 
-        assert "missing - run 'mulder setup' to install them" in output
+        assert "missing - run 'lade setup' to install them" in output
         assert "selected assets present" not in output
 
 
 def test_a_corrupt_zip_is_reported_not_raised(roots: tuple[Path, Path]) -> None:
     """BadZipFile is not an OSError, so it used to escape as a traceback."""
-    from mulder.assets.fetch import OfflineFetcher
-    from mulder.assets.manifest import volatility_cache_dir
+    from lade.assets.fetch import OfflineFetcher
+    from lade.assets.manifest import volatility_cache_dir
 
     cache = volatility_cache_dir()
     cache.mkdir(parents=True, exist_ok=True)

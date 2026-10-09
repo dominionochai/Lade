@@ -1,6 +1,6 @@
 """``binary.py`` re-declared IP and path regexes instead of using the shared ones.
 
-``mulder.patterns`` exists so one parser is fixed once -- the same reason the
+``lade.patterns`` exists so one parser is fixed once -- the same reason the
 ``mmls`` and ``fls`` parsers were consolidated. ``binary.py`` kept private
 copies, and they had drifted:
 
@@ -30,8 +30,8 @@ from __future__ import annotations
 
 import pytest
 
-from mulder.patterns import IP_RE, UNIX_PATH_RE, WIN_PATH_RE
-from mulder.server.tools.binary import _categorize_string
+from lade.patterns import IP_RE, UNIX_PATH_RE, WIN_PATH_RE
+from lade.server.tools.binary import _categorize_string
 
 
 class TestPathsTheLocalCopyMissed:
@@ -95,7 +95,7 @@ class TestUnchangedBehaviour:
 class TestTheSharedPatternsAreTheOnesUsed:
     def test_no_private_copies_remain(self) -> None:
         """A re-declared copy here is what drifted last time."""
-        from mulder.server.tools import binary
+        from lade.server.tools import binary
 
         assert not hasattr(binary, "_IPV4_RE")
         assert not hasattr(binary, "_FILEPATH_RE")
@@ -103,7 +103,7 @@ class TestTheSharedPatternsAreTheOnesUsed:
     def test_the_module_imports_the_shared_ones(self) -> None:
         """vars(), not attribute access: these are re-exports, and mypy
         --strict forbids reading a name a module did not declare itself."""
-        from mulder.server.tools import binary
+        from lade.server.tools import binary
 
         namespace = vars(binary)
         assert namespace["IP_RE"] is IP_RE

@@ -29,7 +29,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.documents import analyze_pdf
+from lade.server.tools.documents import analyze_pdf
 
 # Verbatim pdf-parser 0.7.11 output for the crafted PDF.
 REAL_PARSER_DUMP = """\
@@ -162,11 +162,11 @@ def _analyze(pdf: Path, dump: str, **kwargs: Any) -> tuple[dict[str, Any], str]:
         return subprocess.CompletedProcess(args=[], returncode=0, stdout=dump, stderr="")
 
     with (
-        patch("mulder.server.tools.documents._pdfid_script", return_value=Path("pdfid.py")),
-        patch("mulder.server.tools.documents._pdf_parser_script", return_value=Path("pp.py")),
-        patch("mulder.server.tools.documents._run_pdfid", return_value=[]),
-        patch("mulder.server.tools.documents.subprocess.run", side_effect=_fake_run),
-        patch("mulder.server.tools.documents.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.documents._pdfid_script", return_value=Path("pdfid.py")),
+        patch("lade.server.tools.documents._pdf_parser_script", return_value=Path("pp.py")),
+        patch("lade.server.tools.documents._run_pdfid", return_value=[]),
+        patch("lade.server.tools.documents.subprocess.run", side_effect=_fake_run),
+        patch("lade.server.tools.documents.extract_and_index", side_effect=_record),
     ):
         result = analyze_pdf.__wrapped__(  # type: ignore[attr-defined]
             "case-1", str(pdf), **kwargs

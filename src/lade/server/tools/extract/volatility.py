@@ -10,20 +10,20 @@ from concurrent.futures import TimeoutError as _FuturesTimeoutError
 from pathlib import Path
 from typing import Any
 
-from mulder.extractors.volatility import (
+from lade.extractors.volatility import (
     _find_vol_binary,
     _plugin_short_name,
 )
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     adaptive_timeout,
     error_response,
     make_tool_call_id,
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 __all__ = [
     "run_volatility",

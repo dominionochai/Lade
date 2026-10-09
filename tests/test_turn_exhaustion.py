@@ -14,10 +14,10 @@ from claude_agent_sdk import ClaudeAgentOptions as Options
 from claude_agent_sdk import ResultError
 from claude_agent_sdk.types import ResultMessage
 
-from mulder.orchestrator.models import ModelConfig
-from mulder.orchestrator.roles import RoleRunner
-from mulder.orchestrator.session import SessionExecutor
-from mulder.orchestrator.types import PhaseResult
+from lade.orchestrator.models import ModelConfig
+from lade.orchestrator.roles import RoleRunner
+from lade.orchestrator.session import SessionExecutor
+from lade.orchestrator.types import PhaseResult
 
 MAX_TURNS_TEXT = "Claude Code returned an error result: Reached maximum number of turns (35)"
 OVERFLOW_TEXT = "API Error: 400 This model's maximum context length is 163840 tokens"
@@ -47,7 +47,7 @@ async def _run(yield_result: bool, error: Exception | None) -> tuple[PhaseResult
     session = SessionExecutor(
         dashboard=dashboard, model_config=ModelConfig(), cwd="/tmp", env={}, effort="max"
     )
-    with patch("mulder.orchestrator.session.query", fake_query):
+    with patch("lade.orchestrator.session.query", fake_query):
         result = await session.execute("s", "p", "m", [], [], 35)
     return result, dashboard
 

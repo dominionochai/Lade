@@ -2,7 +2,7 @@
 
 Sleuth Kit has no UDF/ISO 9660 support, so ``run_fls``/``run_fsstat`` fail on
 a burned disc with "Possible encryption detected (High entropy)".  These tools
-use :mod:`mulder.extractors.optical` instead.
+use :mod:`lade.extractors.optical` instead.
 """
 
 from __future__ import annotations
@@ -12,23 +12,23 @@ import logging
 import time
 from pathlib import Path
 
-from mulder.extractors.optical import (
+from lade.extractors.optical import (
     OpticalEntry,
     OpticalError,
     extract_optical,
     list_optical,
     raw_image,
 )
-from mulder.server import source_names as _sn
-from mulder.server.app import get_cfg, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.server import source_names as _sn
+from lade.server.app import get_cfg, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     error_response,
     make_tool_call_id,
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 __all__ = ["extract_optical_file", "run_optical_listing"]
 
@@ -92,7 +92,7 @@ def run_optical_listing(image_path: str, force: bool = False) -> dict[str, objec
             suggestion="For hard disk and USB images use run_mmls / run_fls instead.",
         )
 
-    summary = extract_and_index(listing.to_text(), _SRC, image_path, "mulder-optical")
+    summary = extract_and_index(listing.to_text(), _SRC, image_path, "lade-optical")
     summary["filesystem"] = listing.fs_type
     summary["volume_label"] = listing.volume_label
     summary["sessions"] = listing.generations

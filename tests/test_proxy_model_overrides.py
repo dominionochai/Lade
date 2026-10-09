@@ -1,5 +1,5 @@
 """Proxy models LiteLLM does not know default to the reasoning output cap, and
-``--config`` ``models:`` entries or ``MULDER_MODEL_*`` env vars override what
+``--config`` ``models:`` entries or ``LADE_MODEL_*`` env vars override what
 LiteLLM reports (issue #203)."""
 
 from __future__ import annotations
@@ -12,8 +12,8 @@ import click
 import pytest
 import yaml
 
-from mulder.orchestrator.models import ModelConfig
-from mulder.orchestrator.proxy import (
+from lade.orchestrator.models import ModelConfig
+from lade.orchestrator.proxy import (
     PROXY_MAX_OUTPUT_TOKENS,
     PROXY_REASONING_MAX_OUTPUT_TOKENS,
     ModelOverride,
@@ -22,15 +22,15 @@ from mulder.orchestrator.proxy import (
     _build_proxy_config,
     resolve_settings,
 )
-from mulder.orchestrator.runner import Orchestrator
+from lade.orchestrator.runner import Orchestrator
 
 KIMI = "bedrock/us.moonshotai.kimi-k3"
 LLAMA = "bedrock/meta.llama3-3-70b-instruct-v1:0"
 KIMI_YAML = {"context_window": 262144, "max_output_tokens": 32768, "reasoning": True}
 ENV = {
-    "MULDER_MODEL_CONTEXT_WINDOW": "131072",
-    "MULDER_MODEL_MAX_OUTPUT_TOKENS": "16384",
-    "MULDER_MODEL_REASONING": "false",
+    "LADE_MODEL_CONTEXT_WINDOW": "131072",
+    "LADE_MODEL_MAX_OUTPUT_TOKENS": "16384",
+    "LADE_MODEL_REASONING": "false",
 }
 
 
@@ -105,7 +105,7 @@ class TestConfigFile:
         assert config.override_for(LLAMA).context_window == 131072
 
     def test_partial_env_keeps_the_rest_of_config(self, tmp_path: Path) -> None:
-        with patch.dict("os.environ", {"MULDER_MODEL_REASONING": "yes"}):
+        with patch.dict("os.environ", {"LADE_MODEL_REASONING": "yes"}):
             config = _config(tmp_path, {KIMI: {"context_window": 262144, "reasoning": False}})
         override = config.override_for(KIMI)
         assert (override.context_window, override.reasoning) == (262144, True)
@@ -131,15 +131,15 @@ class TestConfigFile:
         ("var", "value", "message"),
         [
             (
-                "MULDER_MODEL_CONTEXT_WINDOW",
+                "LADE_MODEL_CONTEXT_WINDOW",
                 "-1",
-                "MULDER_MODEL_CONTEXT_WINDOW must be a positive",
+                "LADE_MODEL_CONTEXT_WINDOW must be a positive",
             ),
-            ("MULDER_MODEL_MAX_OUTPUT_TOKENS", "8k", "MULDER_MODEL_MAX_OUTPUT_TOKENS must be"),
+            ("LADE_MODEL_MAX_OUTPUT_TOKENS", "8k", "LADE_MODEL_MAX_OUTPUT_TOKENS must be"),
             (
-                "MULDER_MODEL_REASONING",
+                "LADE_MODEL_REASONING",
                 "sometimes",
-                "MULDER_MODEL_REASONING must be true or false",
+                "LADE_MODEL_REASONING must be true or false",
             ),
         ],
     )
@@ -163,12 +163,12 @@ class TestProxyManager:
 
         with (
             patch("shutil.which", return_value="/usr/local/bin/litellm"),
-            patch("mulder.orchestrator.proxy._wait_for_health", return_value=True),
-            patch("mulder.orchestrator.proxy.fetch_model_windows", return_value={LLAMA: 131072}),
+            patch("lade.orchestrator.proxy._wait_for_health", return_value=True),
+            patch("lade.orchestrator.proxy.fetch_model_windows", return_value={LLAMA: 131072}),
             patch("subprocess.Popen"),
-            patch("mulder.orchestrator.proxy.litellm_reasoning", return_value={LLAMA: False}),
+            patch("lade.orchestrator.proxy.litellm_reasoning", return_value={LLAMA: False}),
             patch.object(Path, "write_text", capture_config),
-            caplog.at_level(logging.INFO, logger="mulder.orchestrator.proxy"),
+            caplog.at_level(logging.INFO, logger="lade.orchestrator.proxy"),
         ):
             pm = ProxyManager(models=[KIMI, LLAMA], port=4000, overrides=overrides)
             pm.start()
@@ -218,9 +218,9 @@ class TestProxyManager:
 
 def test_orchestrator_hands_overrides_to_proxy(tmp_path: Path) -> None:
     config = _config(tmp_path, {"planner": KIMI, "executor": LLAMA, KIMI: KIMI_YAML})
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         orch = Orchestrator("/evidence", model_config=config)
-    with patch("mulder.orchestrator.runner.ProxyManager") as pm_cls:
+    with patch("lade.orchestrator.runner.ProxyManager") as pm_cls:
         pm_cls.return_value.env_overrides = {}
         pm_cls.return_value.settings = {}
         orch._start_proxy_if_needed()
