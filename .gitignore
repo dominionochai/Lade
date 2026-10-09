@@ -1,0 +1,47 @@
+# Project
+reports/
+
+# Python bytecode
+__pycache__/
+*.py[codz]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.env
+.envrc
+.venv
+env/
+venv/
+
+# Testing / coverage
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.pytest_cache/
+coverage.xml
+
+# Type checkers / linters
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pytype/
+.pyre/
+
+# IDE
+.cursorignore
+.cursorindexingignore
+
+# Logs
+*.log
+!examples/**/*.log
+SPEC/
