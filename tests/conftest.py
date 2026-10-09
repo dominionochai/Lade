@@ -1,4 +1,4 @@
-"""Shared fixtures for the Mulder test suite."""
+"""Shared fixtures for the Lade test suite."""
 
 from __future__ import annotations
 
@@ -10,10 +10,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from mulder.audit import AuditLog
-from mulder.db import CaseDB
-from mulder.models import Finding
-from mulder.orchestrator.gates import reset_gate_failure_counters
+from lade.audit import AuditLog
+from lade.db import CaseDB
+from lade.models import Finding
+from lade.orchestrator.gates import reset_gate_failure_counters
 
 
 def _install_sdk_stub() -> None:
@@ -50,15 +50,15 @@ _install_sdk_stub()
 def _hermetic_asset_root(tmp_path_factory: pytest.TempPathFactory) -> Generator[None]:
     """Point every asset lookup at an empty tmp dir for the whole session.
 
-    ``MULDER_ASSET_ROOT`` is exclusive (SPEC/setup/01-spec.md §1.2), so this
+    ``LADE_ASSET_ROOT`` is exclusive (SPEC/setup/01-spec.md §1.2), so this
     makes the suite independent of the developer's ``/opt`` *and* of whatever
-    their own ``mulder setup`` installed.  Session-scoped, so it cannot use the
+    their own ``lade setup`` installed.  Session-scoped, so it cannot use the
     function-scoped ``monkeypatch`` fixture without a ``ScopeMismatch``.
     """
-    from mulder.assets.paths import reset_asset_caches
+    from lade.assets.paths import reset_asset_caches
 
     mp = pytest.MonkeyPatch()
-    mp.setenv("MULDER_ASSET_ROOT", str(tmp_path_factory.mktemp("empty-assets")))
+    mp.setenv("LADE_ASSET_ROOT", str(tmp_path_factory.mktemp("empty-assets")))
     reset_asset_caches()
     yield
     mp.undo()
@@ -69,7 +69,7 @@ def _hermetic_asset_root(tmp_path_factory: pytest.TempPathFactory) -> Generator[
 def _no_network(_hermetic_asset_root: None) -> Generator[None]:
     """Fail loudly on any real socket connect or httpx request.
 
-    ``mulder setup``'s fetcher is injectable so tests can substitute a local
+    ``lade setup``'s fetcher is injectable so tests can substitute a local
     one; this is the belt-and-braces layer that catches a regression which
     bypasses the injection and would otherwise download gigabytes in CI.
     """
@@ -90,12 +90,12 @@ def _no_network(_hermetic_asset_root: None) -> Generator[None]:
 
 @pytest.fixture()
 def asset_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Generator[Path]:
-    """Pin ``MULDER_ASSET_ROOT`` to a tmp dir and flush every dependent cache."""
-    from mulder.assets.paths import reset_asset_caches
+    """Pin ``LADE_ASSET_ROOT`` to a tmp dir and flush every dependent cache."""
+    from lade.assets.paths import reset_asset_caches
 
     root = tmp_path / "assets"
     root.mkdir()
-    monkeypatch.setenv("MULDER_ASSET_ROOT", str(root))
+    monkeypatch.setenv("LADE_ASSET_ROOT", str(root))
     reset_asset_caches()
     yield root
     reset_asset_caches()

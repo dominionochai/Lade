@@ -17,10 +17,10 @@ import time
 from pathlib import Path
 from typing import Any
 
-from mulder.orchestrator.display import InvestigationDashboard
-from mulder.orchestrator.errors import AuthenticationError, ModelNotAvailableError
-from mulder.orchestrator.evidence import EvidenceContext, ServerBridge
-from mulder.orchestrator.gates import (
+from lade.orchestrator.display import InvestigationDashboard
+from lade.orchestrator.errors import AuthenticationError, ModelNotAvailableError
+from lade.orchestrator.evidence import EvidenceContext, ServerBridge
+from lade.orchestrator.gates import (
     GateResult,
     validate_catalog,
     validate_cross_system,
@@ -28,9 +28,9 @@ from mulder.orchestrator.gates import (
     validate_narrative,
     validate_report,
 )
-from mulder.orchestrator.log_tailer import LogTailer
-from mulder.orchestrator.models import ModelConfig
-from mulder.orchestrator.phases import (
+from lade.orchestrator.log_tailer import LogTailer
+from lade.orchestrator.models import ModelConfig
+from lade.orchestrator.phases import (
     ALTERNATIVE_NARRATIVE,
     CATALOG,
     CROSS_SYSTEM,
@@ -38,10 +38,10 @@ from mulder.orchestrator.phases import (
     REPORT,
     PhaseConfig,
 )
-from mulder.orchestrator.proxy import ProxyManager
-from mulder.orchestrator.roles import RoleRunner
-from mulder.orchestrator.session import SessionExecutor
-from mulder.orchestrator.types import (
+from lade.orchestrator.proxy import ProxyManager
+from lade.orchestrator.roles import RoleRunner
+from lade.orchestrator.session import SessionExecutor
+from lade.orchestrator.types import (
     EffortLevel,
     ExecutionResults,
     InvestigationResult,
@@ -49,7 +49,7 @@ from mulder.orchestrator.types import (
     Plan,
     extract_catalog_result,
 )
-from mulder.patterns import (
+from lade.patterns import (
     DB_DIR_ENV_VAR,
     DEFAULT_MAX_COMPACTIONS,
     DEFAULT_WORKSPACE_DIR,
@@ -101,7 +101,7 @@ class Orchestrator:
             db_dir: Directory holding the case database, its audit log and
                 the run's sidecar files. Exported to agent sessions so the
                 MCP servers they spawn write to the same place. Falls back to
-                ``$MULDER_DB_DIR`` and then the default when not given.
+                ``$LADE_DB_DIR`` and then the default when not given.
             no_thinking: Disable extended thinking for all queries, ignoring effort.
             show_cli_stderr: Stream agent CLI diagnostics to the dashboard and log.
             max_compactions: Continuation sessions allowed per role session
@@ -114,11 +114,11 @@ class Orchestrator:
         self.env = env or {}
         self._case_id: str = case_id
         self._db_dir = resolve_db_dir(db_dir)
-        # Agent sessions spawn their own `mulder serve`; without this the
+        # Agent sessions spawn their own `lade serve`; without this the
         # child server writes the case to the default directory instead.
         self.env[DB_DIR_ENV_VAR] = str(self._db_dir)
         if self._case_id:
-            self.env["MULDER_CASE_ID"] = self._case_id
+            self.env["LADE_CASE_ID"] = self._case_id
         self._last_session_id: str = ""
         self._parallel_extractions = max(1, parallel_extractions)
         self._max_compactions = max_compactions
@@ -156,7 +156,7 @@ class Orchestrator:
         self._server = ServerBridge(case_id=self._case_id, db_dir=self._db_dir)
         self._log_tailer = LogTailer(
             dashboard=self.dashboard,
-            log_path=self._db_dir / "mulder.log",
+            log_path=self._db_dir / "lade.log",
         )
 
     async def run(self) -> InvestigationResult:
@@ -199,7 +199,7 @@ class Orchestrator:
         for overrides in self.model_config.phase_overrides.values():
             all_models.extend(overrides.values())
 
-        from mulder.orchestrator.proxy import is_proxy_model
+        from lade.orchestrator.proxy import is_proxy_model
 
         proxy_models = sorted({m for m in all_models if is_proxy_model(m)})
 
@@ -239,7 +239,7 @@ class Orchestrator:
         Returns:
             Completed InvestigationResult.
         """
-        from mulder.orchestrator.gates import reset_gate_failure_counters
+        from lade.orchestrator.gates import reset_gate_failure_counters
 
         reset_gate_failure_counters()
         self._case_briefing = self._evidence.load_case_briefing()

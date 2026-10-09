@@ -50,7 +50,7 @@ def _chainsaw_mapping(asset_root: Path) -> Path:
 
 class TestChainsaw:
     def test_execs_the_binary_the_gate_found(self, tmp_path: Path) -> None:
-        from mulder.server.tools.chainsaw import run_chainsaw
+        from lade.server.tools.chainsaw import run_chainsaw
 
         chainsaw = _fake_binary(tmp_path, "chainsaw")
         evidence = tmp_path / "evtx"
@@ -59,11 +59,11 @@ class TestChainsaw:
         mapping.write_text("---\n")
 
         with (
-            patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-            patch("mulder.server.helpers.shutil.which", return_value=str(chainsaw)),
-            patch("mulder.server.tools.chainsaw.extract_and_index", return_value={}),
+            patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+            patch("lade.server.helpers.shutil.which", return_value=str(chainsaw)),
+            patch("lade.server.tools.chainsaw.extract_and_index", return_value={}),
             patch(
-                "mulder.server.tools.chainsaw.subprocess.run", return_value=_completed()
+                "lade.server.tools.chainsaw.subprocess.run", return_value=_completed()
             ) as mock_run,
         ):
             result = run_chainsaw.__wrapped__(  # type: ignore[attr-defined]
@@ -75,19 +75,19 @@ class TestChainsaw:
 
     def test_missing_everywhere_is_binary_missing_not_os_error(self, tmp_path: Path) -> None:
         """The distinction the agent acts on: install me vs. something broke."""
-        from mulder.server.tools.chainsaw import run_chainsaw
+        from lade.server.tools.chainsaw import run_chainsaw
 
         with (
-            patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-            patch("mulder.server.helpers.shutil.which", return_value=None),
+            patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+            patch("lade.server.helpers.shutil.which", return_value=None),
         ):
             result = run_chainsaw.__wrapped__(str(tmp_path))  # type: ignore[attr-defined]
 
         assert result["error_type"] == "binary_missing"
-        assert "mulder setup" in str(result["suggestion"])
+        assert "lade setup" in str(result["suggestion"])
 
     def test_asset_root_copy_is_used_when_path_is_empty(self, asset_root: Path) -> None:
-        from mulder.server.tools.chainsaw import run_chainsaw
+        from lade.server.tools.chainsaw import run_chainsaw
 
         installed = asset_root / "chainsaw"
         installed.mkdir()
@@ -97,11 +97,11 @@ class TestChainsaw:
         _chainsaw_mapping(asset_root)
 
         with (
-            patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-            patch("mulder.server.helpers.shutil.which", return_value=None),
-            patch("mulder.server.tools.chainsaw.extract_and_index", return_value={}),
+            patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+            patch("lade.server.helpers.shutil.which", return_value=None),
+            patch("lade.server.tools.chainsaw.extract_and_index", return_value={}),
             patch(
-                "mulder.server.tools.chainsaw.subprocess.run", return_value=_completed()
+                "lade.server.tools.chainsaw.subprocess.run", return_value=_completed()
             ) as mock_run,
         ):
             run_chainsaw.__wrapped__(str(asset_root))  # type: ignore[attr-defined]
@@ -112,7 +112,7 @@ class TestChainsaw:
         """The tool schema must not freeze one machine's path (MCPServer reads the default)."""
         import inspect
 
-        from mulder.server.tools.chainsaw import run_chainsaw
+        from lade.server.tools.chainsaw import run_chainsaw
 
         signature = inspect.signature(run_chainsaw.__wrapped__)  # type: ignore[attr-defined]
         assert signature.parameters["sigma_rules_path"].default == ""
@@ -126,11 +126,11 @@ class TestChainsaw:
         _chainsaw_mapping(asset_root)
 
         with (
-            patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-            patch("mulder.server.helpers.shutil.which", return_value=None),
-            patch("mulder.server.tools.chainsaw.extract_and_index", return_value={}),
+            patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+            patch("lade.server.helpers.shutil.which", return_value=None),
+            patch("lade.server.tools.chainsaw.extract_and_index", return_value={}),
             patch(
-                "mulder.server.tools.chainsaw.subprocess.run", return_value=_completed()
+                "lade.server.tools.chainsaw.subprocess.run", return_value=_completed()
             ) as mock_run,
         ):
             run_chainsaw.__wrapped__(str(asset_root))  # type: ignore[attr-defined]
@@ -145,10 +145,10 @@ def _eve_stub() -> dict[str, Any]:
 @pytest.mark.parametrize(
     ("name", "module", "attribute"),
     [
-        ("capa", "mulder.server.tools.binary", "_CAPA_BINARY"),
-        ("floss", "mulder.server.tools.binary", "_FLOSS_BINARY"),
-        ("diec", "mulder.server.tools.binary", "_DIEC_BINARY"),
-        ("readpst", "mulder.server.tools.email", "_READPST_BINARY"),
+        ("capa", "lade.server.tools.binary", "_CAPA_BINARY"),
+        ("floss", "lade.server.tools.binary", "_FLOSS_BINARY"),
+        ("diec", "lade.server.tools.binary", "_DIEC_BINARY"),
+        ("readpst", "lade.server.tools.email", "_READPST_BINARY"),
     ],
 )
 def test_platform_tools_keep_their_already_correct_pattern(
@@ -170,7 +170,7 @@ def test_no_tool_execs_a_module_level_binary_constant() -> None:
     A module-level absolute path may be a *fallback*; it may not be the thing
     handed to ``subprocess.run`` while a different value was gated on.
     """
-    from mulder.server.tools.extract import pcap
+    from lade.server.tools.extract import pcap
 
     source = Path(pcap.__file__ or "").read_text(encoding="utf-8")
 

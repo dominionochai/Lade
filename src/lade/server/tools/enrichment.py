@@ -18,10 +18,10 @@ from typing import Any, Literal
 
 import httpx
 
-from mulder.server.app import get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import hash_output, make_tool_call_id
-from mulder.server.tool_access import Role, tool_access
+from lade.server.app import get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import hash_output, make_tool_call_id
+from lade.server.tool_access import Role, tool_access
 
 logger = logging.getLogger(__name__)
 

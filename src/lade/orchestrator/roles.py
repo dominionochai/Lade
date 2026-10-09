@@ -14,11 +14,11 @@ import re
 from typing import Any
 from uuid import uuid4
 
-from mulder.orchestrator.display import InvestigationDashboard
-from mulder.orchestrator.models import ModelConfig
-from mulder.orchestrator.phases import PhaseConfig
-from mulder.orchestrator.session import SessionExecutor
-from mulder.orchestrator.types import (
+from lade.orchestrator.display import InvestigationDashboard
+from lade.orchestrator.models import ModelConfig
+from lade.orchestrator.phases import PhaseConfig
+from lade.orchestrator.session import SessionExecutor
+from lade.orchestrator.types import (
     AnalystResult,
     ExecutionResults,
     PhaseResult,
@@ -54,21 +54,21 @@ _REPAIR_MAX_CHARS: int = 24_000
 
 _EXECUTOR_CONTROL_TOOLS: frozenset[str] = frozenset(
     {
-        "mcp__mulder__open_case",
-        "mcp__mulder__list_cases",
-        "mcp__mulder__start_extraction_batch",
-        "mcp__mulder__check_extraction_status",
-        "mcp__mulder__get_completed_results",
-        "mcp__mulder__wait",
-        "mcp__mulder__wait_all",
-        "mcp__mulder__run_parallel",
+        "mcp__lade__open_case",
+        "mcp__lade__list_cases",
+        "mcp__lade__start_extraction_batch",
+        "mcp__lade__check_extraction_status",
+        "mcp__lade__get_completed_results",
+        "mcp__lade__wait",
+        "mcp__lade__wait_all",
+        "mcp__lade__run_parallel",
     }
 )
 
 _EXECUTOR_PASSIVE_TOOLS: frozenset[str] = frozenset(
-    t.removeprefix("mcp__mulder__")
+    t.removeprefix("mcp__lade__")
     for t in _EXECUTOR_CONTROL_TOOLS
-    if t not in {"mcp__mulder__start_extraction_batch", "mcp__mulder__run_parallel"}
+    if t not in {"mcp__lade__start_extraction_batch", "mcp__lade__run_parallel"}
 )
 """Control tools that extract nothing: open the case, poll, wait, fetch.
 
@@ -98,7 +98,7 @@ def executor_tools_section(phase: PhaseConfig) -> str:
         Prompt suffix listing the plannable tool names, prefix stripped.
     """
     names = sorted(
-        t.removeprefix("mcp__mulder__")
+        t.removeprefix("mcp__lade__")
         for t in phase.executor_allowed_tools
         if t not in _EXECUTOR_CONTROL_TOOLS
     )
@@ -534,9 +534,9 @@ class RoleRunner:
                 "Return only its raw JSON output."
             ),
             allowed_tools=[
-                "mcp__mulder__wait_all",
-                "mcp__mulder__open_case",
-                "mcp__mulder__list_cases",
+                "mcp__lade__wait_all",
+                "mcp__lade__open_case",
+                "mcp__lade__list_cases",
             ],
             label="wait_all_batches",
             max_turns=5,
@@ -745,7 +745,7 @@ class RoleRunner:
         dropped: set[str] = set()
         for task in plan.tasks:
             tool = task.get("tool")
-            if tool and f"mcp__mulder__{tool}" not in allowed_set:
+            if tool and f"mcp__lade__{tool}" not in allowed_set:
                 dropped.add(str(tool))
             else:
                 tasks.append(task)
@@ -769,7 +769,7 @@ class RoleRunner:
         Returns:
             Sorted list of MCP tool names for the executor session.
         """
-        plan_tools = {f"mcp__mulder__{t['tool']}" for t in plan.tasks if t.get("tool")}
+        plan_tools = {f"mcp__lade__{t['tool']}" for t in plan.tasks if t.get("tool")}
         if not plan_tools:
             return fallback_allowed
 

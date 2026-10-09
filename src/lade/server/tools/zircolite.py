@@ -12,16 +12,16 @@ import time
 from pathlib import Path
 from typing import Any, Literal
 
-from mulder.assets.paths import asset_display_path, asset_path, asset_search_summary
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.assets.paths import asset_display_path, asset_path, asset_search_summary
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     error_response,
     make_tool_call_id,
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 __all__ = [
     "run_zircolite",
@@ -40,7 +40,7 @@ def _zircolite_script() -> Path | None:
 
 
 def _default_linux_rules() -> Path:
-    """The Linux Sigma rules ``mulder setup`` copies in beside Zircolite."""
+    """The Linux Sigma rules ``lade setup`` copies in beside Zircolite."""
     return asset_display_path(_ZIRCOLITE_DIRNAME, "rules", "linux")
 
 
@@ -49,7 +49,7 @@ def _default_linux_rules() -> Path:
 # Zircolite (aiohttp, evtx, lxml, requests, elasticsearch, pysigma, yaml,
 # jinja2) sits inside a try/except feeding its own ImportErrorHandler and is
 # optional.  Inside the container these come from the Dockerfile's pip install;
-# under ``pipx install mulder-dfir`` they come from the ``forensics`` extra.
+# under ``pipx install lade-dfir`` they come from the ``forensics`` extra.
 # Keep this list short: a missing entry only weakens the preflight, an extra
 # entry blocks a working install.
 _ZIRCOLITE_MODULES = ("orjson", "xxhash", "colorama", "tqdm")
@@ -116,7 +116,7 @@ def _detection_lines(detections: list[dict[str, Any]]) -> list[str]:
 
 
 def _missing_zircolite_modules() -> list[str]:
-    """Return Zircolite dependencies not importable from mulder's interpreter."""
+    """Return Zircolite dependencies not importable from lade's interpreter."""
     return [m for m in _ZIRCOLITE_MODULES if importlib.util.find_spec(m) is None]
 
 
@@ -327,7 +327,7 @@ def run_zircolite(
             "evtx" for Windows EVTX (fallback use case).
         ruleset_path: Path to a custom ruleset directory. If None,
             uses the Linux Sigma rules installed alongside Zircolite by
-            'mulder setup'.
+            'lade setup'.
         sigma_level_filter: Minimum Sigma rule level to include in
             results. Rules below this level are excluded. Set None
             to include all levels.
@@ -368,8 +368,8 @@ def run_zircolite(
             f"Zircolite dependencies not importable: {', '.join(missing)}",
             error_type="binary_missing",
             suggestion=(
-                "Install the forensics extra: pipx install 'mulder-dfir[forensics]' "
-                "(or: pipx inject mulder-dfir " + " ".join(missing) + ")"
+                "Install the forensics extra: pipx install 'lade-dfir[forensics]' "
+                "(or: pipx inject lade-dfir " + " ".join(missing) + ")"
             ),
         )
 
@@ -382,7 +382,7 @@ def run_zircolite(
             "Zircolite script not found under any of: "
             f"{asset_search_summary(_ZIRCOLITE_DIRNAME, 'zircolite.py')}",
             error_type="binary_missing",
-            suggestion="Run 'mulder setup' (installs Zircolite 2.20.0 and its Linux Sigma rules).",
+            suggestion="Run 'lade setup' (installs Zircolite 2.20.0 and its Linux Sigma rules).",
         )
 
     if not Path(events_path).exists():
@@ -413,7 +413,7 @@ def run_zircolite(
             error_type="invalid_argument",
         )
 
-    with tempfile.TemporaryDirectory(prefix="mulder_zircolite_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_zircolite_") as tmpdir:
         output_dir = Path(tmpdir)
         try:
             results_path, proc = _run_zircolite_process(

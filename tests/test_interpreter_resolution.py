@@ -1,9 +1,9 @@
 """Tests for helper-interpreter resolution across the shell-out tool modules.
 
-mulder runs several helper Python programs by shelling out. Under
+lade runs several helper Python programs by shelling out. Under
 ``pipx install`` / ``uv tool install`` a bare ``python3`` on PATH is *not*
-mulder's interpreter and cannot see mulder's dependencies, so every one of
-these call sites either uses ``sys.executable`` outright (when mulder owns
+lade's interpreter and cannot see lade's dependencies, so every one of
+these call sites either uses ``sys.executable`` outright (when lade owns
 the dependency) or probes it first (when someone else owns it).
 
 These tests pin both halves of that split: the sites that must switch, and
@@ -21,10 +21,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.extractors.volatility import _find_vol_binary
-from mulder.server.helpers import interpreter_candidates
-from mulder.server.tools.documents import _analyze_macros_olevba
-from mulder.server.tools.zircolite import (
+from lade.extractors.volatility import _find_vol_binary
+from lade.server.helpers import interpreter_candidates
+from lade.server.tools.documents import _analyze_macros_olevba
+from lade.server.tools.zircolite import (
     _ZIRCOLITE_MODULES,
     _run_zircolite_process,
 )
@@ -58,19 +58,19 @@ class TestInterpreterCandidates:
     """Ordering, deduplication, and missing-interpreter handling."""
 
     def test_prefers_sys_executable(self) -> None:
-        with patch("mulder.server.helpers.shutil.which", return_value=_FAKE_PY):
+        with patch("lade.server.helpers.shutil.which", return_value=_FAKE_PY):
             assert interpreter_candidates()[0] == sys.executable
 
     def test_dedupes(self) -> None:
-        with patch("mulder.server.helpers.shutil.which", return_value=sys.executable):
+        with patch("lade.server.helpers.shutil.which", return_value=sys.executable):
             assert interpreter_candidates() == [sys.executable]
 
     def test_drops_missing(self) -> None:
-        with patch("mulder.server.helpers.shutil.which", return_value=None):
+        with patch("lade.server.helpers.shutil.which", return_value=None):
             assert interpreter_candidates() == [sys.executable]
 
     def test_includes_path_interpreters_after_sys_executable(self) -> None:
-        with patch("mulder.server.helpers.shutil.which", return_value=_FAKE_PY):
+        with patch("lade.server.helpers.shutil.which", return_value=_FAKE_PY):
             assert interpreter_candidates() == [sys.executable, _FAKE_PY]
 
 
@@ -84,17 +84,17 @@ class TestFindVolBinary:
 
     volatility3 ships no ``__main__``, so ``python -m volatility3`` must
     never be returned — the console script is the only real CLI. A platform
-    ``vol`` must outrank the venv-local one, because mulder never passes
+    ``vol`` must outrank the venv-local one, because lade never passes
     ``-s`` and only the platform install can see the platform's ISF symbol
     packs.
     """
 
     def test_path_vol_outranks_venv_local_script(self) -> None:
-        """SIFT's /usr/local/bin/vol wins over mulder's own venv copy."""
+        """SIFT's /usr/local/bin/vol wins over lade's own venv copy."""
         with (
-            patch("mulder.extractors.volatility.os.access", return_value=True),
+            patch("lade.extractors.volatility.os.access", return_value=True),
             patch(
-                "mulder.extractors.volatility.shutil.which",
+                "lade.extractors.volatility.shutil.which",
                 return_value="/usr/local/bin/vol",
             ),
         ):
@@ -104,18 +104,18 @@ class TestFindVolBinary:
         """With no vol on PATH, the pipx/uv-tool venv copy is the last resort."""
         expected = str(Path(sys.executable).with_name("vol"))
         with (
-            patch("mulder.extractors.volatility.os.access", return_value=True),
-            patch("mulder.extractors.volatility.shutil.which", return_value=None),
+            patch("lade.extractors.volatility.os.access", return_value=True),
+            patch("lade.extractors.volatility.shutil.which", return_value=None),
         ):
             assert _find_vol_binary() == [expected]
 
     def test_venv_local_script_must_be_executable(self) -> None:
         """A non-executable vol in the venv bin is not a usable command."""
         with (
-            patch("mulder.extractors.volatility.os.access", return_value=False),
-            patch("mulder.extractors.volatility.shutil.which", return_value=None),
+            patch("lade.extractors.volatility.os.access", return_value=False),
+            patch("lade.extractors.volatility.shutil.which", return_value=None),
             patch(
-                "mulder.extractors.volatility.importlib.util.find_spec",
+                "lade.extractors.volatility.importlib.util.find_spec",
                 return_value=MagicMock(),
             ),
         ):
@@ -123,9 +123,9 @@ class TestFindVolBinary:
 
     def test_falls_back_to_path_vol(self) -> None:
         with (
-            patch("mulder.extractors.volatility.os.access", return_value=False),
+            patch("lade.extractors.volatility.os.access", return_value=False),
             patch(
-                "mulder.extractors.volatility.shutil.which",
+                "lade.extractors.volatility.shutil.which",
                 side_effect=lambda n: "/usr/local/bin/vol" if n == "vol" else None,
             ),
         ):
@@ -133,9 +133,9 @@ class TestFindVolBinary:
 
     def test_falls_back_to_vol3(self) -> None:
         with (
-            patch("mulder.extractors.volatility.os.access", return_value=False),
+            patch("lade.extractors.volatility.os.access", return_value=False),
             patch(
-                "mulder.extractors.volatility.shutil.which",
+                "lade.extractors.volatility.shutil.which",
                 side_effect=lambda n: "/usr/local/bin/vol3" if n == "vol3" else None,
             ),
         ):
@@ -143,10 +143,10 @@ class TestFindVolBinary:
 
     def test_falls_back_to_entry_point(self) -> None:
         with (
-            patch("mulder.extractors.volatility.os.access", return_value=False),
-            patch("mulder.extractors.volatility.shutil.which", return_value=None),
+            patch("lade.extractors.volatility.os.access", return_value=False),
+            patch("lade.extractors.volatility.shutil.which", return_value=None),
             patch(
-                "mulder.extractors.volatility.importlib.util.find_spec",
+                "lade.extractors.volatility.importlib.util.find_spec",
                 return_value=MagicMock(),
             ),
         ):
@@ -165,10 +165,10 @@ class TestFindVolBinary:
             (False, None, MagicMock()),
         ):
             with (
-                patch("mulder.extractors.volatility.os.access", return_value=access),
-                patch("mulder.extractors.volatility.shutil.which", return_value=which),
+                patch("lade.extractors.volatility.os.access", return_value=access),
+                patch("lade.extractors.volatility.shutil.which", return_value=which),
                 patch(
-                    "mulder.extractors.volatility.importlib.util.find_spec",
+                    "lade.extractors.volatility.importlib.util.find_spec",
                     return_value=spec,
                 ),
             ):
@@ -176,10 +176,10 @@ class TestFindVolBinary:
 
     def test_raises_when_nothing_found(self) -> None:
         with (
-            patch("mulder.extractors.volatility.os.access", return_value=False),
-            patch("mulder.extractors.volatility.shutil.which", return_value=None),
+            patch("lade.extractors.volatility.os.access", return_value=False),
+            patch("lade.extractors.volatility.shutil.which", return_value=None),
             patch(
-                "mulder.extractors.volatility.importlib.util.find_spec",
+                "lade.extractors.volatility.importlib.util.find_spec",
                 return_value=None,
             ),
             pytest.raises(RuntimeError),
@@ -207,11 +207,11 @@ class TestFindVolBinary:
 
 
 class TestZircolite:
-    """Zircolite runs on mulder's own interpreter; its deps ship in an extra."""
+    """Zircolite runs on lade's own interpreter; its deps ship in an extra."""
 
     def test_uses_sys_executable(self, tmp_path: Path) -> None:
         script = str(tmp_path / "zircolite.py")
-        with patch("mulder.server.tools.zircolite.subprocess.run") as mock_run:
+        with patch("lade.server.tools.zircolite.subprocess.run") as mock_run:
             _run_zircolite_process(script, tmp_path / "events.log", "auditd", tmp_path, tmp_path)
         assert mock_run.call_args[0][0][0] == sys.executable
         assert mock_run.call_args[0][0][1] == script
@@ -225,15 +225,15 @@ class TestZircolite:
         assert set(_ZIRCOLITE_MODULES) == {"orjson", "xxhash", "colorama", "tqdm"}
 
     def test_reports_missing_modules(self) -> None:
-        from mulder.server.tools.zircolite import run_zircolite
+        from lade.server.tools.zircolite import run_zircolite
 
         with (
             patch(
-                "mulder.server.tools.zircolite.sources_already_indexed",
+                "lade.server.tools.zircolite.sources_already_indexed",
                 return_value=[],
             ),
             patch(
-                "mulder.server.tools.zircolite.importlib.util.find_spec",
+                "lade.server.tools.zircolite.importlib.util.find_spec",
                 side_effect=lambda m: None if m == "orjson" else MagicMock(),
             ),
         ):
@@ -246,16 +246,16 @@ class TestZircolite:
 
     def test_runs_without_python3_on_path(self) -> None:
         """Regression guard: the removed ``require_binary("python3")`` gate."""
-        from mulder.server.tools.zircolite import run_zircolite
+        from lade.server.tools.zircolite import run_zircolite
 
         with (
             patch(
-                "mulder.server.tools.zircolite.sources_already_indexed",
+                "lade.server.tools.zircolite.sources_already_indexed",
                 return_value=[],
             ),
-            patch("mulder.server.helpers.shutil.which", return_value=None),
+            patch("lade.server.helpers.shutil.which", return_value=None),
             patch(
-                "mulder.server.tools.zircolite.importlib.util.find_spec",
+                "lade.server.tools.zircolite.importlib.util.find_spec",
                 return_value=MagicMock(),
             ),
         ):
@@ -272,15 +272,15 @@ class TestZircolite:
 
 
 class TestDidierStevensScripts:
-    """Stdlib-only scripts: any interpreter works, so use mulder's own."""
+    """Stdlib-only scripts: any interpreter works, so use lade's own."""
 
     def test_pdfid_uses_sys_executable(self) -> None:
-        from mulder.server.tools.documents import _run_pdfid
+        from lade.server.tools.documents import _run_pdfid
 
         with (
-            patch("mulder.server.tools.documents.Path.exists", return_value=True),
+            patch("lade.server.tools.documents.Path.exists", return_value=True),
             patch(
-                "mulder.server.tools.documents.subprocess.run",
+                "lade.server.tools.documents.subprocess.run",
                 return_value=_completed(),
             ) as mock_run,
         ):
@@ -289,16 +289,16 @@ class TestDidierStevensScripts:
         assert mock_run.call_args[0][0][0] == sys.executable
 
     def test_pdfid_falls_back_to_packaged_cli(self) -> None:
-        from mulder.server.tools.documents import _run_pdfid
+        from lade.server.tools.documents import _run_pdfid
 
         with (
-            patch("mulder.server.tools.documents.Path.exists", return_value=False),
+            patch("lade.server.tools.documents.Path.exists", return_value=False),
             patch(
-                "mulder.server.tools.documents.require_binary",
+                "lade.server.tools.documents.require_binary",
                 return_value="/usr/bin/pdfid",
             ),
             patch(
-                "mulder.server.tools.documents.subprocess.run",
+                "lade.server.tools.documents.subprocess.run",
                 return_value=_completed(),
             ) as mock_run,
         ):
@@ -309,12 +309,12 @@ class TestDidierStevensScripts:
         assert sys.executable not in cmd
 
     def test_pdf_parser_uses_sys_executable(self) -> None:
-        from mulder.server.tools.documents import _extract_pdf_javascript
+        from lade.server.tools.documents import _extract_pdf_javascript
 
         with (
-            patch("mulder.server.tools.documents.Path.exists", return_value=True),
+            patch("lade.server.tools.documents.Path.exists", return_value=True),
             patch(
-                "mulder.server.tools.documents.subprocess.run",
+                "lade.server.tools.documents.subprocess.run",
                 return_value=_completed(),
             ) as mock_run,
         ):
@@ -328,7 +328,7 @@ class TestOletoolsModuleInvocation:
 
     def test_olevba_uses_module_invocation(self) -> None:
         with patch(
-            "mulder.server.tools.documents.subprocess.run",
+            "lade.server.tools.documents.subprocess.run",
             return_value=_completed(stdout="[]"),
         ) as mock_run:
             _analyze_macros_olevba(Path("/fake/doc.docm"))
@@ -339,7 +339,7 @@ class TestOletoolsModuleInvocation:
         """A broken oletools must not read as "this document has no macros"."""
         with (
             patch(
-                "mulder.server.tools.documents.subprocess.run",
+                "lade.server.tools.documents.subprocess.run",
                 return_value=_completed(returncode=1, stderr="boom"),
             ),
             pytest.raises(OSError, match="olevba failed"),
@@ -348,30 +348,30 @@ class TestOletoolsModuleInvocation:
 
     def test_olevba_empty_stdout_with_zero_exit_is_not_an_error(self) -> None:
         with patch(
-            "mulder.server.tools.documents.subprocess.run",
+            "lade.server.tools.documents.subprocess.run",
             return_value=_completed(),
         ):
             assert _analyze_macros_olevba(Path("/fake/doc.docm")) == ([], [], False)
 
     def test_msodde_uses_module_invocation(self) -> None:
-        from mulder.server.tools.documents import analyze_office_document
+        from lade.server.tools.documents import analyze_office_document
 
         with (
             patch(
-                "mulder.server.tools.documents.importlib.util.find_spec",
+                "lade.server.tools.documents.importlib.util.find_spec",
                 return_value=MagicMock(),
             ),
-            patch("mulder.server.tools.documents.Path.exists", return_value=True),
+            patch("lade.server.tools.documents.Path.exists", return_value=True),
             patch(
-                "mulder.server.tools.documents._analyze_macros_olevba",
+                "lade.server.tools.documents._analyze_macros_olevba",
                 return_value=([], [], False),
             ),
             patch(
-                "mulder.server.tools.documents.extract_and_index",
+                "lade.server.tools.documents.extract_and_index",
                 return_value={},
             ),
             patch(
-                "mulder.server.tools.documents.subprocess.run",
+                "lade.server.tools.documents.subprocess.run",
                 return_value=_completed(),
             ) as mock_run,
         ):
@@ -383,24 +383,24 @@ class TestOletoolsModuleInvocation:
 
     def test_msodde_requests_json_output(self) -> None:
         """``--json`` is what makes real links distinguishable from the banner."""
-        from mulder.server.tools.documents import analyze_office_document
+        from lade.server.tools.documents import analyze_office_document
 
         with (
             patch(
-                "mulder.server.tools.documents.importlib.util.find_spec",
+                "lade.server.tools.documents.importlib.util.find_spec",
                 return_value=MagicMock(),
             ),
-            patch("mulder.server.tools.documents.Path.exists", return_value=True),
+            patch("lade.server.tools.documents.Path.exists", return_value=True),
             patch(
-                "mulder.server.tools.documents._analyze_macros_olevba",
+                "lade.server.tools.documents._analyze_macros_olevba",
                 return_value=([], [], False),
             ),
             patch(
-                "mulder.server.tools.documents.extract_and_index",
+                "lade.server.tools.documents.extract_and_index",
                 return_value={},
             ),
             patch(
-                "mulder.server.tools.documents.subprocess.run",
+                "lade.server.tools.documents.subprocess.run",
                 return_value=_completed(),
             ) as mock_run,
         ):
@@ -411,10 +411,10 @@ class TestOletoolsModuleInvocation:
         assert "--json" in mock_run.call_args[0][0]
 
     def test_office_gate_checks_importability_not_path(self) -> None:
-        from mulder.server.tools.documents import analyze_office_document
+        from lade.server.tools.documents import analyze_office_document
 
         with patch(
-            "mulder.server.tools.documents.importlib.util.find_spec",
+            "lade.server.tools.documents.importlib.util.find_spec",
             return_value=None,
         ):
             result = analyze_office_document.__wrapped__(  # type: ignore[attr-defined]

@@ -18,11 +18,11 @@ import time
 from collections import Counter
 from pathlib import Path
 
-from mulder.assets.paths import asset_path, asset_search_summary
-from mulder.patterns import DISK_IMAGE_EXTS
-from mulder.server.app import get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.assets.paths import asset_path, asset_search_summary
+from lade.patterns import DISK_IMAGE_EXTS
+from lade.server.app import get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     _PREVIEW_CHAR_LIMIT,
     adaptive_timeout,
     error_response,
@@ -30,7 +30,7 @@ from mulder.server.helpers import (
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ _HAYABUSA_TIMEOUT = 300
 def _hayabusa_binary() -> str | None:
     """Resolve the Hayabusa executable: asset root first, then PATH.
 
-    Asset root wins because the image and ``mulder setup`` both install a
+    Asset root wins because the image and ``lade setup`` both install a
     version-matched binary there, while a stray PATH entry may be anything.
     """
     candidate = asset_path(_HAYABUSA_DIRNAME, "hayabusa")
@@ -87,7 +87,7 @@ def _resolve_evtx_dir(evtx_dir: str | None, image_path: str | None = None) -> st
     if evtx_dir and Path(evtx_dir).is_dir() and _dir_has_evtx(evtx_dir):
         return evtx_dir
 
-    from mulder.server.tools.extract.evtx import _evtx_extract_dirs
+    from lade.server.tools.extract.evtx import _evtx_extract_dirs
 
     if image_path and image_path in _evtx_extract_dirs:
         d = _evtx_extract_dirs[image_path]
@@ -134,7 +134,7 @@ def _extract_evtx_inline(image_path: str) -> str | None:
     Returns:
         Path to the extraction directory, or None if no EVTX files found.
     """
-    from mulder.server.tools.extract.evtx import (
+    from lade.server.tools.extract.evtx import (
         _evtx_extract_dirs,
         _extract_evtx_from_image,
         _find_carved_evtx,
@@ -144,7 +144,7 @@ def _extract_evtx_inline(image_path: str) -> str | None:
         "Hayabusa: no prior EVTX extraction found; extracting inline from %s",
         image_path,
     )
-    extract_dir = tempfile.mkdtemp(prefix="mulder_hayabusa_evtx_")
+    extract_dir = tempfile.mkdtemp(prefix="lade_hayabusa_evtx_")
     evtx_files = _extract_evtx_from_image(image_path, extract_dir)
     if not evtx_files:
         evtx_files = _find_carved_evtx(extract_dir)
@@ -227,7 +227,7 @@ def run_hayabusa(
             tool_name,
             params,
             "Hayabusa binary not found on PATH or under "
-            f"{asset_search_summary(_HAYABUSA_DIRNAME, 'hayabusa')}. Run 'mulder setup'.",
+            f"{asset_search_summary(_HAYABUSA_DIRNAME, 'hayabusa')}. Run 'lade setup'.",
             elapsed_ms=(time.monotonic() - t0) * 1000,
             error_type="binary_missing",
         )

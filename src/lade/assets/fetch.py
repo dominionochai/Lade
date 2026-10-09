@@ -1,7 +1,7 @@
-"""The injectable downloader used by ``mulder setup``.
+"""The injectable downloader used by ``lade setup``.
 
 ``provision`` takes a ``Fetcher`` as a parameter so the test suite can hand it
-a local one; nothing else in ``mulder.assets`` opens a socket.
+a local one; nothing else in ``lade.assets`` opens a socket.
 """
 
 from __future__ import annotations
@@ -80,7 +80,7 @@ class HttpFetcher:
         The body lands in ``<dest>.part`` and is renamed only once the whole
         response has been read, so a truncated file is never left where the
         caller would validate it.  An interrupted download is simply redone;
-        mulder has no resume, because a half-file that is never trusted costs
+        lade has no resume, because a half-file that is never trusted costs
         only bandwidth.
         """
         import httpx

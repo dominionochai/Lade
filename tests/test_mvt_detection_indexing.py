@@ -17,7 +17,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from mulder.server.tools.mvt import _collect_mvt_results
+from lade.server.tools.mvt import _collect_mvt_results
 
 
 def _write_module(output_dir: Path, name: str, records: object) -> None:

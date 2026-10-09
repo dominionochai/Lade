@@ -18,7 +18,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from mulder.patterns import parse_mmls_rows
+from lade.patterns import parse_mmls_rows
 
 logger = logging.getLogger(__name__)
 _EVTX_EXTS = frozenset({".evtx"})
@@ -259,7 +259,7 @@ def _mount_image(image_path: Path, mount_point: Path) -> bool:
     """Mount *image_path* (E01 or raw) read-only at *mount_point*.
 
     Everything is user-space FUSE, so this works as the unprivileged
-    ``mulder`` user with nothing more than ``/dev/fuse``:
+    ``lade`` user with nothing more than ``/dev/fuse``:
 
     1. ``xmount`` exposes the preferred partition (see
        :func:`_detect_mount_offset`) as a flat ``.dd`` file in a sibling

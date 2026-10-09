@@ -1,4 +1,4 @@
-"""Tests for mulder.server.tools.tsk -- query-time TSK tool helpers.
+"""Tests for lade.server.tools.tsk -- query-time TSK tool helpers.
 
 Covers the _resolve_image_and_offset function for single-image,
 multi-image, and error scenarios.
@@ -10,8 +10,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.models import SourceRow, WindowRow
-from mulder.server.tools.tsk import (
+from lade.models import SourceRow, WindowRow
+from lade.server.tools.tsk import (
     _cached_image_info,
     _image_info_lock,
     _resolve_image_and_offset,
@@ -65,8 +65,8 @@ def _clear_cache() -> None:
 class TestResolveImageAndOffsetSingleImage:
     """Backward-compatible: no image_path argument (single-image case)."""
 
-    @patch("mulder.server.tools.tsk._detect_filesystem_type", return_value="ntfs")
-    @patch("mulder.server.tools.tsk.get_ctx")
+    @patch("lade.server.tools.tsk._detect_filesystem_type", return_value="ntfs")
+    @patch("lade.server.tools.tsk.get_ctx")
     def test_single_source_returns_correct_offset(
         self,
         mock_ctx: MagicMock,
@@ -87,8 +87,8 @@ class TestResolveImageAndOffsetSingleImage:
         assert offset == 2048
         assert fs == "ntfs"
 
-    @patch("mulder.server.tools.tsk._detect_filesystem_type", return_value="ntfs")
-    @patch("mulder.server.tools.tsk.get_ctx")
+    @patch("lade.server.tools.tsk._detect_filesystem_type", return_value="ntfs")
+    @patch("lade.server.tools.tsk.get_ctx")
     def test_result_is_cached(
         self,
         mock_ctx: MagicMock,
@@ -113,8 +113,8 @@ class TestResolveImageAndOffsetSingleImage:
 class TestResolveImageAndOffsetMultiImage:
     """Multi-image case where image_path is specified."""
 
-    @patch("mulder.server.tools.tsk._detect_filesystem_type", return_value="ntfs")
-    @patch("mulder.server.tools.tsk.get_ctx")
+    @patch("lade.server.tools.tsk._detect_filesystem_type", return_value="ntfs")
+    @patch("lade.server.tools.tsk.get_ctx")
     def test_selects_correct_image_by_path(
         self,
         mock_ctx: MagicMock,
@@ -136,8 +136,8 @@ class TestResolveImageAndOffsetMultiImage:
         assert path == "/images/disk_b.dd"
         assert offset == 4096
 
-    @patch("mulder.server.tools.tsk._detect_filesystem_type", return_value="ntfs")
-    @patch("mulder.server.tools.tsk.get_ctx")
+    @patch("lade.server.tools.tsk._detect_filesystem_type", return_value="ntfs")
+    @patch("lade.server.tools.tsk.get_ctx")
     def test_different_images_cached_separately(
         self,
         mock_ctx: MagicMock,
@@ -162,8 +162,8 @@ class TestResolveImageAndOffsetMultiImage:
         assert result_b[0] == "/images/disk_b.dd"
         assert result_b[1] == 4096
 
-    @patch("mulder.server.tools.tsk._detect_filesystem_type", return_value="ntfs")
-    @patch("mulder.server.tools.tsk.get_ctx")
+    @patch("lade.server.tools.tsk._detect_filesystem_type", return_value="ntfs")
+    @patch("lade.server.tools.tsk.get_ctx")
     def test_filters_windows_by_source_id(
         self,
         mock_ctx: MagicMock,
@@ -196,7 +196,7 @@ class TestResolveImageAndOffsetMultiImage:
 class TestResolveImageAndOffsetErrors:
     """Error cases for _resolve_image_and_offset."""
 
-    @patch("mulder.server.tools.tsk.get_ctx")
+    @patch("lade.server.tools.tsk.get_ctx")
     def test_raises_valueerror_for_unknown_image_path(
         self,
         mock_ctx: MagicMock,
@@ -212,9 +212,9 @@ class TestResolveImageAndOffsetErrors:
         with pytest.raises(ValueError, match="No tsk.partitions source found"):
             _resolve_image_and_offset("/images/nonexistent.dd")
 
-    @patch("mulder.server.tools.tsk._detect_filesystem_type", return_value=None)
-    @patch("mulder.server.tools.tsk._find_tsk_source_path", return_value="/images/raw.dd")
-    @patch("mulder.server.tools.tsk.get_ctx")
+    @patch("lade.server.tools.tsk._detect_filesystem_type", return_value=None)
+    @patch("lade.server.tools.tsk._find_tsk_source_path", return_value="/images/raw.dd")
+    @patch("lade.server.tools.tsk.get_ctx")
     def test_no_partition_source_falls_back(
         self,
         mock_ctx: MagicMock,

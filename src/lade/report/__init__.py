@@ -1,6 +1,6 @@
-"""Report rendering and secret redaction for Mulder."""
+"""Report rendering and secret redaction for Lade."""
 
-from mulder.report.redactor import Redactor
-from mulder.report.renderer import ReportRenderer
+from lade.report.redactor import Redactor
+from lade.report.renderer import ReportRenderer
 
 __all__ = ["Redactor", "ReportRenderer"]

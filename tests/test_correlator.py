@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from mulder.db import CaseDB
-from mulder.index.correlator import CorrelationResult, Correlator
-from mulder.models import WindowRow
+from lade.db import CaseDB
+from lade.index.correlator import CorrelationResult, Correlator
+from lade.models import WindowRow
 
 
 @pytest.fixture()

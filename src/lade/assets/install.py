@@ -1,7 +1,7 @@
-"""Planning and provisioning for ``mulder setup``.
+"""Planning and provisioning for ``lade setup``.
 
 Everything here is structured around one rule: **a partially written asset is
-never visible where mulder would parse it.**  Downloads land in a staging
+never visible where lade would parse it.**  Downloads land in a staging
 directory on the destination filesystem, are validated there, and are swapped
 into place with ``os.replace``.  A truncated ``enterprise-attack.json`` would
 otherwise break ``lookup_attack_technique`` on every call forever, because the
@@ -23,26 +23,26 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from mulder.assets.fetch import FetchError, FetchResult
-from mulder.assets.manifest import (
+from lade.assets.fetch import FetchError, FetchResult
+from lade.assets.manifest import (
     ANY_ARCH,
     ASSETS,
     Asset,
     detect_arch,
     volatility_cache_dir,
 )
-from mulder.assets.paths import asset_path, reset_asset_caches
-from mulder.assets.state import AssetRecord, AssetState
+from lade.assets.paths import asset_path, reset_asset_caches
+from lade.assets.state import AssetRecord, AssetState
 
 try:
     import fcntl
-except ImportError:  # pragma: no cover - Windows; mulder is Linux-first
+except ImportError:  # pragma: no cover - Windows; lade is Linux-first
     fcntl = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 
-STAGING_DIRNAME = ".mulder-staging"
-LOCK_FILENAME = ".mulder-setup.lock"
+STAGING_DIRNAME = ".lade-staging"
+LOCK_FILENAME = ".lade-setup.lock"
 
 #: A lock sentinel from a run that died without releasing it.
 _STALE_LOCK_AGE = 6 * 60 * 60
@@ -65,7 +65,7 @@ class PlanError(Exception):
 
 @dataclass
 class SetupOptions:
-    """The flags ``mulder setup`` was invoked with."""
+    """The flags ``lade setup`` was invoked with."""
 
     verify: bool = False
     dry_run: bool = False
@@ -125,7 +125,7 @@ class Result:
 def build_plan(options: SetupOptions, write_root: Path, bin_dir: Path) -> Plan:
     """Resolve the full asset set to provision.
 
-    ``setup`` installs everything mulder owns; there is no tier or subset to
+    ``setup`` installs everything lade owns; there is no tier or subset to
     select, so the only thing that removes a row is having no artifact for this
     architecture.
 
@@ -177,7 +177,7 @@ def preflight(plan: Plan, options: SetupOptions) -> None:
             + ", ".join(a.key for a in plan.selected if a.kind == "git" or a.supplement_url)
             + " are git clones.\n"
             "  Install it with: sudo apt install git\n"
-            "  signature-base cannot use a tarball instead - mulder keeps its .git so "
+            "  signature-base cannot use a tarball instead - lade keeps its .git so "
             "it can refresh the YARA rules with 'git pull --ff-only'.",
             exit_code=1,
         )
@@ -190,7 +190,7 @@ def preflight(plan: Plan, options: SetupOptions) -> None:
             "  git then refuses to operate on them as your normal user "
             "('detected dubious ownership'), so YARA community-rule updates stop "
             "permanently and silently.\n"
-            "  Run 'mulder setup' as the user who will run mulder.",
+            "  Run 'lade setup' as the user who will run lade.",
             exit_code=2,
         )
 
@@ -207,19 +207,19 @@ def _write_probe(root: Path) -> None:
     root-squash and some ACL setups, so resolution's cheap test is not enough
     once a download is about to start.
     """
-    probe = root / f".mulder-write-probe.{os.getpid()}"
+    probe = root / f".lade-write-probe.{os.getpid()}"
     try:
         root.mkdir(parents=True, exist_ok=True)
         probe.write_bytes(b"\0")
     except OSError as exc:
         raise PlanError(
             f"Asset root {root} is not writable: {exc}\n"
-            "  mulder picks the asset root in this order:\n"
-            "    1. $MULDER_ASSET_ROOT, if set (wins outright)\n"
+            "  lade picks the asset root in this order:\n"
+            "    1. $LADE_ASSET_ROOT, if set (wins outright)\n"
             "    2. /opt, if it exists and is writable\n"
-            "    3. ~/.local/share/mulder/assets\n"
+            "    3. ~/.local/share/lade/assets\n"
             "  Point it somewhere you can write with: "
-            "export MULDER_ASSET_ROOT=~/.local/share/mulder/assets",
+            "export LADE_ASSET_ROOT=~/.local/share/lade/assets",
             exit_code=1,
         ) from exc
     finally:
@@ -286,7 +286,7 @@ def extract_archive(archive: Path, dest: Path, strip: int = 0) -> None:
         for member in tf.getmembers():
             if member.issym() or member.islnk():
                 # A link can point outside the tree even when its own name is
-                # clean, and nothing mulder fetches needs one.
+                # clean, and nothing lade fetches needs one.
                 continue
             target = _safe_target(dest, member.name, strip)
             if target is None:
@@ -433,7 +433,7 @@ def provision(
         outcomes[asset.key] = _provision_one(asset, plan, options, state, staging, fetch, emit)
 
     if not options.verify:
-        state.mulder_version = _mulder_version()
+        state.lade_version = _lade_version()
         state.root = str(plan.write_root)
         state.euid = _geteuid()
         state.owner_uid = _geteuid()
@@ -525,7 +525,7 @@ def _verify_one(
     """Validate what is present without fetching anything.
 
     Presence is decided by the path reads actually resolve to, not by the write
-    root alone.  A SIFT box with a hand-made ``/opt`` clone and no ``mulder
+    root alone.  A SIFT box with a hand-made ``/opt`` clone and no ``lade
     setup`` run is fully functional; calling that "missing" is a false alarm
     that sends the user looking for a problem that is not there.
     """
@@ -555,7 +555,7 @@ def _verify_one(
     if current:
         status = "up-to-date"
     elif record is None:
-        # Present and structurally valid, but mulder never installed it, so
+        # Present and structurally valid, but lade never installed it, so
         # there is no recorded version to compare against.  Calling that
         # "stale" asserts it is out of date on no evidence -- and it is the
         # normal case for the container, whose /opt is provisioned by the
@@ -567,7 +567,7 @@ def _verify_one(
 
 
 def _shadow_check(asset: Asset, plan: Plan, outcome: Outcome) -> Outcome:
-    """Flag an asset that mulder reads from somewhere other than the write root.
+    """Flag an asset that lade reads from somewhere other than the write root.
 
     A user who followed the old guide has hand-made ATT&CK data under ``/opt``,
     which is the first read root -- so ``setup`` can install a perfect copy into
@@ -609,7 +609,7 @@ def _dest_for(asset: Asset, write_root: Path) -> Path:
     """Where *asset* is published.
 
     ``vol-symbols-*`` deliberately bypass the asset root: volatility3 computes
-    its cache path from ``XDG_CACHE_HOME``/``$HOME`` and mulder never passes
+    its cache path from ``XDG_CACHE_HOME``/``$HOME`` and lade never passes
     ``-s``, so re-rooting the packs would orphan them from the ``vol`` on PATH.
     """
     if asset.cache_dest == "vol-symbols":
@@ -818,7 +818,7 @@ def _install_shims(asset: Asset, dest: Path, bin_dir: Path, emit: EventHook) -> 
         if shutil.which(name) is None:
             emit(
                 asset.key,
-                f"warning: {link} is not on $PATH, so '{name}' stays invisible to mulder "
+                f"warning: {link} is not on $PATH, so '{name}' stays invisible to lade "
                 f'-- add it with: export PATH="{bin_dir}:$PATH"',
             )
 
@@ -831,12 +831,12 @@ def _install_shims(asset: Asset, dest: Path, bin_dir: Path, emit: EventHook) -> 
 def ez_dll_installed(dll_name: str) -> Path | None:
     """Find an EZ Tools DLL across every read root.
 
-    Deliberately not ``mulder.server.tools.extract.misc._find_ez_tool``:
-    importing that module builds the whole MCP server, which ``mulder setup``
+    Deliberately not ``lade.server.tools.extract.misc._find_ez_tool``:
+    importing that module builds the whole MCP server, which ``lade setup``
     has no use for.  Only presence matters here -- framework ranking is the
     tool call's problem.
     """
-    from mulder.assets.paths import asset_candidates
+    from lade.assets.paths import asset_candidates
 
     for root in asset_candidates("zimmermantools"):
         if not root.is_dir():
@@ -859,7 +859,7 @@ def _provision_eztools(
     """Fetch only the EZ Tools DLLs that resolve nowhere.
 
     On SIFT that is normally ``PECmd`` alone: SIFT ships the rest, its copies
-    are version-matched to its own ``dotnet``, and shadowing them with mulder's
+    are version-matched to its own ``dotnet``, and shadowing them with lade's
     ``net9`` downloads is a regression rather than an upgrade.  ``--force`` does
     not override that, and a root already holding an unmanaged copy is left
     entirely alone.
@@ -967,10 +967,10 @@ def _remedies(outcomes: Iterable[Outcome]) -> list[str]:
     out: list[str] = []
     if any(o.shadowed_by for o in outcomes):
         out.append(
-            "Some assets are shadowed: mulder reads an older copy from a "
+            "Some assets are shadowed: lade reads an older copy from a "
             "higher-priority root. Either delete that copy, or run "
-            "'sudo mulder setup --system' to refresh it in place, or pin the "
-            "resolver with 'export MULDER_ASSET_ROOT=<write root>' (which "
+            "'sudo lade setup --system' to refresh it in place, or pin the "
+            "resolver with 'export LADE_ASSET_ROOT=<write root>' (which "
             "disables the /opt search entirely)."
         )
     return out
@@ -1002,7 +1002,7 @@ def capability_gaps(outcomes: Iterable[Outcome]) -> list[str]:
     return gaps
 
 
-def _mulder_version() -> str:
-    from mulder import __version__
+def _lade_version() -> str:
+    from lade import __version__
 
     return __version__

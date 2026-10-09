@@ -16,10 +16,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from claude_agent_sdk.types import AssistantMessage, TextBlock
 
-from mulder.orchestrator.roles import _REPAIR_MAX_CHARS
-from mulder.orchestrator.runner import Orchestrator
-from mulder.orchestrator.session import _is_bare_markup_token, _trim_edge_markup_lines
-from mulder.orchestrator.types import (
+from lade.orchestrator.roles import _REPAIR_MAX_CHARS
+from lade.orchestrator.runner import Orchestrator
+from lade.orchestrator.session import _is_bare_markup_token, _trim_edge_markup_lines
+from lade.orchestrator.types import (
     PhaseResult,
     extract_catalog_result,
     extract_json_from_text,
@@ -170,7 +170,7 @@ def test_trim_edge_markup_lines(text: str, expected: str) -> None:
 
 
 def _make_orchestrator(tmp_path: Path) -> Orchestrator:
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         return Orchestrator(evidence_path="/evidence", case_id="case", db_dir=str(tmp_path))
 
 

@@ -1,6 +1,6 @@
 """``extract_archive`` must honour the destination contract it documents.
 
-The docstring promises output goes to "a writable directory under the mulder
+The docstring promises output goes to "a writable directory under the lade
 cases directory", but the code resolved ``extract_to`` and used it verbatim,
 so an MCP client could unpack an attacker-supplied archive anywhere the server
 could write.  Separately, the default slot was keyed on ``archive.stem``, so
@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.server.tools.case import extract_archive
+from lade.server.tools.case import extract_archive
 
 
 @pytest.fixture
@@ -37,9 +37,9 @@ def _invoke(cases_dir: Path, archive: Path, extract_to: str | None = None) -> An
     cfg = MagicMock()
     cfg.db_dir = cases_dir
     with (
-        patch("mulder.server.tools.case.get_cfg", return_value=cfg),
-        patch("mulder.server.tools.case.has_ctx", return_value=False),
-        patch("mulder.server.tools.case.EvidenceClassifier", create=True),
+        patch("lade.server.tools.case.get_cfg", return_value=cfg),
+        patch("lade.server.tools.case.has_ctx", return_value=False),
+        patch("lade.server.tools.case.EvidenceClassifier", create=True),
     ):
         return extract_archive.__wrapped__(  # type: ignore[attr-defined]
             str(archive), extract_to=extract_to
@@ -114,7 +114,7 @@ def test_two_archives_with_the_same_name_do_not_share_a_slot(
 
 def test_the_slot_is_stable_for_one_archive(tmp_path: Path) -> None:
     """Idempotency must survive: the same archive maps to the same slot."""
-    from mulder.server.tools.case import _archive_slot
+    from lade.server.tools.case import _archive_slot
 
     archive = tmp_path / "evidence.zip"
     assert _archive_slot(archive) == _archive_slot(archive)
@@ -122,7 +122,7 @@ def test_the_slot_is_stable_for_one_archive(tmp_path: Path) -> None:
 
 
 def test_the_slot_differs_for_same_named_archives_elsewhere(tmp_path: Path) -> None:
-    from mulder.server.tools.case import _archive_slot
+    from lade.server.tools.case import _archive_slot
 
     a = tmp_path / "one" / "evidence.zip"
     b = tmp_path / "two" / "evidence.zip"

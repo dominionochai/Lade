@@ -1,8 +1,8 @@
-"""Tests for mulder.patterns shared utilities."""
+"""Tests for lade.patterns shared utilities."""
 
 from __future__ import annotations
 
-from mulder.patterns import (
+from lade.patterns import (
     EMAIL_RE,
     IP_RE,
     classify_ip,

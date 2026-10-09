@@ -15,16 +15,16 @@ import subprocess
 import time
 from typing import Any
 
-from mulder.patterns import fls_file_entries
-from mulder.server.app import get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.patterns import fls_file_entries
+from lade.server.app import get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     error_response,
     make_tool_call_id,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
-from mulder.server.tools.extract.tsk import (
+from lade.server.tool_access import Role, tool_access
+from lade.server.tools.extract.tsk import (
     _collect_fls_chunks,
 )
 

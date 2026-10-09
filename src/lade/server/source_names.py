@@ -1,6 +1,6 @@
 """Canonical source name constants for MCP tool modules.
 
-All source names used across the Mulder tool layer are defined here
+All source names used across the Lade tool layer are defined here
 to avoid drift between modules that reference the same underlying data.
 Import from this module rather than defining local constants.
 """

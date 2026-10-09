@@ -16,7 +16,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.mvt import run_mvt_android, run_mvt_ios
+from lade.server.tools.mvt import run_mvt_android, run_mvt_ios
 
 _FAILURE = "Error: unable to open backup: not a valid Android backup"
 
@@ -37,9 +37,9 @@ def _invoke(tool: Any, evidence: Path, proc: subprocess.CompletedProcess[str]) -
         return {}
 
     with (
-        patch("mulder.server.tools.mvt.shutil.which", return_value="/usr/bin/mvt"),
-        patch("mulder.server.tools.mvt.subprocess.run", return_value=proc),
-        patch("mulder.server.tools.mvt.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.mvt.shutil.which", return_value="/usr/bin/mvt"),
+        patch("lade.server.tools.mvt.subprocess.run", return_value=proc),
+        patch("lade.server.tools.mvt.extract_and_index", side_effect=_record),
     ):
         result = tool.__wrapped__(str(evidence))
     return result, indexed
@@ -118,7 +118,7 @@ def test_results_written_before_a_non_zero_exit_are_kept(
     )
 
     with patch(
-        "mulder.server.tools.mvt._collect_mvt_results",
+        "lade.server.tools.mvt._collect_mvt_results",
         return_value=("sms_detected: 2 entries", {"sms_detected": 2}),
     ):
         result, indexed = _invoke(tool, backup, proc)

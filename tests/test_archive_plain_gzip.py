@@ -23,7 +23,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.server.tools.case import extract_archive
+from lade.server.tools.case import extract_archive
 
 _IMAGE = b"\x00" * 4096 + b"EVIDENCE-MAGIC"
 
@@ -39,9 +39,9 @@ def _invoke(cases_dir: Path, archive: Path, dest: Path) -> Any:
     cfg = MagicMock()
     cfg.db_dir = cases_dir
     with (
-        patch("mulder.server.tools.case.get_cfg", return_value=cfg),
-        patch("mulder.server.tools.case.has_ctx", return_value=False),
-        patch("mulder.server.tools.case.EvidenceClassifier", create=True),
+        patch("lade.server.tools.case.get_cfg", return_value=cfg),
+        patch("lade.server.tools.case.has_ctx", return_value=False),
+        patch("lade.server.tools.case.EvidenceClassifier", create=True),
     ):
         return extract_archive.__wrapped__(  # type: ignore[attr-defined]
             str(archive), extract_to=str(dest)

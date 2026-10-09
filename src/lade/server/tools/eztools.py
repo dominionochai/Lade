@@ -10,9 +10,9 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from mulder.server.app import get_ctx, mcp
-from mulder.server.helpers import hash_output, make_tool_call_id, windowed_response
-from mulder.server.tool_access import Role, tool_access
+from lade.server.app import get_ctx, mcp
+from lade.server.helpers import hash_output, make_tool_call_id, windowed_response
+from lade.server.tool_access import Role, tool_access
 
 _EZ_SUMMARY_SAMPLE_CAP = 10
 _EZ_SUMMARY_TEXT_CAP = 200

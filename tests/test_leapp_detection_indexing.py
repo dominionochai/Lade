@@ -22,7 +22,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.phone import _parse_leapp_output, run_aleapp
+from lade.server.tools.phone import _parse_leapp_output, run_aleapp
 
 _HEADERS = "Timestamp\tPartner\tMessage"
 _ROWS = [
@@ -71,12 +71,12 @@ def _run_aleapp_over(tmpdir_contents: Any, extraction: Path) -> tuple[Any, list[
 
     with (
         patch(
-            "mulder.server.tools.phone._aleapp_script",
+            "lade.server.tools.phone._aleapp_script",
             return_value=str(extraction.parent / "aleapp.py"),
         ),
-        patch("mulder.server.tools.phone._find_leapp_cmd", return_value=["python", "aleapp.py"]),
-        patch("mulder.server.tools.phone.subprocess.run", side_effect=_fake_aleapp),
-        patch("mulder.server.tools.phone.extract_and_index", side_effect=_record),
+        patch("lade.server.tools.phone._find_leapp_cmd", return_value=["python", "aleapp.py"]),
+        patch("lade.server.tools.phone.subprocess.run", side_effect=_fake_aleapp),
+        patch("lade.server.tools.phone.extract_and_index", side_effect=_record),
     ):
         result = run_aleapp.__wrapped__(str(extraction))  # type: ignore[attr-defined]
     return result, indexed
@@ -145,13 +145,13 @@ def test_the_response_stays_a_bounded_preview(extraction: Path) -> None:
 
     with (
         patch(
-            "mulder.server.tools.phone._aleapp_script",
+            "lade.server.tools.phone._aleapp_script",
             return_value=str(extraction.parent / "aleapp.py"),
         ),
-        patch("mulder.server.tools.phone._find_leapp_cmd", return_value=["python", "aleapp.py"]),
-        patch("mulder.server.tools.phone.subprocess.run", side_effect=_fake_aleapp),
-        patch("mulder.server.tools.phone.extract_and_index", return_value={}),
-        patch("mulder.server.tools.phone.tool_response", side_effect=_capture),
+        patch("lade.server.tools.phone._find_leapp_cmd", return_value=["python", "aleapp.py"]),
+        patch("lade.server.tools.phone.subprocess.run", side_effect=_fake_aleapp),
+        patch("lade.server.tools.phone.extract_and_index", return_value={}),
+        patch("lade.server.tools.phone.tool_response", side_effect=_capture),
     ):
         run_aleapp.__wrapped__(str(extraction))  # type: ignore[attr-defined]
 
@@ -174,7 +174,7 @@ def test_the_parser_keeps_every_row_for_indexing(tmp_path: Path) -> None:
 
 def test_a_short_row_does_not_shift_the_columns() -> None:
     """A truncated TSV row yields a short dict; columns must stay aligned."""
-    from mulder.server.tools.phone import _leapp_artifact_lines
+    from lade.server.tools.phone import _leapp_artifact_lines
 
     artifact = {
         "category": "messaging",
@@ -197,7 +197,7 @@ def test_a_short_row_does_not_shift_the_columns() -> None:
 
 def test_an_artifact_with_no_rows_renders_nothing() -> None:
     """Pins narrowness: an empty artefact must not emit a stray header."""
-    from mulder.server.tools.phone import _leapp_artifact_lines
+    from lade.server.tools.phone import _leapp_artifact_lines
 
     assert _leapp_artifact_lines({"category": "c", "artifact_type": "a", "data": []}) == []
     assert _leapp_artifact_lines({"category": "c", "artifact_type": "a"}) == []

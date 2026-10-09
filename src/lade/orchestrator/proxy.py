@@ -31,7 +31,7 @@ _LITELLM_PREFIXES: tuple[str, ...] = (
 _DEFAULT_PORT: int = 4000
 _HEALTH_CHECK_TIMEOUT: float = 30.0
 _HEALTH_CHECK_INTERVAL: float = 0.5
-_MASTER_KEY: str = "sk-mulder-proxy"
+_MASTER_KEY: str = "sk-lade-proxy"
 
 #: Output tokens reserved per request for proxy-routed models LiteLLM
 #: positively reports as non-reasoning. Doubles as the LiteLLM ``max_tokens``
@@ -266,7 +266,7 @@ def litellm_reasoning(
 
     Runs :func:`litellm.supports_reasoning` inside LiteLLM's own venv (the
     interpreter next to the ``litellm`` binary) so litellm stays out of
-    mulder's venv. Any failure yields an empty mapping with a warning, which
+    lade's venv. Any failure yields an empty mapping with a warning, which
     means "serve as unknown" rather than "refuse to start".
 
     Args:
@@ -343,8 +343,8 @@ def fetch_model_windows(port: int, timeout: float = 5.0) -> dict[str, int]:
     model name from its ``model_prices_and_context_window`` map. Claude Code
     assumes a 200K window for model IDs it does not recognise, so the real
     window is handed to each session as ``CLAUDE_CODE_MAX_CONTEXT_TOKENS``
-    (see :mod:`mulder.orchestrator.session`). Reading it over HTTP keeps
-    litellm out of mulder's venv.
+    (see :mod:`lade.orchestrator.session`). Reading it over HTTP keeps
+    litellm out of lade's venv.
 
     Args:
         port: Port the proxy is listening on.
@@ -406,7 +406,7 @@ class ProxyManager:
         Args:
             models: LiteLLM model IDs that need proxy routing.
             port: Port for the proxy server. Defaults to 4000 or the
-                value of MULDER_PROXY_PORT env var.
+                value of LADE_PROXY_PORT env var.
             config_path: Optional path to a user-provided LiteLLM config
                 YAML. When provided, the auto-generated config is skipped
                 and this file is used instead.
@@ -418,7 +418,7 @@ class ProxyManager:
         import os
 
         self._models = models
-        self._port = port or int(os.environ.get("MULDER_PROXY_PORT", _DEFAULT_PORT))
+        self._port = port or int(os.environ.get("LADE_PROXY_PORT", _DEFAULT_PORT))
         self._config_path = config_path
         self._thinking = thinking
         self._overrides = overrides or {}
@@ -454,7 +454,7 @@ class ProxyManager:
         """Start the LiteLLM proxy subprocess.
 
         LiteLLM is installed in an isolated venv (/opt/litellm) due to
-        dependency conflicts with mulder's mcp and rich versions. The
+        dependency conflicts with lade's mcp and rich versions. The
         ``litellm`` binary is symlinked to /usr/local/bin.
 
         Raises:
@@ -490,7 +490,7 @@ class ProxyManager:
             config_file = self._config_path
         else:
             config = _build_proxy_config(self._models, self._port, self.settings)
-            fd, tmp_path = tempfile.mkstemp(suffix=".yaml", prefix="mulder_litellm_")
+            fd, tmp_path = tempfile.mkstemp(suffix=".yaml", prefix="lade_litellm_")
             self._temp_config = Path(tmp_path)
             os.close(fd)
             self._temp_config.write_text(

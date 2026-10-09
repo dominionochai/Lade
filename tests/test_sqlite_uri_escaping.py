@@ -51,7 +51,7 @@ from urllib.parse import quote
 
 import pytest
 
-from mulder.server.helpers import readonly_sqlite_uri
+from lade.server.helpers import readonly_sqlite_uri
 
 
 def _double_slash_db(tmp_path: Path) -> Path:
@@ -59,7 +59,7 @@ def _double_slash_db(tmp_path: Path) -> Path:
 
     ``tmp_path`` is absolute, so prefixing one more slash gives a path with a
     leading ``//``. POSIX leaves such a path implementation-defined but every
-    platform mulder runs on resolves it to the same file as a single slash;
+    platform lade runs on resolves it to the same file as a single slash;
     pathlib preserves exactly two, and collapses three or more.
     """
     evidence = Path("/" + str(tmp_path)) / "sms.db"
@@ -239,9 +239,9 @@ class TestEveryCallSiteUsesIt:
     """A new read-only connection built by hand would reintroduce the bug."""
 
     def test_no_module_formats_a_sqlite_uri_by_hand(self) -> None:
-        import mulder
+        import lade
 
-        root = Path(mulder.__file__).parent
+        root = Path(lade.__file__).parent
         offenders = [
             str(path.relative_to(root))
             for path in root.rglob("*.py")

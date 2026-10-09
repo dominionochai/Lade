@@ -1,33 +1,33 @@
 #!/usr/bin/env bash
-# Mulder installer.
+# Lade installer.
 #
-#   curl -fsSL https://raw.githubusercontent.com/calebevans/mulder/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/dominionochai/Lade/main/install.sh | bash
 #
 # Installs, in one pass:
-#   1. the OS packages mulder cannot run without   (apt, needs sudo)
-#   2. mulder itself                               (pipx, no sudo)
-#   3. the forensic data and helper tools          (mulder setup, no sudo)
+#   1. the OS packages lade cannot run without   (apt, needs sudo)
+#   2. lade itself                               (pipx, no sudo)
+#   3. the forensic data and helper tools          (lade setup, no sudo)
 #
 # It asks once, up front, listing exactly what it will do. Nothing is installed
 # before you answer.
 #
 # This script deliberately implements none of that itself: apt owns the system
-# packages, pipx owns the virtualenv and the entry point, and `mulder setup`
-# owns the assets. It has no uninstaller because `pipx uninstall mulder-dfir`
+# packages, pipx owns the virtualenv and the entry point, and `lade setup`
+# owns the assets. It has no uninstaller because `pipx uninstall lade-dfir`
 # already is one.
 #
 # Options (after `| bash -s --`):
 #   --yes           do not prompt
-#   --skip-setup    stop after installing mulder; skip the ~2.1 GB asset download
+#   --skip-setup    stop after installing lade; skip the ~2.1 GB asset download
 #   --ref REF       install from this git ref instead of PyPI (for testing)
 
 set -euo pipefail
 
-PACKAGE="mulder-dfir[forensics]"
-REPO="https://github.com/calebevans/mulder"
+PACKAGE="lade-dfir[forensics]"
+REPO="https://github.com/dominionochai/Lade"
 ASSUME_YES=0
 SKIP_SETUP=0
-GIT_REF="${MULDER_INSTALL_REF:-}"
+GIT_REF="${LADE_INSTALL_REF:-}"
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -47,23 +47,23 @@ die()  { red "$*" >&2; exit 1; }
 
 # --------------------------------------------------------------- preflight ---
 
-[ "$(uname -s)" = "Linux" ] || die "Mulder's forensic toolchain is Linux-only (found $(uname -s)).
-  On macOS or Windows, use the container: docker pull ghcr.io/calebevans/mulder:dev"
+[ "$(uname -s)" = "Linux" ] || die "Lade's forensic toolchain is Linux-only (found $(uname -s)).
+  On macOS or Windows, use the container: docker pull ghcr.io/dominionochai/lade:dev"
 
 # Running as root would put the asset clones under root ownership; git then
 # refuses to operate on them as your normal user ("detected dubious ownership")
-# and YARA rule updates stop permanently and silently. `mulder setup` enforces
+# and YARA rule updates stop permanently and silently. `lade setup` enforces
 # this too -- catching it here just gives a better message.
 [ "$(id -u)" != "0" ] || die "Do not run this as root or with sudo.
-  Run it as the user who will run mulder; it will ask for sudo only for apt."
+  Run it as the user who will run lade; it will ask for sudo only for apt."
 
 command -v apt-get >/dev/null 2>&1 || die "This installer supports apt-based systems (Debian, Ubuntu, SIFT).
   Elsewhere, install the equivalents of: git sleuthkit yara p7zip-full binutils
-  then run: pipx install \"$PACKAGE\" && mulder setup"
+  then run: pipx install \"$PACKAGE\" && lade setup"
 
 # ------------------------------------------------- what is actually missing ---
 
-# Only mulder's FATAL requirements are listed. The wider forensic toolchain
+# Only lade's FATAL requirements are listed. The wider forensic toolchain
 # (tshark, Zeek, Suricata, radare2, ...) is optional: each tool that needs one
 # reports it at call time with the apt line to fix it. Installing 30 packages
 # nobody asked for is not this script's job.
@@ -97,7 +97,7 @@ fi
 # ------------------------------------------------------------------- plan ----
 
 echo
-bold "Mulder installer"
+bold "Lade installer"
 echo
 step1="$missing_pkgs"
 if [ "$need_pipx" = "1" ]; then step1="$step1 pipx"; fi
@@ -107,13 +107,13 @@ if [ -n "$step1" ]; then
     echo "  1. apt install   $step1"
     dim "     (asks for your sudo password)"
 else
-    echo "  1. apt install   nothing -- you already have everything mulder requires"
+    echo "  1. apt install   nothing -- you already have everything lade requires"
 fi
 echo "  2. pipx install  $SPEC"
 if [ "$SKIP_SETUP" = "1" ]; then
-    echo "  3. mulder setup  skipped (--skip-setup)"
+    echo "  3. lade setup  skipped (--skip-setup)"
 else
-    echo "  3. mulder setup  forensic data, rule sets and helper tools (~2.1 GB)"
+    echo "  3. lade setup  forensic data, rule sets and helper tools (~2.1 GB)"
 fi
 echo
 dim "  Everything except step 1 installs under \$HOME. Nothing is written to /opt."
@@ -163,23 +163,23 @@ fi
 export PATH="$HOME/.local/bin:$PATH"
 pipx ensurepath >/dev/null 2>&1 || true
 
-# --------------------------------------------------------------- 2. mulder ---
+# --------------------------------------------------------------- 2. lade ---
 
-bold "==> Installing mulder"
+bold "==> Installing lade"
 pipx install --force "$SPEC"
 hash -r
 
-command -v mulder >/dev/null 2>&1 || die "mulder installed but is not on \$PATH.
+command -v lade >/dev/null 2>&1 || die "lade installed but is not on \$PATH.
   Add this to your shell profile, then re-run:
     export PATH=\"\$HOME/.local/bin:\$PATH\""
 
-mulder --version
+lade --version
 
 # ---------------------------------------------------------------- 3. assets ---
 
 if [ "$SKIP_SETUP" != "1" ]; then
     bold "==> Downloading forensic data and helper tools"
-    mulder setup --yes
+    lade setup --yes
 fi
 
 # ----------------------------------------------------------------- finish ----
@@ -196,7 +196,7 @@ fi
 echo "  Set a credential, then start an investigation:"
 echo
 echo "      export ANTHROPIC_API_KEY=sk-ant-..."
-echo "      mulder investigate /path/to/evidence my-case-id"
+echo "      lade investigate /path/to/evidence my-case-id"
 echo
-dim "  Check an existing install with: mulder setup --verify"
-dim "  Remove mulder with:             pipx uninstall mulder-dfir"
+dim "  Check an existing install with: lade setup --verify"
+dim "  Remove lade with:             pipx uninstall lade-dfir"

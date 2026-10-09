@@ -1,16 +1,16 @@
-"""Resolution of every mulder-owned asset path.
+"""Resolution of every lade-owned asset path.
 
 Historically each MCP tool module carried its own ``/opt/...`` literal, which
 made a native install impossible without root.  Every one of those constants now
 routes through this module, which separates two questions that used to be one:
 
-* **where may mulder read from** -- ``/opt`` first, so an existing SIFT or
-  container layout keeps winning, then mulder's own per-user directory;
-* **where may ``mulder setup`` write** -- ``/opt`` only when it is genuinely
+* **where may lade read from** -- ``/opt`` first, so an existing SIFT or
+  container layout keeps winning, then lade's own per-user directory;
+* **where may ``lade setup`` write** -- ``/opt`` only when it is genuinely
   writable (i.e. under ``sudo``), otherwise the per-user directory.
 
 They differ inside the container, where ``/opt`` is ``root:root 0755`` and the
-server runs as ``mulder``: a single writability-tested resolver would fall
+server runs as ``lade``: a single writability-tested resolver would fall
 through to ``$HOME`` there and break every lookup.
 
 This module is imported by MCP tool modules that load on *every* server start,
@@ -25,8 +25,8 @@ import os
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
-ENV_ASSET_ROOT = "MULDER_ASSET_ROOT"
-ENV_BIN_DIR = "MULDER_BIN_DIR"
+ENV_ASSET_ROOT = "LADE_ASSET_ROOT"
+ENV_BIN_DIR = "LADE_BIN_DIR"
 SYSTEM_ROOT = Path("/opt")
 SYSTEM_BIN = Path("/usr/local/bin")
 
@@ -46,11 +46,11 @@ def user_root() -> Path:
     """The per-user asset root.
 
     ``XDG_DATA_HOME`` is deliberately *not* honoured here: the path is a fixed
-    contract shared with the docs and with ``mulder setup``'s output.  The
+    contract shared with the docs and with ``lade setup``'s output.  The
     Volatility symbol cache is the opposite case -- see
-    ``mulder.assets.manifest.volatility_symbol_dir``.
+    ``lade.assets.manifest.volatility_symbol_dir``.
     """
-    return Path.home() / ".local" / "share" / "mulder" / "assets"
+    return Path.home() / ".local" / "share" / "lade" / "assets"
 
 
 @functools.lru_cache(maxsize=8)
@@ -60,7 +60,7 @@ def _roots(env: str | None, home: str) -> tuple[Path, ...]:
     roots: list[Path] = []
     if SYSTEM_ROOT.is_dir():
         roots.append(SYSTEM_ROOT)
-    roots.append(Path(home) / ".local" / "share" / "mulder" / "assets")
+    roots.append(Path(home) / ".local" / "share" / "lade" / "assets")
     return tuple(roots)
 
 
@@ -70,7 +70,7 @@ def asset_roots() -> tuple[Path, ...]:
     Keyed on the environment variable and ``$HOME`` so a change in either takes
     effect without an explicit cache flush; only the ``/opt`` stat is memoized.
 
-    ``MULDER_ASSET_ROOT`` is *exclusive* rather than prepended, so that the test
+    ``LADE_ASSET_ROOT`` is *exclusive* rather than prepended, so that the test
     suite can be hermetic and the container can pin an exact root that a
     bind-mounted ``$HOME`` cannot shadow.
     """
@@ -92,12 +92,12 @@ def asset_path(*parts: str) -> Path | None:
 
 
 def asset_display_path(*parts: str) -> Path:
-    """First existing candidate, else the path ``mulder setup`` *would* write.
+    """First existing candidate, else the path ``lade setup`` *would* write.
 
     The fallback is deliberately the write root, not ``asset_roots()[0]``.
     ``/opt`` is a directory on essentially every Linux host, so the first read
     root is ``/opt`` even when ``setup`` will provision
-    ``~/.local/share/mulder/assets`` -- and every "not found at ..." message and
+    ``~/.local/share/lade/assets`` -- and every "not found at ..." message and
     every copy-pasteable ``pipx inject --requirements ...`` suggestion built
     from it would then name a path that is never going to exist.
     """
@@ -114,9 +114,9 @@ def asset_search_summary(*parts: str) -> str:
 
 
 def asset_write_root() -> Path:
-    """Where ``mulder setup`` provisions assets.
+    """Where ``lade setup`` provisions assets.
 
-    ``MULDER_ASSET_ROOT`` wins even when it is unwritable, so ``setup`` fails
+    ``LADE_ASSET_ROOT`` wins even when it is unwritable, so ``setup`` fails
     loudly rather than silently writing somewhere the reader will not look.
     """
     env = os.environ.get(ENV_ASSET_ROOT)
@@ -128,7 +128,7 @@ def asset_write_root() -> Path:
 
 
 def bin_dir() -> Path:
-    """Where ``mulder setup`` drops PATH shims.
+    """Where ``lade setup`` drops PATH shims.
 
     ``capa``, ``floss`` and ``diec`` are resolved through ``shutil.which``
     first, falling back to a ``/usr/local/bin`` literal
@@ -152,7 +152,7 @@ def bin_dir() -> Path:
 def reset_asset_caches() -> None:
     """Flush this module's memoization and every registered consumer cache.
 
-    Called by ``mulder setup`` after provisioning (so an in-process server picks
+    Called by ``lade setup`` after provisioning (so an in-process server picks
     up new assets) and by the test fixtures that move the root.
     """
     _roots.cache_clear()

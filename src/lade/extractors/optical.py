@@ -33,7 +33,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import BinaryIO
 
-from mulder.extractors.disk import (
+from lade.extractors.disk import (
     _EWF_FIRST_SEGMENT,
     _ewf_segments,
     _run,
@@ -166,7 +166,7 @@ def raw_image(image_path: str) -> Iterator[Path]:
         return
     if not shutil.which("xmount"):
         raise OpticalError("xmount not found; cannot read an E01 disc image")
-    raw_dir = Path(tempfile.mkdtemp(prefix="mulder_optical_"))
+    raw_dir = Path(tempfile.mkdtemp(prefix="lade_optical_"))
     cmd = ["xmount", "--in", "ewf", *map(str, _ewf_segments(path)), "--out", "raw", str(raw_dir)]
     if not _run(cmd, timeout=120):
         shutil.rmtree(raw_dir, ignore_errors=True)

@@ -7,8 +7,8 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner, Result
 
-from mulder.cli import _is_interactive, cli
-from mulder.orchestrator.errors import AuthenticationError, ModelNotAvailableError
+from lade.cli import _is_interactive, cli
+from lade.orchestrator.errors import AuthenticationError, ModelNotAvailableError
 
 
 def _invoke_investigate_with_error(error: Exception) -> Result:
@@ -34,8 +34,8 @@ def _invoke_investigate_with_error(error: Exception) -> Result:
     mock_handler.level = _logging.NOTSET
 
     with (
-        patch("mulder.orchestrator.models.ModelConfig.from_args", return_value=MagicMock()),
-        patch("mulder.orchestrator.runner.Orchestrator", return_value=mock_orch),
+        patch("lade.orchestrator.models.ModelConfig.from_args", return_value=MagicMock()),
+        patch("lade.orchestrator.runner.Orchestrator", return_value=mock_orch),
         patch("asyncio.run", side_effect=error),
         patch.object(Path, "exists", return_value=True),
         patch("logging.FileHandler", return_value=mock_handler),

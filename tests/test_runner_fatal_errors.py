@@ -1,4 +1,4 @@
-"""Tests for fatal error propagation in mulder.orchestrator.runner."""
+"""Tests for fatal error propagation in lade.orchestrator.runner."""
 
 from __future__ import annotations
 
@@ -6,14 +6,14 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.orchestrator.errors import AuthenticationError, ModelNotAvailableError
-from mulder.orchestrator.runner import Orchestrator
-from mulder.orchestrator.types import PhaseResult
+from lade.orchestrator.errors import AuthenticationError, ModelNotAvailableError
+from lade.orchestrator.runner import Orchestrator
+from lade.orchestrator.types import PhaseResult
 
 
 def _make_orchestrator(**kwargs: object) -> Orchestrator:
     """Create an Orchestrator with a mocked dashboard."""
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         if "evidence_path" not in kwargs:
             kwargs["evidence_path"] = "/evidence"
         return Orchestrator(**kwargs)  # type: ignore[arg-type]
@@ -38,7 +38,7 @@ class TestSinglePhaseAbort:
                 suggestion="Set ANTHROPIC_API_KEY",
             )
 
-        from mulder.orchestrator.phases import CATALOG
+        from lade.orchestrator.phases import CATALOG
 
         with (
             patch.object(orch._session, "execute", side_effect=mock_execute),
@@ -71,7 +71,7 @@ class TestSinglePhaseAbort:
                 alternative="claude-haiku-4-5",
             )
 
-        from mulder.orchestrator.phases import CATALOG
+        from lade.orchestrator.phases import CATALOG
 
         with (
             patch.object(orch._session, "execute", side_effect=mock_execute),
@@ -108,7 +108,7 @@ class TestSplitPhaseAbort:
                 suggestion="Fix your auth",
             )
 
-        from mulder.orchestrator.phases import CROSS_SYSTEM
+        from lade.orchestrator.phases import CROSS_SYSTEM
 
         with (
             patch.object(orch._roles, "run_planner", side_effect=mock_planner),
@@ -137,7 +137,7 @@ class TestExtractionPoolAbort:
                 model="claude-test",
             )
 
-        from mulder.orchestrator.types import InvestigationResult
+        from lade.orchestrator.types import InvestigationResult
 
         result = InvestigationResult()
         groups = [["host-a"], ["host-b"]]

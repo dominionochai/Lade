@@ -1,15 +1,15 @@
-"""Tests for mulder.orchestrator.display -- dashboard task list UI."""
+"""Tests for lade.orchestrator.display -- dashboard task list UI."""
 
 from __future__ import annotations
 
 from unittest.mock import patch
 
-from mulder.orchestrator.display import InvestigationDashboard
+from lade.orchestrator.display import InvestigationDashboard
 
 
 def _make_dashboard() -> InvestigationDashboard:
     """Create a dashboard with psutil seeding suppressed."""
-    with patch("mulder.orchestrator.display.psutil"):
+    with patch("lade.orchestrator.display.psutil"):
         return InvestigationDashboard()
 
 

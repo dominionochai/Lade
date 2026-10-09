@@ -13,10 +13,10 @@ import time
 from pathlib import Path
 from typing import cast
 
-from mulder.patterns import fls_file_entries
-from mulder.server.app import get_cfg, get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.patterns import fls_file_entries
+from lade.server.app import get_cfg, get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     adaptive_timeout,
     error_response,
     make_tool_call_id,
@@ -24,9 +24,9 @@ from mulder.server.helpers import (
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
-from mulder.server.tools.extract.misc import _DOTNET, _find_ez_tool
-from mulder.server.tools.extract.tsk import (
+from lade.server.tool_access import Role, tool_access
+from lade.server.tools.extract.misc import _DOTNET, _find_ez_tool
+from lade.server.tools.extract.tsk import (
     _collect_fls_chunks,
     _tsk_extract_dirs,
     _tsk_lock,
@@ -219,7 +219,7 @@ def _parse_evtx_with_eztools(evtx_path: str, evtx_dir: str | None) -> dict[str, 
     if not (dll and require_binary(_DOTNET)):
         return None
 
-    with tempfile.TemporaryDirectory(prefix="mulder_evtx_csv_") as csv_dir:
+    with tempfile.TemporaryDirectory(prefix="lade_evtx_csv_") as csv_dir:
         if evtx_dir:
             cmd = [_DOTNET, dll, "-d", evtx_dir, "--csv", csv_dir]
         else:
@@ -258,7 +258,7 @@ def _parse_evtx_with_python_fallback(evtx_path: str, evtx_dir: str | None) -> li
     Raises:
         ImportError: If python-evtx is not installed.
     """
-    from mulder.extractors.disk import _parse_evtx_file
+    from lade.extractors.disk import _parse_evtx_file
 
     results: list[object] = []
     files = sorted(Path(evtx_dir).rglob("*.evtx")) if evtx_dir else [Path(evtx_path)]
@@ -315,7 +315,7 @@ def run_evtx_parser(evtx_path: str, force: bool = False) -> dict[str, object]:
     is_image = target.suffix.lower() in (".e01", ".dd", ".img", ".raw", ".001")
 
     if is_image:
-        extract_dir = tempfile.mkdtemp(prefix="mulder_evtx_extract_")
+        extract_dir = tempfile.mkdtemp(prefix="lade_evtx_extract_")
         with _evtx_lock:
             _evtx_extract_dirs[evtx_path] = extract_dir
         ctx = get_ctx()
@@ -422,7 +422,7 @@ def _auto_index_companion_logs(extract_dir: str, image_path: str) -> list[dict[s
 
         dll = _find_ez_tool("EvtxECmd.dll")
         if dll and require_binary(_DOTNET):
-            with tempfile.TemporaryDirectory(prefix="mulder_evtx_csv_") as csv_dir:
+            with tempfile.TemporaryDirectory(prefix="lade_evtx_csv_") as csv_dir:
                 cmd = [_DOTNET, dll, "-f", str(candidate), "--csv", csv_dir]
                 try:
                     subprocess.run(
@@ -449,7 +449,7 @@ def _auto_index_companion_logs(extract_dir: str, image_path: str) -> list[dict[s
                     continue
 
         try:
-            from mulder.extractors.disk import _parse_evtx_file
+            from lade.extractors.disk import _parse_evtx_file
         except ImportError:
             continue
 
@@ -537,7 +537,7 @@ def index_evtx_file(
 
     dll = _find_ez_tool("EvtxECmd.dll")
     if dll and require_binary(_DOTNET):
-        with tempfile.TemporaryDirectory(prefix="mulder_evtx_csv_") as csv_dir:
+        with tempfile.TemporaryDirectory(prefix="lade_evtx_csv_") as csv_dir:
             cmd = [_DOTNET, dll, "-f", str(evtx_path), "--csv", csv_dir]
             if event_ids:
                 cmd.extend(["--inc", ",".join(str(eid) for eid in event_ids)])
@@ -576,7 +576,7 @@ def index_evtx_file(
                 return response
 
     try:
-        from mulder.extractors.disk import _parse_evtx_file
+        from lade.extractors.disk import _parse_evtx_file
     except ImportError:
         return error_response(tc_id, "index_evtx_file", params, "No EVTX parser available")
 

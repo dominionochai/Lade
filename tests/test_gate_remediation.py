@@ -14,12 +14,12 @@ import pytest
 from click.testing import CliRunner
 from rich.console import Console
 
-from mulder.cli import cli
-from mulder.orchestrator.display import InvestigationDashboard
-from mulder.orchestrator.gates import GateResult
-from mulder.orchestrator.phases import ALTERNATIVE_NARRATIVE, REPORT
-from mulder.orchestrator.runner import Orchestrator
-from mulder.orchestrator.types import ExecutionResults, InvestigationResult, PhaseResult, Plan
+from lade.cli import cli
+from lade.orchestrator.display import InvestigationDashboard
+from lade.orchestrator.gates import GateResult
+from lade.orchestrator.phases import ALTERNATIVE_NARRATIVE, REPORT
+from lade.orchestrator.runner import Orchestrator
+from lade.orchestrator.types import ExecutionResults, InvestigationResult, PhaseResult, Plan
 
 GAP = "timestamp_coverage: 3 non-negative finding(s) missing event_time_start: ['A', 'B', 'C']"
 
@@ -28,7 +28,7 @@ class _Harness:
     """Mock roles around a real ``run_remediation`` and capture every prompt."""
 
     def __init__(self, gate_outcomes: list[bool]) -> None:
-        with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+        with patch("lade.orchestrator.runner.InvestigationDashboard"):
             self.orch = Orchestrator("/evidence", case_id="test-case")
         self.gate_outcomes = iter(gate_outcomes)
         self.planner_contexts: list[str] = []
@@ -122,7 +122,7 @@ class _ReportHarness:
     """Real ``_run_single_phase`` for the report phase with a mocked session."""
 
     def __init__(self, db_dir: Path, *, write_report: bool) -> None:
-        with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+        with patch("lade.orchestrator.runner.InvestigationDashboard"):
             self.orch = Orchestrator("/evidence", case_id="test-case", db_dir=db_dir)
         self.report = db_dir / "test-case.report.md"
         self.write_report = write_report
@@ -167,7 +167,7 @@ def test_investigate_exits_nonzero_and_summary_says_report_missing(tmp_path: Pat
     failed.success = all(p.success for p in failed.phases)
 
     buf = io.StringIO()
-    with patch("mulder.orchestrator.display.psutil"):
+    with patch("lade.orchestrator.display.psutil"):
         dashboard = InvestigationDashboard()
     dashboard._console = Console(file=buf, width=200, no_color=True)
     dashboard.print_summary(failed)
@@ -175,7 +175,7 @@ def test_investigate_exits_nonzero_and_summary_says_report_missing(tmp_path: Pat
     assert "FAIL" in buf.getvalue()
 
     with (
-        patch("mulder.orchestrator.runner.Orchestrator"),
+        patch("lade.orchestrator.runner.Orchestrator"),
         patch("asyncio.run", return_value=failed),
     ):
         result = CliRunner().invoke(

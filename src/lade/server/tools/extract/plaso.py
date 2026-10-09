@@ -10,9 +10,9 @@ import tempfile
 import time
 from pathlib import Path
 
-from mulder.server.app import get_cfg, get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.server.app import get_cfg, get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     _PREVIEW_CHAR_LIMIT,
     adaptive_timeout,
     error_response,
@@ -20,7 +20,7 @@ from mulder.server.helpers import (
     make_tool_call_id,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 __all__ = [
     "run_plaso",
@@ -133,7 +133,7 @@ def run_plaso(
     cfg = get_cfg()
     ctx = get_ctx()
 
-    with tempfile.TemporaryDirectory(prefix="mulder_plaso_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_plaso_") as tmpdir:
         plaso_file = Path(tmpdir) / "timeline.plaso"
 
         l2t_cmd = [*l2t_cmd_prefix, "--storage_file", str(plaso_file), *_L2T_FLAGS]

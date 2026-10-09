@@ -3,9 +3,9 @@
 A maintainer chore, run by a human via ``make assets-lock`` after bumping a
 pinned version in the Dockerfile *and* in ``manifest.py``.  It is the only code
 in this package that downloads by design, it is never imported at runtime, and
-it must never run in CI -- ``mulder setup`` reads the checked-in result instead.
+it must never run in CI -- ``lade setup`` reads the checked-in result instead.
 
-    python -m mulder.assets.lockgen [--key chainsaw ...]
+    python -m lade.assets.lockgen [--key chainsaw ...]
 """
 
 from __future__ import annotations
@@ -17,8 +17,8 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from mulder.assets.fetch import HttpFetcher
-from mulder.assets.manifest import ANY_ARCH, ASSETS
+from lade.assets.fetch import HttpFetcher
+from lade.assets.manifest import ANY_ARCH, ASSETS
 
 LOCK_PATH = Path(__file__).with_name("assets.lock")
 
@@ -36,7 +36,7 @@ def generate(keys: set[str] | None = None) -> dict[str, dict[str, object]]:
             if arch == ANY_ARCH and asset.arch_only:  # pragma: no cover - defensive
                 continue
             print(f"  {asset.key}:{arch} <- {url}", file=sys.stderr)
-            with tempfile.TemporaryDirectory(prefix="mulder-lockgen-") as tmp:
+            with tempfile.TemporaryDirectory(prefix="lade-lockgen-") as tmp:
                 result = fetcher(url, Path(tmp) / "download")
                 entries[f"{asset.key}:{arch}"] = {
                     "url": url,

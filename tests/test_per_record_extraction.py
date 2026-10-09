@@ -8,8 +8,8 @@ top of them.
 
 from __future__ import annotations
 
-from mulder.models import WindowRow
-from mulder.server.helpers import (
+from lade.models import WindowRow
+from lade.server.helpers import (
     extract_module_names,
     extract_pid,
     extract_pids,

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from mulder.server.tools import yara
+from lade.server.tools import yara
 
 
 @pytest.fixture
@@ -23,10 +23,10 @@ def clone(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def test_read_only_clone_skips_the_pull_with_one_info_line(
     clone: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
-    monkeypatch.setattr("mulder.server.tools.yara.os.access", lambda *_: False)
+    monkeypatch.setattr("lade.server.tools.yara.os.access", lambda *_: False)
     calls: list[list[str]] = []
     monkeypatch.setattr(
-        "mulder.server.tools.yara.subprocess.run", lambda cmd, **_: calls.append(cmd)
+        "lade.server.tools.yara.subprocess.run", lambda cmd, **_: calls.append(cmd)
     )
 
     with caplog.at_level(logging.INFO, logger=yara.logger.name):
@@ -45,7 +45,7 @@ def test_writable_clone_still_pulls(clone: Path, monkeypatch: pytest.MonkeyPatch
         calls.append(cmd)
         return subprocess.CompletedProcess(cmd, 0, "", "")
 
-    monkeypatch.setattr("mulder.server.tools.yara.subprocess.run", fake_run)
+    monkeypatch.setattr("lade.server.tools.yara.subprocess.run", fake_run)
     yara._update_community_rules()
 
     assert calls == [["git", "-C", str(clone), "pull", "--ff-only", "-q"]]

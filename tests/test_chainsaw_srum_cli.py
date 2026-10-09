@@ -28,7 +28,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.chainsaw import run_chainsaw
+from lade.server.tools.chainsaw import run_chainsaw
 
 
 @pytest.fixture
@@ -54,10 +54,10 @@ def _srum_argv(srum_db: Path, hive: Path) -> list[str]:
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
 
     with (
-        patch("mulder.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
-        patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-        patch("mulder.server.tools.chainsaw.subprocess.run", side_effect=_record),
-        patch("mulder.server.tools.chainsaw.extract_and_index", return_value={}),
+        patch("lade.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
+        patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.chainsaw.subprocess.run", side_effect=_record),
+        patch("lade.server.tools.chainsaw.extract_and_index", return_value={}),
     ):
         run_chainsaw.__wrapped__(  # type: ignore[attr-defined]
             str(srum_db),
@@ -107,10 +107,10 @@ def test_srum_never_reaches_chainsaw_carrying_json(srum_db: Path) -> None:
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
 
     with (
-        patch("mulder.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
-        patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-        patch("mulder.server.tools.chainsaw.subprocess.run", side_effect=_record),
-        patch("mulder.server.tools.chainsaw.extract_and_index", return_value={}),
+        patch("lade.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
+        patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.chainsaw.subprocess.run", side_effect=_record),
+        patch("lade.server.tools.chainsaw.extract_and_index", return_value={}),
     ):
         run_chainsaw.__wrapped__(str(srum_db), mode="srum")  # type: ignore[attr-defined]
 
@@ -137,9 +137,9 @@ def test_the_srum_argv_matches_the_declared_usage(srum_db: Path, software_hive: 
 def test_a_missing_software_hive_is_reported_not_left_to_clap(srum_db: Path) -> None:
     """Chainsaw cannot guess the hive, so the analyst must be told to supply it."""
     with (
-        patch("mulder.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
-        patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-        patch("mulder.server.tools.chainsaw.extract_and_index", return_value={}),
+        patch("lade.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
+        patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.chainsaw.extract_and_index", return_value={}),
     ):
         result: Any = run_chainsaw.__wrapped__(  # type: ignore[attr-defined]
             str(srum_db), mode="srum"
@@ -153,9 +153,9 @@ def test_a_missing_software_hive_is_reported_not_left_to_clap(srum_db: Path) -> 
 def test_a_nonexistent_software_hive_is_reported(srum_db: Path, tmp_path: Path) -> None:
     """A supplied-but-absent hive is a file_not_found, not an opaque exit 2."""
     with (
-        patch("mulder.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
-        patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-        patch("mulder.server.tools.chainsaw.extract_and_index", return_value={}),
+        patch("lade.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
+        patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.chainsaw.extract_and_index", return_value={}),
     ):
         result: Any = run_chainsaw.__wrapped__(  # type: ignore[attr-defined]
             str(srum_db),
@@ -183,10 +183,10 @@ def test_other_modes_keep_their_json_flag(tmp_path: Path) -> None:
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="", stderr="")
 
     with (
-        patch("mulder.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
-        patch("mulder.server.tools.chainsaw.sources_already_indexed", return_value=[]),
-        patch("mulder.server.tools.chainsaw.subprocess.run", side_effect=_record),
-        patch("mulder.server.tools.chainsaw.extract_and_index", return_value={}),
+        patch("lade.server.tools.chainsaw._chainsaw_binary", return_value="/usr/bin/chainsaw"),
+        patch("lade.server.tools.chainsaw.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.chainsaw.subprocess.run", side_effect=_record),
+        patch("lade.server.tools.chainsaw.extract_and_index", return_value={}),
     ):
         run_chainsaw.__wrapped__(str(evidence), mode="timeline")  # type: ignore[attr-defined]
 

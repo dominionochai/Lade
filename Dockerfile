@@ -31,7 +31,7 @@ RUN curl -fsSL https://github.com/libyal/libewf/releases/download/20240506/libew
     && make install
 
 # ntfs-3g: rebuild with external FUSE (libfuse2 -> setuid fusermount3) so the
-# unprivileged mulder user can mount NTFS image files. Ubuntu's package uses
+# unprivileged lade user can mount NTFS image files. Ubuntu's package uses
 # integrated FUSE without setuid, which refuses every non-root mount; making it
 # setuid would parse hostile evidence with root privileges instead.
 # --disable-library links libntfs-3g statically so nothing shadows the distro
@@ -428,9 +428,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Set symbol ownership while copying to avoid a second archive-sized chown layer.
-RUN useradd -m -s /bin/bash mulder \
-    && install -d -o mulder -g mulder /home/mulder/.cache \
-        /home/mulder/.cache/volatility3 /home/mulder/.cache/volatility3/symbols
+RUN useradd -m -s /bin/bash lade \
+    && install -d -o lade -g lade /home/lade/.cache \
+        /home/lade/.cache/volatility3 /home/lade/.cache/volatility3/symbols
 
 COPY --from=bulk-builder /opt/bulk_extractor /usr/local
 COPY --from=libewf-runtime /opt/libewf /usr/local
@@ -438,11 +438,11 @@ COPY --from=libewf-runtime /opt/libewf /usr/local
 COPY --from=ntfs-3g-builder /opt/ntfs-3g/bin/ntfs-3g /usr/local/bin/ntfs-3g
 COPY --from=eztools-fetch /opt/dotnet /usr/local/share/dotnet
 COPY --from=eztools-fetch /opt/zimmermantools /opt/zimmermantools
-COPY --from=symbols-fetch --chown=mulder:mulder /opt/vol-symbols/windows.zip /home/mulder/.cache/volatility3/symbols/windows.zip
-COPY --from=symbols-fetch --chown=mulder:mulder /opt/vol-symbols/linux.zip /home/mulder/.cache/volatility3/symbols/linux.zip
+COPY --from=symbols-fetch --chown=lade:lade /opt/vol-symbols/windows.zip /home/lade/.cache/volatility3/symbols/windows.zip
+COPY --from=symbols-fetch --chown=lade:lade /opt/vol-symbols/linux.zip /home/lade/.cache/volatility3/symbols/linux.zip
 COPY --from=stegdetect-builder /opt/stegdetect/bin/stegdetect /usr/local/bin/stegdetect
 COPY --from=stegdetect-builder /opt/stegdetect/bin/stegbreak /usr/local/bin/stegbreak
-# Deliberately root-owned: the server (running as mulder) sees a read-only clone
+# Deliberately root-owned: the server (running as lade) sees a read-only clone
 # and uses the pinned rules instead of pulling at scan time.
 COPY --from=yara-fetch /opt/signature-base /opt/signature-base
 COPY --from=attack-fetch /opt/attack/enterprise-attack.json /opt/attack/enterprise-attack.json
@@ -450,7 +450,7 @@ COPY --from=attack-fetch /opt/attack/ics-attack.json /opt/attack/ics-attack.json
 COPY --from=hayabusa-fetch /opt/hayabusa /opt/hayabusa
 # Keep capa where the asset manifest says it lives, then link it onto PATH --
 # same shape as chainsaw below. Copying only the binary to /usr/local/bin
-# left /opt/capa absent, so `mulder setup --verify` called capa missing on
+# left /opt/capa absent, so `lade setup --verify` called capa missing on
 # an image where capa works fine.
 COPY --from=capa-fetch /opt/capa/ /opt/capa/
 RUN ln -sf /opt/capa/capa /usr/local/bin/capa
@@ -570,46 +570,46 @@ RUN python3 -c "import pyewf; print('libewf-python', pyewf.get_version())"
 COPY . /app
 RUN uv pip install --system --no-cache -e /app
 
-# LiteLLM proxy in isolated venv (hard dependency conflicts with mulder's
+# LiteLLM proxy in isolated venv (hard dependency conflicts with lade's
 # mcp>=2.0 and rich>=15.0; litellm pins older versions of both).
 RUN python3 -m venv /opt/litellm \
     && find /opt/litellm -type d -name __pycache__ -prune -exec rm -rf {} + \
     && /opt/litellm/bin/pip install --no-cache-dir --no-compile 'litellm[proxy]' pyyaml 'botocore[crt]' \
     && ln -s /opt/litellm/bin/litellm /usr/local/bin/litellm
 
-RUN mkdir -p /mulder-investigation \
-    && cp /app/.mcp.json /mulder-investigation/.mcp.json \
-    && cd /mulder-investigation && git init && git config user.email "mulder@local" && git config user.name "mulder" && git add -A && git commit -m "init"
+RUN mkdir -p /lade-investigation \
+    && cp /app/.mcp.json /lade-investigation/.mcp.json \
+    && cd /lade-investigation && git init && git config user.email "lade@local" && git config user.name "lade" && git add -A && git commit -m "init"
 
-RUN chown -R mulder:mulder /mulder-investigation
+RUN chown -R lade:lade /lade-investigation
 
 COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # NOTE: disk image mounting is pure FUSE (xmount + ntfs-3g/fuse2fs, see
-# src/mulder/extractors/disk.py) and needs --privileged or
+# src/lade/extractors/disk.py) and needs --privileged or
 # --cap-add SYS_ADMIN --device /dev/fuse when running this container. No loop
 # devices and no root: the kernel `mount -o loop` path was removed because a
 # --cap-add container exposes no loop device even to root.
-# The container runs as non-root user 'mulder'; the entrypoint handles
+# The container runs as non-root user 'lade'; the entrypoint handles
 # credential setup and permission fixups before dropping to that user.
 
-# --cwd defaults to ~/.mulder/workspace on a native install; pin it back to the
+# --cwd defaults to ~/.lade/workspace on a native install; pin it back to the
 # directory this image already creates, populates and git-inits above so
 # container behaviour is unchanged.
-ENV MULDER_CWD=/mulder-investigation
+ENV LADE_CWD=/lade-investigation
 
 # The image is already provisioned, so pin the resolver to /opt outright. It is
 # exclusive: without it a bind-mounted host $HOME carrying
-# ~/.local/share/mulder/assets would silently supplement (and could shadow) the
-# image's curated, version-matched tree. `mulder setup` inside the container
+# ~/.local/share/lade/assets would silently supplement (and could shadow) the
+# image's curated, version-matched tree. `lade setup` inside the container
 # consequently exits 1 -- /opt is root:root 0755 and the process runs as
-# `mulder` -- which is correct; there is nothing for it to do here.
-ENV MULDER_ASSET_ROOT=/opt
+# `lade` -- which is correct; there is nothing for it to do here.
+ENV LADE_ASSET_ROOT=/opt
 
 HEALTHCHECK --interval=60s --timeout=5s --start-period=10s --retries=3 \
-    CMD ["mulder", "--version"]
+    CMD ["lade", "--version"]
 
-WORKDIR /mulder-investigation
+WORKDIR /lade-investigation
 ENTRYPOINT ["entrypoint.sh"]
-CMD ["mulder", "investigate"]
+CMD ["lade", "investigate"]

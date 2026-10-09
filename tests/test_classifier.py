@@ -1,4 +1,4 @@
-"""Tests for mulder.extractors.classifier -- evidence classification."""
+"""Tests for lade.extractors.classifier -- evidence classification."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from mulder.extractors.classifier import (
+from lade.extractors.classifier import (
     ClassifierConfig,
     EvidenceClassifier,
     _is_evidence_sidecar,

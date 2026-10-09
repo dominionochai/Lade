@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 from uuid import uuid4
 
-from mulder.server.timeouts import should_defer
+from lade.server.timeouts import should_defer
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +138,7 @@ class JobStore:
         tool_dispatch: dict[str, Callable[..., Any]],
     ) -> None:
         self._executor = ThreadPoolExecutor(
-            max_workers=max_workers, thread_name_prefix="mulder-job"
+            max_workers=max_workers, thread_name_prefix="lade-job"
         )
         self._tool_dispatch = tool_dispatch
         self._lock = threading.Lock()
@@ -189,7 +189,7 @@ class JobStore:
         logging (via ``tool_response`` / ``error_response``) records
         the batch correlation automatically.
         """
-        from mulder.server.helpers import current_batch_id
+        from lade.server.helpers import current_batch_id
 
         with self._lock:
             job = self._jobs.get(job_id)
@@ -209,7 +209,7 @@ class JobStore:
             logger.info("%s %s|%s|%s", _JOB_COMPLETE_MARKER, tool_name, "failed", job.error)
             return
 
-        from mulder.server.app import wait_for_resources
+        from lade.server.app import wait_for_resources
 
         current_batch_id.set(job.batch_id)
         try:
@@ -334,8 +334,8 @@ class JobStore:
         have completed.  On retry, any error (including another timeout)
         marks the job as permanently failed.
         """
-        from mulder.server.app import wait_for_resources
-        from mulder.server.helpers import current_batch_id
+        from lade.server.app import wait_for_resources
+        from lade.server.helpers import current_batch_id
 
         for job_id in job_ids:
             with self._lock:

@@ -1,6 +1,6 @@
 """``run_radare2`` must run its command batch under radare2's sandbox.
 
-``commands`` is an r2 *script*, not an argument list. The argv mulder builds is
+``commands`` is an r2 *script*, not an argument list. The argv lade builds is
 shell-safe, but r2's own command language can leave r2: ``!cmd`` shells out,
 ``#!pipe sh -c cmd`` does the same by another route, ``oo+`` reopens the target
 read-write so a batch can patch the evidence it was asked to examine, and ``o``
@@ -21,7 +21,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.extract.misc import run_radare2
+from lade.server.tools.extract.misc import run_radare2
 
 # Spelled out rather than imported, so this module still imports against an
 # unpatched tree -- the tests below must fail on their assertions, which is the
@@ -43,9 +43,9 @@ def _argv_of(commands: str, target: Path) -> list[str]:
         return subprocess.CompletedProcess(args=argv, returncode=0, stdout="", stderr="")
 
     with (
-        patch("mulder.server.tools.extract.misc.require_binary", return_value=True),
-        patch("mulder.server.tools.extract.misc.subprocess.run", side_effect=_capture),
-        patch("mulder.server.tools.extract.misc.extract_and_index", return_value={}),
+        patch("lade.server.tools.extract.misc.require_binary", return_value=True),
+        patch("lade.server.tools.extract.misc.subprocess.run", side_effect=_capture),
+        patch("lade.server.tools.extract.misc.extract_and_index", return_value={}),
     ):
         run_radare2.__wrapped__(str(target), commands=commands)  # type: ignore[attr-defined]
 
@@ -111,7 +111,7 @@ def test_legitimate_r2_options_are_not_forbidden() -> None:
     r2 emits "Relocs has not been applied. Please use `-e bin.relocs.apply=true`"
     on ordinary binaries, so the fix must leave that option usable.
     """
-    from mulder.server.tools.extract.misc import _sandboxed as production_sandboxed
+    from lade.server.tools.extract.misc import _sandboxed as production_sandboxed
 
     batch = production_sandboxed("e bin.relocs.apply=true;iI")
 
@@ -169,9 +169,9 @@ def test_live_the_sandbox_cannot_be_turned_off_from_the_batch(tmp_path: Path) ->
 
 @_needs_r2
 def test_live_static_triage_output_is_unchanged(tmp_path: Path) -> None:
-    """The sandbox costs the debugger, nothing mulder uses.
+    """The sandbox costs the debugger, nothing lade uses.
 
-    mulder does static triage only, so the default batch must produce
+    lade does static triage only, so the default batch must produce
     byte-identical stdout with and without the sandbox. ``/bin/true`` is
     deliberately tiny -- ``afl`` over a large binary is slow enough to time out.
     """

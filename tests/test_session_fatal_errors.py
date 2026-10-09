@@ -1,4 +1,4 @@
-"""Tests for fatal error detection in mulder.orchestrator.session."""
+"""Tests for fatal error detection in lade.orchestrator.session."""
 
 from __future__ import annotations
 
@@ -6,9 +6,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.orchestrator.errors import AuthenticationError, ModelNotAvailableError
-from mulder.orchestrator.models import ModelConfig
-from mulder.orchestrator.session import (
+from lade.orchestrator.errors import AuthenticationError, ModelNotAvailableError
+from lade.orchestrator.models import ModelConfig
+from lade.orchestrator.session import (
     SessionExecutor,
     _classify_fatal_error,
     _extract_alternative_model,
@@ -140,7 +140,7 @@ class TestExecuteAuthDetection:
             yield  # make it an async generator  # pragma: no cover
 
         with (
-            patch("mulder.orchestrator.session.query", mock_query),
+            patch("lade.orchestrator.session.query", mock_query),
             pytest.raises(AuthenticationError) as exc_info,
         ):
             await session.execute(
@@ -169,7 +169,7 @@ class TestExecuteAuthDetection:
             yield  # make it an async generator  # pragma: no cover
 
         with (
-            patch("mulder.orchestrator.session.query", mock_query),
+            patch("lade.orchestrator.session.query", mock_query),
             pytest.raises(ModelNotAvailableError) as exc_info,
         ):
             await session.execute(
@@ -193,7 +193,7 @@ class TestExecuteAuthDetection:
             raise Exception("network timeout")  # noqa: TRY002
             yield  # make it an async generator  # pragma: no cover
 
-        with patch("mulder.orchestrator.session.query", mock_query):
+        with patch("lade.orchestrator.session.query", mock_query):
             result = await session.execute(
                 system_prompt="test",
                 prompt="test",
@@ -231,9 +231,9 @@ class TestTextBlockDetection:
             yield mock_assistant
 
         with (
-            patch("mulder.orchestrator.session.query", mock_query),
-            patch("mulder.orchestrator.session.AssistantMessage", type(mock_assistant)),
-            patch("mulder.orchestrator.session.TextBlock", type(mock_text_block)),
+            patch("lade.orchestrator.session.query", mock_query),
+            patch("lade.orchestrator.session.AssistantMessage", type(mock_assistant)),
+            patch("lade.orchestrator.session.TextBlock", type(mock_text_block)),
             pytest.raises(AuthenticationError),
         ):
             await session.execute(
@@ -265,9 +265,9 @@ class TestTextBlockDetection:
             yield mock_assistant
 
         with (
-            patch("mulder.orchestrator.session.query", mock_query),
-            patch("mulder.orchestrator.session.AssistantMessage", type(mock_assistant)),
-            patch("mulder.orchestrator.session.TextBlock", type(mock_text_block)),
+            patch("lade.orchestrator.session.query", mock_query),
+            patch("lade.orchestrator.session.AssistantMessage", type(mock_assistant)),
+            patch("lade.orchestrator.session.TextBlock", type(mock_text_block)),
             pytest.raises(ModelNotAvailableError) as exc_info,
         ):
             await session.execute(
@@ -300,7 +300,7 @@ class TestExecuteUtilityFatalErrors:
             yield  # make it an async generator  # pragma: no cover
 
         with (
-            patch("mulder.orchestrator.session.query", mock_query),
+            patch("lade.orchestrator.session.query", mock_query),
             pytest.raises(AuthenticationError),
         ):
             await session.execute_utility(
@@ -318,7 +318,7 @@ class TestExecuteUtilityFatalErrors:
             raise Exception("some random error")  # noqa: TRY002
             yield  # make it an async generator  # pragma: no cover
 
-        with patch("mulder.orchestrator.session.query", mock_query):
+        with patch("lade.orchestrator.session.query", mock_query):
             result = await session.execute_utility(
                 prompt="test",
                 allowed_tools=[],
@@ -341,7 +341,7 @@ class TestAuthSuggestion:
         with (
             patch.dict("os.environ", {}, clear=True),
         ):
-            from mulder.orchestrator.session import _auth_suggestion
+            from lade.orchestrator.session import _auth_suggestion
 
             suggestion = _auth_suggestion()
             assert "ANTHROPIC_API_KEY" in suggestion
@@ -349,7 +349,7 @@ class TestAuthSuggestion:
     def test_vertex_suggestion(self) -> None:
         """With CLAUDE_CODE_USE_VERTEX=1, suggests gcloud auth."""
         with patch.dict("os.environ", {"CLAUDE_CODE_USE_VERTEX": "1"}):
-            from mulder.orchestrator.session import _auth_suggestion
+            from lade.orchestrator.session import _auth_suggestion
 
             suggestion = _auth_suggestion()
             assert "gcloud" in suggestion
@@ -357,7 +357,7 @@ class TestAuthSuggestion:
     def test_bedrock_suggestion(self) -> None:
         """With CLAUDE_CODE_USE_BEDROCK=1, suggests AWS credentials."""
         with patch.dict("os.environ", {"CLAUDE_CODE_USE_BEDROCK": "1"}):
-            from mulder.orchestrator.session import _auth_suggestion
+            from lade.orchestrator.session import _auth_suggestion
 
             suggestion = _auth_suggestion()
             assert "AWS" in suggestion

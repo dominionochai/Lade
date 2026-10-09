@@ -10,10 +10,10 @@ import time
 from pathlib import Path
 from typing import Any
 
-from mulder.patterns import fls_file_entries
-from mulder.server.app import mcp
-from mulder.server.extract_helpers import extract_and_index, mount_disk_image
-from mulder.server.helpers import (
+from lade.patterns import fls_file_entries
+from lade.server.app import mcp
+from lade.server.extract_helpers import extract_and_index, mount_disk_image
+from lade.server.helpers import (
     _HINT_CHAR_LIMIT,
     TOOL_TIMEOUT,
     error_response,
@@ -22,9 +22,9 @@ from mulder.server.helpers import (
     sources_already_indexed,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
-from mulder.server.tools.extract.misc import _DOTNET, _find_ez_tool
-from mulder.server.tools.extract.tsk import (
+from lade.server.tool_access import Role, tool_access
+from lade.server.tools.extract.misc import _DOTNET, _find_ez_tool
+from lade.server.tools.extract.tsk import (
     _cleanup_tsk_extract_dir,
     _collect_fls_chunks,
     _tsk_extract_files,
@@ -195,7 +195,7 @@ def _discover_user_hives_via_tsk(
                 seen.add(dedup_key)
 
                 if extract_dir is None:
-                    extract_dir = Path(tempfile.mkdtemp(prefix="mulder_user_hives_"))
+                    extract_dir = Path(tempfile.mkdtemp(prefix="lade_user_hives_"))
 
                 sanitized = rel_path.replace("/", "_").replace(chr(92), "_")
                 safe_name = f"{username}_{hive_type}_{sanitized}"
@@ -330,7 +330,7 @@ def _parse_single_hive(
     if plugins is None:
         dll = _find_ez_tool("RECmd.dll")
         if dll and require_binary(_DOTNET):
-            with tempfile.TemporaryDirectory(prefix="mulder_reg_") as tmpdir:
+            with tempfile.TemporaryDirectory(prefix="lade_reg_") as tmpdir:
                 cmd = [_DOTNET, dll, "-f", str(hive_path), "--csv", tmpdir]
                 try:
                     proc = subprocess.run(

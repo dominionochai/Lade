@@ -14,12 +14,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 from sqlalchemy import insert
 
-import mulder.server.tools.core  # noqa: F401 ensure tools are registered
-import mulder.server.tools.review  # noqa: F401
-from mulder.audit import AuditLog
-from mulder.db import CaseDB, findings_t
-from mulder.models import Finding
-from mulder.server.app import _tool_dispatch_sync
+import lade.server.tools.core  # noqa: F401 ensure tools are registered
+import lade.server.tools.review  # noqa: F401
+from lade.audit import AuditLog
+from lade.db import CaseDB, findings_t
+from lade.models import Finding
+from lade.server.app import _tool_dispatch_sync
 
 REFS = ["tc_aabbccdd", "tc_11223344"]
 
@@ -58,10 +58,10 @@ def ctx(tmp_path: Path) -> Iterator[Any]:
 
 def _call(ctx: Any, tool: str, **kwargs: Any) -> dict[str, Any]:
     with (
-        patch("mulder.server.tools.findings.get_ctx", return_value=ctx),
-        patch("mulder.server.tools.review.get_ctx", return_value=ctx),
-        patch("mulder.server.tools.core.get_ctx", return_value=ctx),
-        patch("mulder.server.helpers.has_ctx", return_value=False),
+        patch("lade.server.tools.findings.get_ctx", return_value=ctx),
+        patch("lade.server.tools.review.get_ctx", return_value=ctx),
+        patch("lade.server.tools.core.get_ctx", return_value=ctx),
+        patch("lade.server.helpers.has_ctx", return_value=False),
     ):
         return _tool_dispatch_sync[tool](**kwargs)  # type: ignore[no-any-return]
 

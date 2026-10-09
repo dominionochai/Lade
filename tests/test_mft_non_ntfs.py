@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-_MISC = "mulder.server.tools.extract.misc"
+_MISC = "lade.server.tools.extract.misc"
 
 
 @patch(f"{_MISC}.mount_disk_image")
@@ -19,7 +19,7 @@ def test_non_ntfs_is_skipped_before_icat_or_mount(
     mock_run: MagicMock,
     mock_mount: MagicMock,
 ) -> None:
-    from mulder.server.tools.extract.misc import run_mft_parser
+    from lade.server.tools.extract.misc import run_mft_parser
 
     result = run_mft_parser.__wrapped__("/fake/rm1.E01")  # type: ignore[attr-defined]
 
@@ -44,7 +44,7 @@ def test_unknown_filesystem_still_attempts_extraction(
     mock_req: MagicMock,
     mock_mount: MagicMock,
 ) -> None:
-    from mulder.server.tools.extract.misc import run_mft_parser
+    from lade.server.tools.extract.misc import run_mft_parser
 
     result = run_mft_parser.__wrapped__("/fake/disk.E01")  # type: ignore[attr-defined]
 

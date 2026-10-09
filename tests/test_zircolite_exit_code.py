@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.server.tools.zircolite import run_zircolite
+from lade.server.tools.zircolite import run_zircolite
 
 
 @pytest.fixture
@@ -34,17 +34,17 @@ def evidence(tmp_path: Path) -> dict[str, Path]:
 def _invoke(evidence: dict[str, Path], proc: subprocess.CompletedProcess[str]) -> Any:
     """Run ``run_zircolite`` with Zircolite itself replaced by *proc*."""
     with (
-        patch("mulder.server.tools.zircolite.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.zircolite.sources_already_indexed", return_value=[]),
         patch(
-            "mulder.server.tools.zircolite.importlib.util.find_spec",
+            "lade.server.tools.zircolite.importlib.util.find_spec",
             return_value=MagicMock(),
         ),
         patch(
-            "mulder.server.tools.zircolite._zircolite_script",
+            "lade.server.tools.zircolite._zircolite_script",
             return_value=evidence["script"],
         ),
-        patch("mulder.server.tools.zircolite.subprocess.run", return_value=proc),
-        patch("mulder.server.tools.zircolite.extract_and_index", return_value={}),
+        patch("lade.server.tools.zircolite.subprocess.run", return_value=proc),
+        patch("lade.server.tools.zircolite.extract_and_index", return_value={}),
     ):
         return run_zircolite.__wrapped__(  # type: ignore[attr-defined]
             str(evidence["events"]),
@@ -132,17 +132,17 @@ def test_partial_results_are_kept_when_zircolite_exits_non_zero(
         )
 
     with (
-        patch("mulder.server.tools.zircolite.sources_already_indexed", return_value=[]),
+        patch("lade.server.tools.zircolite.sources_already_indexed", return_value=[]),
         patch(
-            "mulder.server.tools.zircolite.importlib.util.find_spec",
+            "lade.server.tools.zircolite.importlib.util.find_spec",
             return_value=MagicMock(),
         ),
         patch(
-            "mulder.server.tools.zircolite._zircolite_script",
+            "lade.server.tools.zircolite._zircolite_script",
             return_value=evidence["script"],
         ),
-        patch("mulder.server.tools.zircolite.subprocess.run", side_effect=_write_results),
-        patch("mulder.server.tools.zircolite.extract_and_index", return_value={}),
+        patch("lade.server.tools.zircolite.subprocess.run", side_effect=_write_results),
+        patch("lade.server.tools.zircolite.extract_and_index", return_value={}),
     ):
         result = run_zircolite.__wrapped__(  # type: ignore[attr-defined]
             str(evidence["events"]),

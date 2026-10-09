@@ -30,7 +30,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.db import CaseDB
+from lade.db import CaseDB
 
 
 def _writer_threads() -> list[threading.Thread]:
@@ -49,7 +49,7 @@ def case_dir(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def initialised(case_dir: Path) -> Path:
-    from mulder.server.app import init_server
+    from lade.server.app import init_server
 
     init_server(db_dir=case_dir)
     return case_dir
@@ -61,7 +61,7 @@ def _boom(self: CaseDB) -> None:
 
 class TestListCases:
     def test_a_failing_case_does_not_leak_a_writer_thread(self, initialised: Path) -> None:
-        from mulder.server.tools.case import list_cases
+        from lade.server.tools.case import list_cases
 
         before = len(_writer_threads())
         with patch.object(CaseDB, "get_case_metadata", _boom):
@@ -76,7 +76,7 @@ class TestListCases:
         assert all("error" in c for c in cases)
 
     def test_the_healthy_path_still_reports_the_cases(self, initialised: Path) -> None:
-        from mulder.server.tools.case import list_cases
+        from lade.server.tools.case import list_cases
 
         before = len(_writer_threads())
         result = list_cases.__wrapped__()  # type: ignore[attr-defined]
@@ -89,7 +89,7 @@ class TestListCases:
 
     def test_the_leak_scales_with_the_number_of_cases(self, initialised: Path) -> None:
         """Two calls over three cases would have leaked six threads."""
-        from mulder.server.tools.case import list_cases
+        from lade.server.tools.case import list_cases
 
         before = len(_writer_threads())
         with patch.object(CaseDB, "get_case_metadata", _boom):
@@ -102,7 +102,7 @@ class TestListCases:
 class TestOpenExistingCase:
     def test_a_failing_query_does_not_leak(self, case_dir: Path) -> None:
         """app.py had the same shape: opened, queried, closed in one try."""
-        from mulder.server.app import _try_open_existing
+        from lade.server.app import _try_open_existing
 
         before = len(_writer_threads())
         with patch.object(CaseDB, "get_case_metadata", _boom):
@@ -114,7 +114,7 @@ class TestOpenExistingCase:
 
     def test_a_missing_database_is_unaffected(self, case_dir: Path) -> None:
         """CaseDB.open itself raised, so there is nothing to close."""
-        from mulder.server.app import _try_open_existing
+        from lade.server.app import _try_open_existing
 
         before = len(_writer_threads())
         result = _try_open_existing("no-such-case", str(case_dir / "ev"), False, case_dir)

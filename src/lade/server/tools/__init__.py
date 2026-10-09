@@ -1,6 +1,6 @@
 """MCP tool modules. Importing this package registers all tools."""
 
-from mulder.server.tools import (  # noqa: F401  # noqa: F401
+from lade.server.tools import (  # noqa: F401  # noqa: F401
     artifacts,
     attack,
     binary,

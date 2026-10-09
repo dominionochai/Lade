@@ -22,10 +22,10 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from mulder.assets.paths import asset_display_path, register_cache_clear
-from mulder.server.app import get_ctx, mcp
-from mulder.server.extract_helpers import extract_and_index
-from mulder.server.helpers import (
+from lade.assets.paths import asset_display_path, register_cache_clear
+from lade.server.app import get_ctx, mcp
+from lade.server.extract_helpers import extract_and_index
+from lade.server.helpers import (
     error_response,
     interpreter_candidates,
     make_tool_call_id,
@@ -33,7 +33,7 @@ from mulder.server.helpers import (
     require_binary,
     tool_response,
 )
-from mulder.server.tool_access import Role, tool_access
+from lade.server.tool_access import Role, tool_access
 
 logger = logging.getLogger(__name__)
 
@@ -347,7 +347,7 @@ def parse_android_artifacts(
     search_dir = target
 
     if target.is_file() and target.suffix.lower() in (".bin", ".raw", ".dd", ".img"):
-        cleanup_tmpdir = tempfile.mkdtemp(prefix="mulder_android_carve_")
+        cleanup_tmpdir = tempfile.mkdtemp(prefix="lade_android_carve_")
         databases = _carve_sqlite_databases(str(target), cleanup_tmpdir)
         if not databases:
             elapsed = (time.monotonic() - t0) * 1000
@@ -572,7 +572,7 @@ def parse_ios_artifacts(
     all_results: list[str] = []
     parsed_types: list[str] = []
 
-    with tempfile.TemporaryDirectory(prefix="mulder_ios_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_ios_") as tmpdir:
         for atype in types_to_parse:
             spec = _IOS_MANIFEST_ARTIFACTS[atype]
 
@@ -885,12 +885,12 @@ _ILEAPP_TIMEOUT = 1800
 
 
 def _aleapp_script() -> str:
-    """ALEAPP's entry point, or where ``mulder setup --full`` would clone it."""
+    """ALEAPP's entry point, or where ``lade setup --full`` would clone it."""
     return str(asset_display_path("aleapp", "aleapp.py"))
 
 
 def _ileapp_script() -> str:
-    """iLEAPP's entry point, or where ``mulder setup --full`` would clone it."""
+    """iLEAPP's entry point, or where ``lade setup --full`` would clone it."""
     return str(asset_display_path("ileapp", "ileapp.py"))
 
 
@@ -909,10 +909,10 @@ _LEAPP_INPUT_TYPE_FLAGS: dict[str, str] = {
 def _find_leapp_cmd(script: str, console_name: str) -> list[str] | None:
     """Locate a runnable LEAPP command, most-likely-correct interpreter first.
 
-    ALEAPP/iLEAPP dependencies are *not* mulder dependencies and cannot be
+    ALEAPP/iLEAPP dependencies are *not* lade dependencies and cannot be
     shipped as an extra (their requirements.txt files carry a git URL, local
     wheel paths, and mutually conflicting pins).  They may therefore live in
-    mulder's own venv, in the system interpreter, or nowhere at all — so probe
+    lade's own venv, in the system interpreter, or nowhere at all — so probe
     instead of assuming, and fall back to a packaged console script.
 
     Memoized: ALEAPP imports its whole plugin tree at module scope, so each
@@ -1187,7 +1187,7 @@ def run_aleapp(
             params,
             f"ALEAPP not found: {aleapp_script}",
             error_type="binary_missing",
-            suggestion="Run 'mulder setup --full' (clones ALEAPP).",
+            suggestion="Run 'lade setup --full' (clones ALEAPP).",
         )
 
     if not Path(extraction_path).exists():
@@ -1220,15 +1220,15 @@ def run_aleapp(
             ),
             error_type="binary_missing",
             suggestion=(
-                "Run 'mulder setup --full' to clone ALEAPP, then "
-                "'mulder setup --full --inject-deps' to install its requirements "
-                f"(equivalently: pipx inject mulder-dfir --requirements "
+                "Run 'lade setup --full' to clone ALEAPP, then "
+                "'lade setup --full --inject-deps' to install its requirements "
+                f"(equivalently: pipx inject lade-dfir --requirements "
                 f"{Path(aleapp_script).parent / 'requirements.txt'}). "
-                "ALEAPP's dependencies are NOT covered by the mulder-dfir[forensics] extra."
+                "ALEAPP's dependencies are NOT covered by the lade-dfir[forensics] extra."
             ),
         )
 
-    with tempfile.TemporaryDirectory(prefix="mulder_aleapp_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_aleapp_") as tmpdir:
         output_dir = Path(tmpdir)
         cmd = [
             *aleapp_cmd,
@@ -1356,7 +1356,7 @@ def run_ileapp(
             params,
             f"iLEAPP not found: {ileapp_script}",
             error_type="binary_missing",
-            suggestion="Run 'mulder setup --full' (clones iLEAPP).",
+            suggestion="Run 'lade setup --full' (clones iLEAPP).",
         )
 
     if not Path(extraction_path).exists():
@@ -1389,15 +1389,15 @@ def run_ileapp(
             ),
             error_type="binary_missing",
             suggestion=(
-                "Run 'mulder setup --full' to clone iLEAPP, then "
-                "'mulder setup --full --inject-deps' to install its requirements "
-                f"(equivalently: pipx inject mulder-dfir --requirements "
+                "Run 'lade setup --full' to clone iLEAPP, then "
+                "'lade setup --full --inject-deps' to install its requirements "
+                f"(equivalently: pipx inject lade-dfir --requirements "
                 f"{Path(ileapp_script).parent / 'requirements.txt'}). "
-                "iLEAPP's dependencies are NOT covered by the mulder-dfir[forensics] extra."
+                "iLEAPP's dependencies are NOT covered by the lade-dfir[forensics] extra."
             ),
         )
 
-    with tempfile.TemporaryDirectory(prefix="mulder_ileapp_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="lade_ileapp_") as tmpdir:
         output_dir = Path(tmpdir)
         cmd = [
             *ileapp_cmd,

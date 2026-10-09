@@ -6,10 +6,10 @@ import time
 from collections import deque
 from typing import Any
 
-from mulder.models import WindowRow
-from mulder.patterns import IP_RE, SUSPICIOUS_PATHS
-from mulder.server.app import get_ctx, mcp
-from mulder.server.helpers import (
+from lade.models import WindowRow
+from lade.patterns import IP_RE, SUSPICIOUS_PATHS
+from lade.server.app import get_ctx, mcp
+from lade.server.helpers import (
     _HINT_CHAR_LIMIT,
     _PREVIEW_CHAR_LIMIT,
     extract_module_names,
@@ -18,8 +18,8 @@ from mulder.server.helpers import (
     make_tool_call_id,
     slim_window,
 )
-from mulder.server.tool_access import Role, tool_access
-from mulder.server.tools.composite.core import (
+from lade.server.tool_access import Role, tool_access
+from lade.server.tools.composite.core import (
     _PORT_RE,
     _SRC_CMDLINE,
     _SRC_DLLLIST,

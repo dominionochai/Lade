@@ -11,9 +11,9 @@ from claude_agent_sdk import ClaudeAgentOptions
 from claude_agent_sdk.types import AssistantMessage, TextBlock
 from click.testing import CliRunner
 
-from mulder.cli import cli
-from mulder.orchestrator.runner import Orchestrator
-from mulder.orchestrator.types import EffortLevel
+from lade.cli import cli
+from lade.orchestrator.runner import Orchestrator
+from lade.orchestrator.types import EffortLevel
 
 
 @pytest.mark.parametrize("no_thinking", [False, True])
@@ -30,7 +30,7 @@ async def test_thinking_options_reach_both_queries(
         options_seen.append(options)
         yield AssistantMessage(content=[TextBlock(text='{"ok": true}')], model="test")
 
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         orchestrator = Orchestrator(
             evidence_path="/evidence",
             cwd=tmp_path,
@@ -38,7 +38,7 @@ async def test_thinking_options_reach_both_queries(
             effort=effort,
             no_thinking=no_thinking,
         )
-    with patch("mulder.orchestrator.session.query", capture_query):
+    with patch("lade.orchestrator.session.query", capture_query):
         await orchestrator._session.execute(
             system_prompt="test",
             prompt="test",
@@ -64,7 +64,7 @@ async def test_thinking_options_reach_both_queries(
 @pytest.mark.parametrize("no_thinking", [False, True])
 def test_cli_thinking_option(tmp_path: Path, no_thinking: bool) -> None:
     with (
-        patch("mulder.orchestrator.runner.Orchestrator") as orchestrator,
+        patch("lade.orchestrator.runner.Orchestrator") as orchestrator,
         patch("asyncio.run", return_value=MagicMock(success=True)),
     ):
         result = CliRunner().invoke(

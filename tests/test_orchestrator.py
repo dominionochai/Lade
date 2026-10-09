@@ -1,4 +1,4 @@
-"""Tests for mulder.orchestrator.runner -- orchestrator core logic."""
+"""Tests for lade.orchestrator.runner -- orchestrator core logic."""
 
 from __future__ import annotations
 
@@ -9,20 +9,20 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.orchestrator.gates import (
+from lade.orchestrator.gates import (
     GateResult,
     validate_cross_system,
     validate_extraction,
     validate_narrative,
 )
-from mulder.orchestrator.models import ModelConfig
-from mulder.orchestrator.runner import Orchestrator
-from mulder.orchestrator.types import PhaseResult
+from lade.orchestrator.models import ModelConfig
+from lade.orchestrator.runner import Orchestrator
+from lade.orchestrator.types import PhaseResult
 
 
 def _make_orchestrator(**kwargs: object) -> Orchestrator:
     """Create an Orchestrator with a mocked dashboard."""
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         if "evidence_path" not in kwargs:
             kwargs["evidence_path"] = "/evidence"
         return Orchestrator(**kwargs)  # type: ignore[arg-type]
@@ -70,7 +70,7 @@ class TestSplitPhaseHappyPath:
                 turns_used=3,
             )
 
-        from mulder.orchestrator.phases import EXTRACTION
+        from lade.orchestrator.phases import EXTRACTION
 
         with patch.object(orch._session, "execute", side_effect=mock_execute_query):
             plan = await orch._roles.run_planner(
@@ -100,7 +100,7 @@ class TestSplitPhaseHappyPath:
                 turns_used=2,
             )
 
-        from mulder.orchestrator.phases import EXTRACTION
+        from lade.orchestrator.phases import EXTRACTION
 
         with patch.object(orch._session, "execute", side_effect=mock_execute_query):
             plan = await orch._roles.run_planner(
@@ -123,8 +123,8 @@ class TestFollowUpCapping:
         orch = _make_orchestrator()
         orch._case_id = "test-case"
 
-        from mulder.orchestrator.phases import CROSS_SYSTEM
-        from mulder.orchestrator.types import AnalystResult, ExecutionResults, Plan
+        from lade.orchestrator.phases import CROSS_SYSTEM
+        from lade.orchestrator.types import AnalystResult, ExecutionResults, Plan
 
         planner_call_count = 0
 
@@ -210,7 +210,7 @@ class TestSinglePhaseGate:
 
         gate = GateResult(passed=True, phase_name="catalog")
 
-        from mulder.orchestrator.phases import CATALOG
+        from lade.orchestrator.phases import CATALOG
 
         with (
             patch.object(orch._session, "execute", side_effect=mock_execute_query),
@@ -242,7 +242,7 @@ class TestSinglePhaseGate:
 
         fail_gate = GateResult(passed=False, phase_name="catalog", gaps=["No case created"])
 
-        from mulder.orchestrator.phases import CATALOG
+        from lade.orchestrator.phases import CATALOG
 
         with (
             patch.object(orch._session, "execute", side_effect=mock_execute_query),
@@ -312,8 +312,8 @@ class TestGateAfterAnalyst:
         orch = _make_orchestrator()
         orch._case_id = "test-case"
 
-        from mulder.orchestrator.phases import EXTRACTION
-        from mulder.orchestrator.types import AnalystResult, ExecutionResults, Plan
+        from lade.orchestrator.phases import EXTRACTION
+        from lade.orchestrator.types import AnalystResult, ExecutionResults, Plan
 
         gate_calls: list[str] = []
 
@@ -386,7 +386,7 @@ class TestRollingExtractionPool:
         orch = _make_orchestrator(parallel_extractions=2)
         orch._case_id = "test-case"
 
-        from mulder.orchestrator.types import InvestigationResult
+        from lade.orchestrator.types import InvestigationResult
 
         max_concurrent = 0
         current_concurrent = 0
@@ -422,7 +422,7 @@ class TestRollingExtractionPool:
         orch = _make_orchestrator(parallel_extractions=3)
         orch._case_id = "test-case"
 
-        from mulder.orchestrator.types import InvestigationResult
+        from lade.orchestrator.types import InvestigationResult
 
         async def mock_split_phase(
             phase: object,
@@ -451,7 +451,7 @@ class TestRollingExtractionPool:
         orch = _make_orchestrator(parallel_extractions=2)
         orch._case_id = "test-case"
 
-        from mulder.orchestrator.types import InvestigationResult
+        from lade.orchestrator.types import InvestigationResult
 
         processed: list[str] = []
 
@@ -480,7 +480,7 @@ class TestRollingExtractionPool:
         orch = _make_orchestrator(parallel_extractions=2)
         orch._case_id = "test-case"
 
-        from mulder.orchestrator.types import InvestigationResult
+        from lade.orchestrator.types import InvestigationResult
 
         counter_snapshots: list[tuple[int, int, int]] = []
 
@@ -531,7 +531,7 @@ class TestBuildEvidenceContext:
         assert "unrelated.txt" not in ctx
 
     def test_finds_extracted_memory(self, tmp_path: Path) -> None:
-        """Extracted memory dumps in ~/.mulder/cases/extracted/ are listed."""
+        """Extracted memory dumps in ~/.lade/cases/extracted/ are listed."""
         evidence = tmp_path / "evidence"
         evidence.mkdir()
 
@@ -542,9 +542,9 @@ class TestBuildEvidenceContext:
         orch = _make_orchestrator(evidence_path=str(evidence))
         with patch("pathlib.Path.home", return_value=tmp_path / "fakehome"):
             # Set up the expected path structure
-            mulder_extracted = tmp_path / "fakehome" / ".mulder" / "cases" / "extracted"
-            mulder_extracted.mkdir(parents=True)
-            mem_dir = mulder_extracted / "host-a-memory"
+            lade_extracted = tmp_path / "fakehome" / ".lade" / "cases" / "extracted"
+            lade_extracted.mkdir(parents=True)
+            mem_dir = lade_extracted / "host-a-memory"
             mem_dir.mkdir()
             (mem_dir / "host-a-memory.img").write_text("memory")
 
@@ -586,7 +586,7 @@ class TestExtractionPoolPassesEvidenceContext:
         orch = _make_orchestrator(parallel_extractions=1)
         orch._case_id = "test-case"
 
-        from mulder.orchestrator.types import InvestigationResult
+        from lade.orchestrator.types import InvestigationResult
 
         captured_vars: list[dict[str, str]] = []
 

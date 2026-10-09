@@ -9,11 +9,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from mulder.audit import AuditLog
-from mulder.db import CaseDB
-from mulder.models import Finding
-from mulder.server.app import _tool_dispatch_sync
-from mulder.server.tools.findings import _consolidate_group
+from lade.audit import AuditLog
+from lade.db import CaseDB
+from lade.models import Finding
+from lade.server.app import _tool_dispatch_sync
+from lade.server.tools.findings import _consolidate_group
 
 
 def _finding(fid: str, **overrides: Any) -> Finding:
@@ -91,8 +91,8 @@ def _dedup(case_db: CaseDB, audit_path: Path, **kwargs: object) -> dict[str, Any
     ctx.audit = AuditLog(audit_path)
     fn = _tool_dispatch_sync["deduplicate_findings"]
     with (
-        patch("mulder.server.tools.findings.get_ctx", return_value=ctx),
-        patch("mulder.server.helpers.has_ctx", return_value=False),
+        patch("lade.server.tools.findings.get_ctx", return_value=ctx),
+        patch("lade.server.helpers.has_ctx", return_value=False),
     ):
         return fn(case_id="test-case", **kwargs)  # type: ignore[no-any-return]
 

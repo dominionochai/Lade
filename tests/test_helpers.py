@@ -1,4 +1,4 @@
-"""Tests for mulder.server.helpers -- pure utility functions."""
+"""Tests for lade.server.helpers -- pure utility functions."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ import hashlib
 import json
 import re
 
-from mulder.models import WindowRow
-from mulder.server.helpers import (
+from lade.models import WindowRow
+from lade.server.helpers import (
     extract_module_names,
     extract_pid,
     hash_output,

@@ -24,7 +24,7 @@ rather than because it failed to parse at all.
 
 from __future__ import annotations
 
-from mulder.server.tools.binary import _assess_timestamp, _compute_verdict
+from lade.server.tools.binary import _assess_timestamp, _compute_verdict
 
 
 class TestRabin2FormatsTheTimestamp:

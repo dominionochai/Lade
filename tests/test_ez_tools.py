@@ -4,7 +4,7 @@ Three defects lived in four lines: ``rglob`` order is filesystem order (so the
 choice between ``net6/`` and ``net9/`` copies was nondeterministic), the
 runtime that can actually *run* the DLL was never consulted (a net9 DLL under
 net8 fails as "produced no CSV output", not as a version mismatch), and a
-single root meant mulder's downloads could shadow SIFT's version-matched copies.
+single root meant lade's downloads could shadow SIFT's version-matched copies.
 """
 
 from __future__ import annotations
@@ -15,8 +15,8 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.assets import paths
-from mulder.server.tools.extract.misc import _find_ez_tool
+from lade.assets import paths
+from lade.server.tools.extract.misc import _find_ez_tool
 
 
 @pytest.fixture(autouse=True)
@@ -51,7 +51,7 @@ def test_selection_matrix(
     for relative in layout:
         _place(asset_root, "zimmermantools", *relative.split("/"))
 
-    with patch("mulder.server.tools.extract.misc._dotnet_major", return_value=installed_dotnet):
+    with patch("lade.server.tools.extract.misc._dotnet_major", return_value=installed_dotnet):
         selected = _find_ez_tool("PECmd.dll")
 
     assert selected == str(asset_root / "zimmermantools" / expected)
@@ -73,7 +73,7 @@ def test_selection_is_stable_against_filesystem_ordering(asset_root: Path) -> No
     results = []
     for reverse in (False, True):
         with (
-            patch("mulder.server.tools.extract.misc._dotnet_major", return_value=9),
+            patch("lade.server.tools.extract.misc._dotnet_major", return_value=9),
             patch.object(Path, "rglob", _make_shuffled(reverse)),
         ):
             _find_ez_tool.cache_clear()

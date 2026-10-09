@@ -9,7 +9,7 @@ are internal to the orchestrator and never serialized to the MCP wire
 or stored in the database. Pydantic validation overhead is unnecessary
 for in-process data transfer between planner, executor, and analyst.
 
-For types that cross the wire or persist to disk, see mulder.models.
+For types that cross the wire or persist to disk, see lade.models.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ EffortLevel = Literal["low", "medium", "high", "xhigh", "max"]
 """Effort levels accepted by ``ClaudeAgentOptions``.
 
 Mirrors the SDK's own literal union so the value survives the trip from
-``click.Choice`` through :class:`~mulder.orchestrator.runner.Orchestrator` into
+``click.Choice`` through :class:`~lade.orchestrator.runner.Orchestrator` into
 the SDK without a type error.
 """
 

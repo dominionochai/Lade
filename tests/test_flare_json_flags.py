@@ -28,7 +28,7 @@ from unittest.mock import patch
 
 import pytest
 
-from mulder.server.tools.binary import run_capa, run_floss
+from lade.server.tools.binary import run_capa, run_floss
 
 # The exact `choices` tuples argparse is built with in each pinned release.
 _CAPA_FORMAT_CHOICES = {
@@ -65,9 +65,9 @@ def _capture(tool: Any, sample: Path, **kwargs: Any) -> list[str]:
         return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="{}", stderr="")
 
     with (
-        patch("mulder.server.tools.binary.require_binary", return_value="/usr/bin/tool"),
-        patch("mulder.server.tools.binary.subprocess.run", side_effect=_record),
-        patch("mulder.server.tools.binary.extract_and_index", return_value={}),
+        patch("lade.server.tools.binary.require_binary", return_value="/usr/bin/tool"),
+        patch("lade.server.tools.binary.subprocess.run", side_effect=_record),
+        patch("lade.server.tools.binary.extract_and_index", return_value={}),
     ):
         tool.__wrapped__("case-1", str(sample), **kwargs)
 

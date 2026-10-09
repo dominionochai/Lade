@@ -3,7 +3,7 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mulder-dfir"
+name = "lade-dfir"
 dynamic = ["version"]
 description = "Autonomous digital-forensics investigation orchestrator and MCP server for the SANS SIFT Workstation"
 readme = "README.md"
@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [
-    { name = "Caleb Evans" },
+    { name = "dominionochai" },
 ]
 keywords = [
     "forensics",
@@ -67,15 +67,15 @@ stix = ["stix2>=3.0"]
 # Zircolite's runtime dependencies. Verified against
 # https://github.com/wagga40/Zircolite/blob/2.20.0/requirements.txt (the four
 # required entries) plus `evtx`, which Zircolite imports optionally and which
-# mulder needs for the "evtx" input format exposed in zircolite.py:_FORMAT_FLAGS.
+# lade needs for the "evtx" input format exposed in zircolite.py:_FORMAT_FLAGS.
 # NOT included: aiohttp / urllib3 / requests / elasticsearch (remote forwarding),
-# lxml (XML input), pysigma* (rule compilation) - mulder uses none of those paths.
+# lxml (XML input), pysigma* (rule compilation) - lade uses none of those paths.
 # jinja2 and pyyaml, which Zircolite also imports optionally, are already
-# mulder dependencies above.
+# lade dependencies above.
 # NOT covered by this extra: ALEAPP and iLEAPP. Their upstream requirements.txt
 # files carry a git URL, local wheel paths and mutually conflicting pins, so they
 # cannot be expressed as a PyPI extra; install them with
-# `mulder setup --full --inject-deps`.
+# `lade setup --full --inject-deps`.
 forensics = [
     "orjson>=3.9.15",
     "xxhash>=3.0",
@@ -96,24 +96,24 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/calebevans/mulder"
-Source = "https://github.com/calebevans/mulder"
-Documentation = "https://github.com/calebevans/mulder/blob/main/docs/usage-guide.md"
-Issues = "https://github.com/calebevans/mulder/issues"
-Changelog = "https://github.com/calebevans/mulder/releases"
-"Example report" = "https://calebevans.github.io/mulder/examples/srl-2018/SRL-2018.report.html"
+Homepage = "https://github.com/dominionochai/Lade"
+Source = "https://github.com/dominionochai/Lade"
+Documentation = "https://github.com/dominionochai/Lade/blob/main/docs/usage-guide.md"
+Issues = "https://github.com/dominionochai/Lade/issues"
+Changelog = "https://github.com/dominionochai/Lade/releases"
+"Example report" = "https://dominionochai.github.io/Lade/examples/srl-2018/SRL-2018.report.html"
 
 [project.scripts]
-mulder = "mulder.cli:cli"
+lade = "lade.cli:cli"
 # `uvx <name>` runs the console script matching the *package* name, so the alias
-# makes `uvx mulder-dfir serve` work without `--from`.
-mulder-dfir = "mulder.cli:cli"
+# makes `uvx lade-dfir serve` work without `--from`.
+lade-dfir = "lade.cli:cli"
 
 [tool.hatch.version]
-path = "src/mulder/__init__.py"
+path = "src/lade/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/mulder"]
+packages = ["src/lade"]
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -174,9 +174,9 @@ ignore_missing_imports = true
 # the package keeps the explicit-re-export guarantee.
 [[tool.mypy.overrides]]
 module = [
-    "mulder.assets.install",
-    "mulder.assets.paths",
-    "mulder.doctor.probes",
+    "lade.assets.install",
+    "lade.assets.paths",
+    "lade.doctor.probes",
 ]
 implicit_reexport = true
 

@@ -11,13 +11,13 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-import mulder.server.tools.findings  # noqa: F401 ensure tools are registered
-import mulder.server.tools.review  # noqa: F401
-from mulder.audit import AuditLog
-from mulder.db import CaseDB
-from mulder.models import AuditSummary, CaseMetadataRow, Finding, SourceRow
-from mulder.server.app import _tool_dispatch_sync
-from mulder.server.tools.findings import _evaluate_finalize_gates
+import lade.server.tools.findings  # noqa: F401 ensure tools are registered
+import lade.server.tools.review  # noqa: F401
+from lade.audit import AuditLog
+from lade.db import CaseDB
+from lade.models import AuditSummary, CaseMetadataRow, Finding, SourceRow
+from lade.server.app import _tool_dispatch_sync
+from lade.server.tools.findings import _evaluate_finalize_gates
 
 
 def _make_finding(
@@ -423,7 +423,7 @@ class TestCheckFinalizeReadiness:
         )
         fn = _tool_dispatch_sync["check_finalize_readiness"]
         try:
-            with patch("mulder.server.tools.review.get_ctx", return_value=ctx):
+            with patch("lade.server.tools.review.get_ctx", return_value=ctx):
                 result = fn()
             assert result["ready_to_finalize"] is True
             assert result["status"] == "success"
@@ -434,7 +434,7 @@ class TestCheckFinalizeReadiness:
         ctx, db = _mock_ctx(tmp_path, findings=[], narrative=None, sources=[], audit_tool_calls=[])
         fn = _tool_dispatch_sync["check_finalize_readiness"]
         try:
-            with patch("mulder.server.tools.review.get_ctx", return_value=ctx):
+            with patch("lade.server.tools.review.get_ctx", return_value=ctx):
                 result = fn()
             assert result["ready_to_finalize"] is False
             gates = result["gates"]
@@ -452,7 +452,7 @@ class TestTrackProgress:
         ctx, db = _mock_ctx(tmp_path)
         fn = _tool_dispatch_sync["track_progress"]
         try:
-            with patch("mulder.server.tools.review.get_ctx", return_value=ctx):
+            with patch("lade.server.tools.review.get_ctx", return_value=ctx):
                 result = fn(
                     system_name="memory",
                     tools_completed=["run_volatility"],
@@ -477,7 +477,7 @@ class TestTrackProgress:
         ctx, db = _mock_ctx(tmp_path)
         fn = _tool_dispatch_sync["track_progress"]
         try:
-            with patch("mulder.server.tools.review.get_ctx", return_value=ctx):
+            with patch("lade.server.tools.review.get_ctx", return_value=ctx):
                 fn("memory", ["run_volatility"], ["Q1"])
                 result = fn("disk", ["run_fls"], ["Q2", "Q3"])
 
@@ -495,7 +495,7 @@ class TestGetInvestigationSummaryEnrichment:
         ctx, db = _mock_ctx(tmp_path, findings=[], narrative=None, sources=[], audit_tool_calls=[])
         fn = _tool_dispatch_sync["get_investigation_summary"]
         try:
-            with patch("mulder.server.tools.review.get_ctx", return_value=ctx):
+            with patch("lade.server.tools.review.get_ctx", return_value=ctx):
                 result = fn()
             assert result["ready_to_finalize"] is False
             assert isinstance(result["finalize_blockers"], list)
@@ -522,7 +522,7 @@ class TestGetInvestigationSummaryEnrichment:
         )
         fn = _tool_dispatch_sync["get_investigation_summary"]
         try:
-            with patch("mulder.server.tools.review.get_ctx", return_value=ctx):
+            with patch("lade.server.tools.review.get_ctx", return_value=ctx):
                 result = fn()
             assert result["ready_to_finalize"] is True
             assert result["finalize_blockers"] == "none"
@@ -542,7 +542,7 @@ class TestGetInvestigationSummaryEnrichment:
         )
         fn = _tool_dispatch_sync["get_investigation_summary"]
         try:
-            with patch("mulder.server.tools.review.get_ctx", return_value=ctx):
+            with patch("lade.server.tools.review.get_ctx", return_value=ctx):
                 result = fn()
             remaining = result["remaining_work"]
             assert isinstance(remaining, list)
@@ -555,7 +555,7 @@ class TestGetInvestigationSummaryEnrichment:
         ctx, db = _mock_ctx(tmp_path, findings=findings, narrative="Report.", audit_tool_calls=[])
         fn = _tool_dispatch_sync["get_investigation_summary"]
         try:
-            with patch("mulder.server.tools.review.get_ctx", return_value=ctx):
+            with patch("lade.server.tools.review.get_ctx", return_value=ctx):
                 result = fn()
             remaining = result["remaining_work"]
             assert isinstance(remaining, list)
@@ -582,8 +582,8 @@ class TestFinalizeReportGateBlocking:
         fn = _tool_dispatch_sync["finalize_report"]
         try:
             with (
-                patch("mulder.server.tools.findings.get_ctx", return_value=ctx),
-                patch("mulder.server.tools.findings.get_job_store", side_effect=RuntimeError),
+                patch("lade.server.tools.findings.get_ctx", return_value=ctx),
+                patch("lade.server.tools.findings.get_job_store", side_effect=RuntimeError),
             ):
                 result = fn()
             assert result["status"] == "blocked"
@@ -611,8 +611,8 @@ class TestFinalizeReportGateBlocking:
         fn = _tool_dispatch_sync["finalize_report"]
         try:
             with (
-                patch("mulder.server.tools.findings.get_ctx", return_value=ctx),
-                patch("mulder.server.tools.findings.get_job_store", side_effect=RuntimeError),
+                patch("lade.server.tools.findings.get_ctx", return_value=ctx),
+                patch("lade.server.tools.findings.get_job_store", side_effect=RuntimeError),
             ):
                 result = fn()
             assert result["status"] == "blocked"
@@ -637,8 +637,8 @@ class TestFinalizeReportGateBlocking:
         fn = _tool_dispatch_sync["finalize_report"]
         try:
             with (
-                patch("mulder.server.tools.findings.get_ctx", return_value=ctx),
-                patch("mulder.server.tools.findings.get_job_store", side_effect=RuntimeError),
+                patch("lade.server.tools.findings.get_ctx", return_value=ctx),
+                patch("lade.server.tools.findings.get_job_store", side_effect=RuntimeError),
             ):
                 result = fn()
             assert result["status"] == "blocked"
@@ -666,8 +666,8 @@ class TestFinalizeReportGateBlocking:
         fn = _tool_dispatch_sync["finalize_report"]
         try:
             with (
-                patch("mulder.server.tools.findings.get_ctx", return_value=ctx),
-                patch("mulder.server.tools.findings.get_job_store", side_effect=RuntimeError),
+                patch("lade.server.tools.findings.get_ctx", return_value=ctx),
+                patch("lade.server.tools.findings.get_job_store", side_effect=RuntimeError),
             ):
                 result = fn()
             assert result["status"] == "blocked"

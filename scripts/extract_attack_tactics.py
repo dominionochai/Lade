@@ -2,7 +2,7 @@
 """Extract a compact technique-to-tactic mapping from MITRE ATT&CK STIX bundles.
 
 Reads the Enterprise and ICS ATT&CK STIX bundles (provisioned by
-``mulder setup`` under the mulder asset root, and baked into the container
+``lade setup`` under the lade asset root, and baked into the container
 image) and writes a single JSON lookup file suitable for shipping as Python
 package data.
 
@@ -30,11 +30,11 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from mulder.assets.paths import asset_display_path
-except ImportError:  # run standalone, outside mulder's environment
+    from lade.assets.paths import asset_display_path
+except ImportError:  # run standalone, outside lade's environment
 
     def asset_display_path(*parts: str) -> Path:
-        """Fall back to the container layout when mulder is not importable."""
+        """Fall back to the container layout when lade is not importable."""
         return Path("/opt").joinpath(*parts)
 
 
@@ -51,7 +51,7 @@ _ICS_STIX_URL = (
 _OUTPUT_PATH = (
     Path(__file__).resolve().parent.parent
     / "src"
-    / "mulder"
+    / "lade"
     / "report"
     / "data"
     / "attack_tactics.json"

@@ -10,15 +10,15 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from mulder.orchestrator.phases import ALTERNATIVE_NARRATIVE, CROSS_SYSTEM, EXTRACTION, PhaseConfig
-from mulder.orchestrator.roles import _EXECUTOR_CONTROL_TOOLS, executor_tools_section
-from mulder.orchestrator.runner import Orchestrator
-from mulder.orchestrator.types import PhaseResult, Plan
-from mulder.server.tool_access import ALL_ROLES, get_tools_for_role
+from lade.orchestrator.phases import ALTERNATIVE_NARRATIVE, CROSS_SYSTEM, EXTRACTION, PhaseConfig
+from lade.orchestrator.roles import _EXECUTOR_CONTROL_TOOLS, executor_tools_section
+from lade.orchestrator.runner import Orchestrator
+from lade.orchestrator.types import PhaseResult, Plan
+from lade.server.tool_access import ALL_ROLES, get_tools_for_role
 
 SPLIT_PHASES = [EXTRACTION, CROSS_SYSTEM, ALTERNATIVE_NARRATIVE]
 
-REGISTERED = frozenset(t.removeprefix("mcp__mulder__") for t in get_tools_for_role(ALL_ROLES))
+REGISTERED = frozenset(t.removeprefix("mcp__lade__") for t in get_tools_for_role(ALL_ROLES))
 
 #: Tools the planner prompts tell the planner to call (or not call) itself
 #: while reading the case, as opposed to tools it puts in the plan.
@@ -56,7 +56,7 @@ def _advertised(phase: PhaseConfig) -> set[str]:
 
 @pytest.mark.parametrize("phase", SPLIT_PHASES, ids=lambda p: p.name)
 def test_planner_prompt_only_advertises_executor_tools(phase: PhaseConfig) -> None:
-    executor = {t.removeprefix("mcp__mulder__") for t in phase.executor_allowed_tools}
+    executor = {t.removeprefix("mcp__lade__") for t in phase.executor_allowed_tools}
     advertised = _advertised(phase)
     assert advertised, f"{phase.name}: prompt names no plannable tools; extractor broke?"
     assert advertised <= executor, (
@@ -72,12 +72,12 @@ def test_rendered_section_is_executor_allowlist_minus_control_tools(phase: Phase
     assert header.endswith("dropped from the plan") and phase.name in header
     rendered = listing.split(", ")
     expected = sorted(
-        t.removeprefix("mcp__mulder__")
+        t.removeprefix("mcp__lade__")
         for t in phase.executor_allowed_tools
         if t not in _EXECUTOR_CONTROL_TOOLS
     )
     assert rendered == expected
-    assert "mcp__mulder__" not in listing
+    assert "mcp__lade__" not in listing
     assert not {"open_case", "start_extraction_batch", "wait_all"} & set(rendered)
 
 
@@ -89,9 +89,9 @@ async def test_planner_prompt_renders_allowlist_without_prompt_edit(
     monkeypatch.setattr(
         phase,
         "executor_allowed_tools",
-        [*phase.executor_allowed_tools, "mcp__mulder__brand_new_tool"],
+        [*phase.executor_allowed_tools, "mcp__lade__brand_new_tool"],
     )
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         orch = Orchestrator("/evidence")
     execute = AsyncMock(return_value=PhaseResult(phase_name="x", messages=[PLAN]))
     with patch.object(orch._session, "execute", new=execute):
@@ -107,7 +107,7 @@ async def test_planner_prompt_renders_allowlist_without_prompt_edit(
 async def test_run_executor_drops_off_role_tasks_and_warns(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    with patch("mulder.orchestrator.runner.InvestigationDashboard"):
+    with patch("lade.orchestrator.runner.InvestigationDashboard"):
         orch = Orchestrator("/evidence")
     orch._case_id = "case"
     plan = Plan(
@@ -130,7 +130,7 @@ async def test_run_executor_drops_off_role_tasks_and_warns(
 
     with (
         patch.object(orch._session, "execute", side_effect=mock_execute),
-        caplog.at_level(logging.WARNING, logger="mulder.orchestrator.roles"),
+        caplog.at_level(logging.WARNING, logger="lade.orchestrator.roles"),
     ):
         await orch._roles.run_executor(ALTERNATIVE_NARRATIVE, plan)
 
@@ -140,8 +140,8 @@ async def test_run_executor_drops_off_role_tasks_and_warns(
     assert "run_mmls" not in prompt
     allowed = seen["allowed_tools"]
     assert isinstance(allowed, list)
-    assert "mcp__mulder__search" in allowed
-    assert "mcp__mulder__check_finalize_readiness" not in allowed
+    assert "mcp__lade__search" in allowed
+    assert "mcp__lade__check_finalize_readiness" not in allowed
     assert any(
         "check_finalize_readiness, run_mmls" in r.getMessage()
         and "alternative_narrative" in r.getMessage()

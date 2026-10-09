@@ -1,16 +1,16 @@
 # Architecture
 
-Mulder is a forensic investigation platform consisting of two core components: an MCP server that exposes 140+ typed forensic tools with no shell access, and an agentic orchestrator that runs multi-phase investigations with quality gates.
+Lade is a forensic investigation platform consisting of two core components: an MCP server that exposes 140+ typed forensic tools with no shell access, and an agentic orchestrator that runs multi-phase investigations with quality gates.
 
 ## System Overview
 
 <p align="center">
-<img src="images/diagram.png" alt="Mulder Architecture and Security Boundaries" width="420">
+<img src="images/diagram.png" alt="Lade Architecture and Security Boundaries" width="420">
 </p>
 
 ## MCP Server Architecture
 
-The MCP server (`mulder serve`) uses [`MCPServer`](https://github.com/modelcontextprotocol/python-sdk) (from the official MCP Python SDK) to expose forensic tools over the Model Context Protocol. It supports both `stdio` and `streamable-http` transports.
+The MCP server (`lade serve`) uses [`MCPServer`](https://github.com/modelcontextprotocol/python-sdk) (from the official MCP Python SDK) to expose forensic tools over the Model Context Protocol. It supports both `stdio` and `streamable-http` transports.
 
 ### Tool Categories
 
@@ -109,13 +109,13 @@ Cheap control and query tools are exempt from both the gate and the `CapacityLim
 
 ## Orchestration Pipeline
 
-The orchestrator (`mulder investigate`) runs five investigation phases sequentially. Most phases use a plan-and-execute pipeline (planner/executor/analyst) while catalog and report use single-agent sessions. The orchestrator uses the [Claude Agent SDK](https://platform.claude.com/docs/en/agents-and-tools/claude-code-sdk) (`claude-agent-sdk`) for managing agent sessions.
+The orchestrator (`lade investigate`) runs five investigation phases sequentially. Most phases use a plan-and-execute pipeline (planner/executor/analyst) while catalog and report use single-agent sessions. The orchestrator uses the [Claude Agent SDK](https://platform.claude.com/docs/en/agents-and-tools/claude-code-sdk) (`claude-agent-sdk`) for managing agent sessions.
 
-If a `MULDER.md` file exists in the evidence directory, its contents are loaded at startup and injected as an "INVESTIGATOR BRIEFING" preamble into the planner, analyst, and report prompts across all phases. This allows investigators to provide case background, known facts, and specific questions that guide the investigation without modifying any code.
+If a `LADE.md` file exists in the evidence directory, its contents are loaded at startup and injected as an "INVESTIGATOR BRIEFING" preamble into the planner, analyst, and report prompts across all phases. This allows investigators to provide case background, known facts, and specific questions that guide the investigation without modifying any code.
 
 ```mermaid
 flowchart TD
-    start["mulder investigate /evidence &lt;case_id&gt;"] --> catalog
+    start["lade investigate /evidence &lt;case_id&gt;"] --> catalog
     catalog["Phase 1: Catalog\n(Planner model, single agent)"]
     catalog --> catalogGate{"Catalog Gate\nCase created?"}
     catalogGate -->|"Pass"| identifySystems["Identify Systems\nfrom Catalog Output"]
@@ -176,7 +176,7 @@ Each phase is defined by a `PhaseConfig` dataclass specifying:
 - **Turn limit**: Maximum tool-use round trips per role session
 - **Follow-up limit**: Maximum planner/executor cycles the analyst can request before being capped
 - **Workers**: Configurable via `--workers` for concurrent extraction sessions
-- **Auto-compaction**: When context is exhausted mid-phase, the orchestrator restarts with a compact prompt that recovers state from the database. Continuations per role session are capped by `--max-compactions` / `MULDER_MAX_COMPACTIONS` (default 3; `0` disables)
+- **Auto-compaction**: When context is exhausted mid-phase, the orchestrator restarts with a compact prompt that recovers state from the database. Continuations per role session are capped by `--max-compactions` / `LADE_MAX_COMPACTIONS` (default 3; `0` disables)
 - **Retry policy**: Maximum retries per phase; turn limits stay unchanged on retry
 
 ### Planner Output Validation
@@ -232,7 +232,7 @@ When a gate fails, the orchestrator retries the phase with:
 
 ## Tool Access Control
 
-Tools self-declare which pipeline roles may invoke them via the `@tool_access` decorator (`src/mulder/server/tool_access.py`). At import time, `phases.py` calls `get_tools_for_role(Role.EXTRACT_EXECUTOR)` (and similar) to build allowlists dynamically, eliminating manual tool list maintenance.
+Tools self-declare which pipeline roles may invoke them via the `@tool_access` decorator (`src/lade/server/tool_access.py`). At import time, `phases.py` calls `get_tools_for_role(Role.EXTRACT_EXECUTOR)` (and similar) to build allowlists dynamically, eliminating manual tool list maintenance.
 
 ### The `@tool_access` Decorator
 
@@ -248,25 +248,25 @@ The `Role` flag enum covers every pipeline slot: `CATALOG`, `EXTRACT_PLANNER`, `
 
 ### Enforcement
 
-The Agent SDK's `allowed_tools` option only auto-approves permissions; with `permission_mode="bypassPermissions"` it restricts nothing, and `disallowed_tools` is the only option that removes a tool from the model's context. `SessionExecutor` therefore passes every registered mulder tool that is *not* on the role's allowlist as `disallowed_tools` (`off_role_tools` in `session.py`). An analyst never sees `run_mmls`; an executor sees the plan's tools plus its control tools (`open_case`, `start_extraction_batch`, `wait_all`, ...). Enforcement happens in the Claude Code CLI, not in the MCP server: `mulder serve` runs any tool a connected client calls.
+The Agent SDK's `allowed_tools` option only auto-approves permissions; with `permission_mode="bypassPermissions"` it restricts nothing, and `disallowed_tools` is the only option that removes a tool from the model's context. `SessionExecutor` therefore passes every registered lade tool that is *not* on the role's allowlist as `disallowed_tools` (`off_role_tools` in `session.py`). An analyst never sees `run_mmls`; an executor sees the plan's tools plus its control tools (`open_case`, `start_extraction_batch`, `wait_all`, ...). Enforcement happens in the Claude Code CLI, not in the MCP server: `lade serve` runs any tool a connected client calls.
 
 Claude Code's own built-in tools (`Read`, `Grep`, `Glob`, `Write`, `Edit`, `WebFetch`, `WebSearch`, `Task`, `Skill`, ... about thirty in the bundled CLI) are disabled wholesale with the SDK's `tools=[]` option (`--tools ""`), which removes every built-in while MCP tools stay loaded. This is set in `SessionExecutor._shared_options`, so it covers role sessions, continuation and remediation sessions, JSON repair and utility queries alike. Without it a model can read `/evidence` and the workspace with `Read`/`Grep`/`Glob`, write the workspace, or reach the network, all outside the audit log and the `evidence_refs` validation (issue #213). `Bash`/`Shell` remain on each phase's `disallowed_tools` list as belt and braces.
 
 Three more checks keep the tool surface deterministic:
 
 - Sessions run with `ENABLE_TOOL_SEARCH=false`, so the CLI never defers MCP tools behind its `ToolSearch` tool. The model sees the whole allowlist upfront.
-- The CLI's `init` message reports each MCP server's status and the loaded tool names. If the mulder server is not `connected`, or an allowed tool is missing, the session is aborted before the model answers and respawned (three attempts, logged as "Session started without its tools"). Without this the CLI runs the turn with built-in tools only. The same message is checked for any tool name that does not start with `mcp__`; one present after `tools=[]` means the CLI's built-in handling drifted, and it is logged as a warning naming the tools.
+- The CLI's `init` message reports each MCP server's status and the loaded tool names. If the lade server is not `connected`, or an allowed tool is missing, the session is aborted before the model answers and respawned (three attempts, logged as "Session started without its tools"). Without this the CLI runs the turn with built-in tools only. The same message is checked for any tool name that does not start with `mcp__`; one present after `tools=[]` means the CLI's built-in handling drifted, and it is logged as a warning naming the tools.
 - The workspace `.mcp.json` is passed to the CLI explicitly with `--strict-mcp-config`, so sessions do not depend on Claude Code's project MCP approval state and never load user-level MCP servers.
 
 An executor that finishes without a single tool call fails its attempt: the analyst is skipped and the phase's `max_retries` loop re-plans, instead of the analyst doing the extraction itself.
 
 ### The `@audited_tool` Decorator
 
-The `@audited_tool` decorator (`src/mulder/server/helpers.py`) wraps MCP tool functions to automatically handle `tool_call_id` generation, execution timing, and audit log recording. This eliminates the boilerplate of manually generating IDs, measuring elapsed time, and calling `audit.log_tool_call()` in every tool function.
+The `@audited_tool` decorator (`src/lade/server/helpers.py`) wraps MCP tool functions to automatically handle `tool_call_id` generation, execution timing, and audit log recording. This eliminates the boilerplate of manually generating IDs, measuring elapsed time, and calling `audit.log_tool_call()` in every tool function.
 
 ### Adding a New Tool
 
-1. Define the function under `src/mulder/server/tools/`
+1. Define the function under `src/lade/server/tools/`
 2. Apply `@mcp.tool()` (MCPServer registration)
 3. Apply `@tool_access(...)` with the appropriate role flags
 4. Apply `@audited_tool("tool_name")` for audit logging
@@ -385,7 +385,7 @@ erDiagram
 
 ### Write Safety
 
-SQLite does not support concurrent writers. Mulder serializes all writes through a `_WriteQueue`: a dedicated daemon thread that drains a queue of write callables. Worker threads submit operations and block until completion. This eliminates `SQLITE_BUSY` errors entirely.
+SQLite does not support concurrent writers. Lade serializes all writes through a `_WriteQueue`: a dedicated daemon thread that drains a queue of write callables. Worker threads submit operations and block until completion. This eliminates `SQLITE_BUSY` errors entirely.
 
 Read operations bypass the queue since WAL mode allows concurrent readers.
 
@@ -394,7 +394,7 @@ Read operations bypass the queue since WAL mode allows concurrent readers.
 The orchestrator displays a real-time terminal dashboard using Rich's Live display:
 
 ```
-+----------------------------------------- Mulder ------------------------------------------+
++----------------------------------------- Lade ------------------------------------------+
 | [3/7] Phase 2: Deep Extraction: HOST01                                                    |
 | claude-opus-4-6 | max turns: 75                                                          |
 | Tools: 47          Findings: 5          Tokens: 1.2M          20.1K/min                   |
@@ -475,18 +475,18 @@ User hives are parsed with targeted RegRipper plugins (userassist, recentdocs, t
 flowchart TB
     subgraph host [Host System]
         evidenceDir["/path/to/evidence"]
-        casesDir["~/mulder-cases"]
+        casesDir["~/lade-cases"]
         creds["API credentials"]
     end
 
     subgraph container [Container (ubuntu:22.04)]
         subgraph runtime [Runtime Layer]
             entrypoint["entrypoint.sh\n(credential setup, permission fixups)"]
-            mulderUser["mulder user (non-root)"]
+            ladeUser["lade user (non-root)"]
         end
 
         subgraph app [Application Layer]
-            mulderCLI["mulder CLI"]
+            ladeCLI["lade CLI"]
             orchestrator2["Orchestrator"]
             agentSDK2["Agent SDK (Session Runtime)"]
             mcpServer2["MCP Server (MCPServer)"]
@@ -502,14 +502,14 @@ flowchart TB
         end
     end
 
-    evidenceDir -->|":ro mount"| mulderCLI
+    evidenceDir -->|":ro mount"| ladeCLI
     casesDir -->|"mount"| mcpServer2
     creds -->|"env vars"| entrypoint
-    entrypoint --> mulderUser
-    mulderUser --> mulderCLI
+    entrypoint --> ladeUser
+    ladeUser --> ladeCLI
 ```
 
-The container runs with `--privileged` (or `--cap-add SYS_ADMIN --device /dev/fuse`) to support FUSE: `ewfmount`, `guestmount`, and the `xmount` + `ntfs-3g`/`fuse2fs` stack that `mount_disk_image()` uses. Mounting never uses the kernel `mount -o loop` path, so it works as the unprivileged `mulder` user and needs no loop devices.
+The container runs with `--privileged` (or `--cap-add SYS_ADMIN --device /dev/fuse`) to support FUSE: `ewfmount`, `guestmount`, and the `xmount` + `ntfs-3g`/`fuse2fs` stack that `mount_disk_image()` uses. Mounting never uses the kernel `mount -o loop` path, so it works as the unprivileged `lade` user and needs no loop devices.
 
 ## Evidence Reference Validation
 
@@ -559,8 +559,8 @@ Full-text search queries are sanitized before execution. Special characters with
 ### Non-Root Container
 
 The entrypoint handles credential copying and ownership fixups before running
-the requested command as the `mulder` user via `gosu`. `docker exec` bypasses the
-entrypoint; use `docker exec -u mulder` for investigations in an existing container.
+the requested command as the `lade` user via `gosu`. `docker exec` bypasses the
+entrypoint; use `docker exec -u lade` for investigations in an existing container.
 
 ## Per-Model Token Tracking
 
@@ -625,7 +625,7 @@ The `ReportRenderer` uses Jinja2 templates to produce Markdown and HTML reports:
 - **Markdown** (`{case_id}.report.md`): Plain-text report for version control and review
 - **HTML** (`{case_id}.report.html`): Self-contained styled page with dark/light theme toggle, sidebar navigation, per-model token usage breakdown, and collapsible source window samples
 
-IOC export (STIX 2.1, CSV) and ATT&CK Navigator layer generation are separate CLI commands (`mulder export-iocs`, `mulder export-navigator`), not part of the `ReportRenderer` flow.
+IOC export (STIX 2.1, CSV) and ATT&CK Navigator layer generation are separate CLI commands (`lade export-iocs`, `lade export-navigator`), not part of the `ReportRenderer` flow.
 
 ## Investigation Quality
 

@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Literal
 
-from mulder.orchestrator.prompts import (
+from lade.orchestrator.prompts import (
     CATALOG_PROMPT,
     CROSS_SYSTEM_ANALYST_PROMPT,
     CROSS_SYSTEM_EXECUTOR_PROMPT,
@@ -24,7 +24,7 @@ from mulder.orchestrator.prompts import (
     NARRATIVE_PLANNER_PROMPT,
     REPORT_PROMPT,
 )
-from mulder.server.tool_access import Role, get_tools_for_role
+from lade.server.tool_access import Role, get_tools_for_role
 
 
 @dataclass
@@ -123,13 +123,13 @@ _EXECUTOR_CASE_ID_PREFIX: str = (
 _EXTRACTION_BLOCKED_TOOLS: list[str] = [
     "Bash",
     "Shell",
-    "mcp__mulder__submit_narrative",
-    "mcp__mulder__finalize_report",
-    "mcp__mulder__audit_evidence_coverage",
-    "mcp__mulder__audit_tool_coverage",
-    "mcp__mulder__check_finalize_readiness",
-    "mcp__mulder__deduplicate_findings",
-    "mcp__mulder__delete_finding",
+    "mcp__lade__submit_narrative",
+    "mcp__lade__finalize_report",
+    "mcp__lade__audit_evidence_coverage",
+    "mcp__lade__audit_tool_coverage",
+    "mcp__lade__check_finalize_readiness",
+    "mcp__lade__deduplicate_findings",
+    "mcp__lade__delete_finding",
 ]
 
 EXTRACTION: PhaseConfig = PhaseConfig(

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import re
 
-from mulder.patterns import FLS_ROW_RE, fls_file_entries, parse_fls_rows
+from lade.patterns import FLS_ROW_RE, fls_file_entries, parse_fls_rows
 
 #: Verbatim ``fls -r -p`` output from TSK 4.12.1.
 REAL_FLS_OUTPUT = (
