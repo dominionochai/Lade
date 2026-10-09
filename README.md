@@ -2,57 +2,82 @@
 
 ### DevSecOps post-commit forensics and incident-autopsy agent
 
-> **GitLab Transcend — “Life After Code” Hackathon**
+> **GitLab Transcend — "Life After Code" Hackathon**
 >
-> “When a pipeline breaks, a vulnerability escapes to production, or a container explodes post-merge, developers spend hours sifting through CI logs, PCAPs, and cloud artifacts. LADE brings forensic-grade multi-agent investigation to the GitLab Duo Agent platform — turning post-commit chaos into an automated, adversary-tested root-cause autopsy.”
+> "When a pipeline breaks, a vulnerability escapes to production, or a container explodes post-merge, developers spend hours sifting through CI logs, PCAPs, and cloud artifacts. LADE brings forensic-grade multi-agent investigation to the GitLab Duo Agent platform — turning post-commit chaos into an automated, adversary-tested root-cause autopsy."
 
 **LADE is an evidence-first investigation system designed for the work that begins after code is merged.** Its intended workflow connects a commit to the pipeline, build, container, and staging-runtime evidence that follows it, then prepares a traceable incident narrative and a human-reviewable remediation proposal.
 
-> **Status: early prototype.** This repository currently contains Python domain models and a per-case SQLite persistence layer. It is not an operational investigation system. The agent workflow, evidence integrations, cryptographic audit chain, verification gate, GitLab integration, reports, CLI, and cloud deployment described below are design goals, not implemented functionality.
+> **Status: engine foundation.** This repository currently contains the inherited investigation engine, renamed and repackaged as `lade`. The multi-phase orchestrator, MCP server, SQLite case store, audit log, CLI, and report rendering below are implemented and exercised by the test suite. The DevSecOps-specific pieces described later — the GitLab webhook receiver, commit→pipeline→container→runtime correlation, Cloud Run deployment, and draft remediation MR — are design goals, not yet built. The engine's host-forensics toolchains are retained for now and are slated to be replaced with DevSecOps tooling in a later step.
 
 ## What is in the repository today
 
-- A Python package skeleton (version `0.1.0`, Python `>=3.10`) and typed domain models for investigation phases, agent configuration, evidence references, findings, and phase results.
-- `lade.store.CaseStore`, which initializes per-case SQLite storage in a `cases/<case-id>/` directory. The schema includes source metadata, extracted text windows, findings, IOC values, tool-call records, evidence references, progress, and case metadata.
-- SQLite WAL mode and foreign-key enforcement, plus an FTS5 virtual table and a method for searching stored text windows.
+- A `lade` console application with working `setup`, `serve`, `investigate`, `report`, `export-iocs`, and `export-navigator` commands.
+- An **MCP server** exposing typed forensic tools to agent clients.
+- A **multi-phase, multi-agent orchestrator** running five gated phases — CATALOG, EXTRACTION, CROSS-SYSTEM, ALTERNATIVE_NARRATIVE, REPORT — with Planner, Executor, and Analyst roles, per-role tool allowlists, quality gates, and bounded retries.
+- **Per-case SQLite persistence** (`lade.db.CaseDB`): WAL mode, foreign-key enforcement, an external-content FTS5 index over extracted text windows, findings, a SHA-256 evidence-custody registry, bookmarks, progress, and a key/value store.
+- An **append-only JSONL audit log** (`lade.audit.AuditLog`) with per-append `fsync`, tool-call output hashes, and provenance-chain resolution from a finding back to its cited evidence files.
+- **HTML and Markdown report rendering** with evidence citations, audit summaries, and per-source window excerpts.
+- **`lade setup`**, a `--verify`-able asset provisioner that downloads the toolchain, rule sets, and symbol tables pip cannot ship.
+- An automated test suite covering the database, audit log, CLI, MCP tools, orchestrator, and report rendering.
 
-The store is a persistence foundation, not an evidence collection or analysis engine: it does not fetch artifacts, parse logs, run scanners, or orchestrate agents. Callers supply the stored records. Although the schema has fields for output digests and chain hashes, the current code does not compute or verify a cryptographic audit chain or independently validate evidence provenance.
+The inherited engine is a **host-forensics engine** (built around the SANS SIFT Workstation). It parses disk images (Sleuth Kit), memory (Volatility 3), Windows event logs (EVTX, Hayabusa, Chainsaw, Zircolite), YARA rule hits, mobile images (ALEAPP, iLEAPP, MVT), email archives (PST), registry hives, and Office documents. **These host-forensics capabilities are the parts that will be replaced with DevSecOps tooling** — Trivy, Syft, Kubernetes log extraction, and pipeline-trace parsers — in a later step. They are kept in place now because removing them would break the tested baseline.
 
-## Using the storage prototype
+## Using Lade today
 
-Install the package in an environment with Python 3.10 or newer:
+Install in an environment with Python 3.10 or newer:
 
 ```bash
-python -m pip install -e .
+python -m pip install -e .        # runtime
+python -m pip install -e ".[dev]" # with test/lint tooling
 ```
 
-The current API can create a case, register a source, add a text window, and search that window:
+The console entry point is `lade`:
+
+```bash
+lade --version
+lade setup --dry-run                 # plan the asset download; nothing fetched
+lade setup --verify                  # validate an existing install, no network
+lade serve                           # start the MCP server (stdio or streamable-http)
+lade investigate <evidence> <case-id>  # run the five-phase investigation
+lade report <case-id>                # render HTML + Markdown reports
+lade export-iocs <case-id>           # STIX 2.1 / CSV IOC export
+lade export-navigator <case-id>      # MITRE ATT&CK Navigator layer
+```
+
+Case storage is also available as a Python API:
 
 ```python
-from lade.store import CaseStore
+from pathlib import Path
+from lade.db import CaseDB
+from lade.models import WindowRow
 
-store = CaseStore(".lade", "demo-case")
-store.add_source({
-    "source_id": "build-log",
-    "path": "artifacts/build.log",
-    "sha256": "<source SHA-256>",
-    "size": 42,
-    "media_type": "text/plain",
-    "text": "Build failed during packaging.",
-    "indexed_at": "2026-01-01T00:00:00Z",
-})
-store.add_window(
-    window_id="build-log-window-1",
-    source_id="build-log",
-    text="Build failed during packaging.",
-    start_line=1,
+db = CaseDB.create(
+    case_id="demo-case",
+    evidence_root="/evidence",
+    db_dir=Path(".lade"),
 )
-matches = store.search_windows("packaging")
+source_id = db.register_source(
+    source_name="build-log",
+    source_path="artifacts/build.log",
+    source_hash="<source SHA-256>",
+    extractor="text",
+    line_count=1,
+)
+db.insert_windows(source_id, [
+    WindowRow(
+        source_id=source_id,
+        line_start=1,
+        line_end=1,
+        event_time="2026-01-01T00:00:00Z",
+        raw_text="Build failed during packaging.",
+    )
+])
+matches = db.search_windows("packaging")
+db.close()
 ```
 
-Replace the example digest and timestamp with values for the source being recorded. This demonstrates storage and search only; it does not run an investigation.
-
-> **There is no usable Lade command-line application yet.** Although `pyproject.toml` declares a `lade` console entry point, the referenced `lade.cli` module is not present in the repository. The CLI commands below are a roadmap, not available commands.
+This demonstrates storage and search only; it does not run an investigation.
 
 ## Why post-commit forensics?
 
@@ -67,42 +92,40 @@ LADE's proposed workflow treats that material as one case. It aims to help a tea
 
 ## Five phases mapped to the post-commit lifecycle
 
-LADE is designed as five gated phases, moving from the merged change and its resulting artifacts through evidence collection and analysis to a reviewable response. These phases describe the planned workflow; they are not implemented in this prototype.
+LADE runs five gated phases. The phase machinery itself is implemented in the inherited engine; the post-commit mapping — and the GitLab/pipeline evidence integrations that feed the phases — is the Lade-specific work that remains.
 
-| Phase | Post-commit lifecycle stage | Planned responsibility | Intended output |
+| Phase | Post-commit lifecycle stage | Responsibility | Output |
 |---|---|---|---|
 | **1. CATALOG** | Change and artifact inventory | Catalog the merged commit and its context: pipeline artifacts, build binaries, Docker containers, and the Cloud Run staging environment. | A case inventory linking the change to the evidence sources available for investigation. |
-| **2. EXTRACTION** | Evidence acquisition and triage | Map relevant logs and evidence to extraction tasks; run approved tools and parsers such as Trivy, Syft, Kubernetes log extraction, and pipeline-trace parsers; evaluate results. | Normalized observations and candidate findings with source references. |
-| **3. CROSS-SYSTEM** | Correlation and hypothesis formation | Correlate static evidence from code and commits with dynamic runtime failures and security alerts. A finding must be mapped to a CWE weakness and a MITRE ATT&CK technique before it can pass this planned gate. | A cross-system hypothesis with explicit weakness and adversary-technique mappings, or a gated result that needs more evidence. |
+| **2. EXTRACTION** | Evidence acquisition and triage | Map relevant logs and evidence to extraction tasks; run approved tools and parsers; evaluate results. | Normalized observations and candidate findings with source references. |
+| **3. CROSS-SYSTEM** | Correlation and hypothesis formation | Correlate static evidence from code and commits with dynamic runtime failures and security alerts. A finding must be mapped to a CWE weakness and a MITRE ATT&CK technique before it can pass this gate. | A cross-system hypothesis with explicit weakness and adversary-technique mappings, or a gated result that needs more evidence. |
 | **4. ALTERNATIVE_NARRATIVE** | Adversarial validation | Test counter-hypotheses, challenge causal assumptions, and look for evidence that could falsify or qualify the leading explanation. | A more resilient narrative recording competing explanations and what evidence supports or weakens each one. |
-| **5. REPORT** | Incident reporting and human-reviewed remediation | Assemble the case into a GitLab Security Post-Mortem issue and prepare a draft remediation Merge Request. | A cited, integrity-aware report and a proposed patch for human review. |
+| **5. REPORT** | Incident reporting and human-reviewed remediation | Assemble the case into a reviewable report and prepare a draft remediation proposal. | A cited, integrity-aware report and a proposed patch for human review. |
 
 ### Planner, Executor, and Analyst roles
 
-The planned multi-agent orchestrator separates investigation planning, tool execution, and evidence interpretation:
+The multi-agent orchestrator separates investigation planning, tool execution, and evidence interpretation:
 
 - **Planner** decomposes a case, maps logs and evidence to tasks, and selects the next phase-appropriate investigation steps.
 - **Executor** invokes approved tools through typed, allowlisted interfaces and returns bounded, attributable results.
 - **Analyst** interprets extracted evidence, develops and challenges findings, and produces cited analysis.
 
-Typed tool contracts, role-specific allowlists, phase gates, and bounded retries are design goals intended to constrain execution and make phase transitions explicit. These controls and agent behaviors are not implemented in the current checkout.
+Typed tool contracts, role-specific allowlists, phase gates, and bounded retries are implemented in the engine and enforced by the test suite.
 
 ### Alternative-narrative review
 
-The **ALTERNATIVE_NARRATIVE** phase is designed to ask what else could explain the same symptoms, which assumptions are unproven, and what evidence would change the conclusion. This adversarial pass is intended to reduce confirmation bias before a root-cause narrative or remediation proposal reaches a developer.
+The **ALTERNATIVE_NARRATIVE** phase asks what else could explain the same symptoms, which assumptions are unproven, and what evidence would change the conclusion. This adversarial pass is intended to reduce confirmation bias before a root-cause narrative or remediation proposal reaches a developer.
 
-## Evidence integrity and verification gate
+## Evidence integrity and verification
 
-Forensic output is useful only when its provenance can be examined. The planned case workflow includes:
+The engine records investigation provenance:
 
-- **Per-case SQLite** storage with FTS5 for searchable case material and WAL mode for database journaling.
-- An **append-only JSONL audit log**. Each recorded output is intended to receive a BLAKE2b digest, with records linked by a **SHA-256 hash chain**. The chain head is intended to appear in the report so a reviewer can identify the audit-log state associated with it.
+- **Per-case SQLite** storage with an external-content FTS5 index for searchable case material and WAL mode for database journaling.
+- An **append-only JSONL audit log**. Every tool call is appended with `fsync` and stores an output hash; findings must cite tool-call IDs, and the audit log resolves a finding's **provenance chain** back to the tool calls and original evidence files that support it.
 - An **evidence-custody registry** recording a SHA-256 digest for each ingested evidence item.
-- An **evidence-verification gate** requiring each finding to cite the relevant tool-call ID and exact stdout slice. Findings without verifiable source locations are intended to be rejected or held for review rather than promoted as fact.
+- Per-source **BLAKE2b window hashes** computed at ingestion, with a `verify_evidence_integrity` check that recomputes them and flags any modified source.
 
-The intended mappings are **MITRE ATT&CK v18.1** and **CWE 4.14**, consistently applied across findings and reports. These standards and version labels describe the planned mapping targets; they do not imply that mappings are currently implemented.
-
-The audit-chain and custody designs aim to make unauthorized changes detectable and establish provenance. A hash chain is tamper-evident only within its threat model; it is not an absolute guarantee against alteration. The current code does not compute or verify this chain or enforce the evidence gate, so these properties must not be treated as available safeguards.
+The intended mappings are **MITRE ATT&CK v18.1** and **CWE 4.14**, consistently applied across findings and reports. These version labels describe the mapping targets; finding and report mapping is not yet uniformly enforced.
 
 ## GitLab webhook and draft-MR integration
 
@@ -123,13 +146,13 @@ GitLab event/API integration, webhook handling, issue creation, and draft-MR cre
 A proposed **2:30** competition demo can make the post-commit story visible. This is a presentation outline, not a description of a working end-to-end demo:
 
 - **0:00–0:30 — Setup:** A developer merges a PR, CI completes, and the demo scenario shows Cloud Run reporting an anomaly five minutes later.
-- **0:30–1:15 — Phases 1–3:** Show the five-phase progress bar and the planned Planner/Executor/Analyst workflow correlating commit, pipeline, and runtime signals.
+- **0:30–1:15 — Phases 1–3:** Show the five-phase progress bar and the Planner/Executor/Analyst workflow correlating commit, pipeline, and runtime signals.
 - **1:15–1:45 — Phase 4:** Show an alternative-narrative prompt and how a counter-hypothesis would challenge the leading explanation rather than accept it immediately.
 - **1:45–2:30 — Output:** Present the planned GitLab issue, audit trail and ATT&CK/CWE breakdown, followed by a draft remediation MR and proposed fix. Make clear that a human must approve the MR.
 
-## CLI roadmap
+## Command surface
 
-The intended command surface is listed below. **These commands are not implemented yet.** The package's declared console entry point currently points to a missing `lade.cli` module.
+The following commands are implemented and available today:
 
 ```text
 lade setup
@@ -140,11 +163,19 @@ lade export-navigator
 lade report
 ```
 
-The roadmap covers initial configuration, case investigation, webhook service, IOC and Navigator exports, and report generation. Command behavior and options remain subject to implementation.
-
 ## Development status
 
-The package and storage code are an initial scaffold, not a production-ready tool. The repository does not yet include an end-to-end workflow or an automated test suite. The install metadata's console-script target is unfinished. Treat the planned behavior in this README as a roadmap, not verified functionality; setup, security properties, and integration behavior still need implementation and tests.
+The engine foundation is implemented and covered by an automated test suite (run with `pytest tests/`). The test suite covers the SQLite case store and FTS5 search, the audit log and provenance resolution, the CLI, the MCP tool surface, the orchestrator phases and gates, asset setup, and report rendering.
+
+What remains to be built for Lade:
+
+- **DevSecOps evidence integrations**: GitLab merge and pipeline webhook receiver; extraction for Trivy/Syft output, container images, Kubernetes logs, and pipeline traces.
+- **Replacing host-forensics toolchains** (disk, memory, EVTX, YARA, mobile, email) with the DevSecOps tools above.
+- **CWE 4.14 / MITRE ATT&CK v18.1 mapping** enforced across findings and reports.
+- **GitLab Security Post-Mortem issue creation** and **draft remediation MR** via the GitLab Duo API.
+- **Cloud Run deployment** and runtime hardening.
+
+Treat the roadmap sections of this README as plans, not implemented functionality.
 
 ## License
 
