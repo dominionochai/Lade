@@ -788,5 +788,64 @@ def export_navigator_cmd(case_id: str, output_dir: str | None, domain: str, db_d
     click.echo("Done.")
 
 
+@cli.command("audit-verify")
+@click.argument("target")
+@click.option(
+    "--db-dir",
+    default=DEFAULT_DB_DIR,
+    envvar=DB_DIR_ENV_VAR,
+    show_default=True,
+    help="Directory containing per-case databases (env: LADE_DB_DIR).",
+)
+def audit_verify_cmd(target: str, db_dir: str) -> None:
+    """Verify the SHA-256 hash chain of an audit log.
+
+    TARGET can be a case_id or a path to an audit.jsonl file.
+    """
+    import sys
+
+    from lade.audit import verify_chain
+
+    target_path = Path(target)
+    anchor = None
+
+    if target_path.is_file():
+        log_path = target_path
+        if log_path.name.endswith(".audit.jsonl"):
+            case_id = log_path.name[: -len(".audit.jsonl")]
+            companion_db = log_path.parent / f"{case_id}.db"
+            if companion_db.is_file():
+                anchor = companion_db
+    elif Path(f"{target}.audit.jsonl").is_file():
+        log_path = Path(f"{target}.audit.jsonl")
+        case_id = log_path.name[: -len(".audit.jsonl")]
+        companion_db = log_path.parent / f"{case_id}.db"
+        if companion_db.is_file():
+            anchor = companion_db
+    else:
+        db_dir_path = Path(db_dir).expanduser()
+        log_path = db_dir_path / f"{target}.audit.jsonl"
+        companion_db = db_dir_path / f"{target}.db"
+        if companion_db.is_file():
+            anchor = companion_db
+
+    if not log_path.exists():
+        click.echo(f"Audit log not found: {log_path}", err=True)
+        sys.exit(1)
+
+    result = verify_chain(log_path, anchor=anchor)
+
+    if result.ok:
+        head_prefix = result.head_hash[:12] if result.head_hash else "0" * 12
+        click.echo(f"OK: {result.record_count} records, head {head_prefix}")
+        sys.exit(0)
+    else:
+        if result.error_seq is not None:
+            click.echo(f"FAILED: seq {result.error_seq} {result.error_reason}")
+        else:
+            click.echo(f"FAILED: {result.error_reason}")
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     cli()
