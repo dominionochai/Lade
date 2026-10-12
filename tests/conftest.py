@@ -77,11 +77,25 @@ def _no_network(_hermetic_asset_root: None) -> Generator[None]:
 
     import httpx
 
+    real_connect = socket.socket.connect
+    loopback = {"127.0.0.1", "::1", "localhost"}
+
     def _blocked(*_args: object, **_kwargs: object) -> object:
         raise AssertionError("test attempted network I/O")
 
+    def _guarded_connect(
+        self: socket.socket,
+        address: object,
+        *args: object,
+        **kwargs: object,
+    ) -> object:
+        host = address[0] if isinstance(address, tuple) and address else address
+        if host in loopback:
+            return real_connect(self, address, *args, **kwargs)
+        raise AssertionError("test attempted network I/O")
+
     mp = pytest.MonkeyPatch()
-    mp.setattr(socket.socket, "connect", _blocked)
+    mp.setattr(socket.socket, "connect", _guarded_connect)
     mp.setattr(httpx.Client, "send", _blocked)
     mp.setattr(httpx.AsyncClient, "send", _blocked)
     yield
