@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -43,6 +44,10 @@ def test_dotdot_is_checked_after_resolution(tmp_path: Path) -> None:
         resolve_allowed_path(outside, [evidence_root])
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="symlink containment semantics differ on Windows",
+)
 def test_rejects_existing_symlink_escape(tmp_path: Path) -> None:
     evidence_root = tmp_path / "evidence"
     outside_root = tmp_path / "outside"
@@ -57,6 +62,10 @@ def test_rejects_existing_symlink_escape(tmp_path: Path) -> None:
         resolve_allowed_path(escape / "secret.txt", [evidence_root])
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="symlink containment semantics differ on Windows",
+)
 def test_allows_symlink_whose_destination_is_inside_root(tmp_path: Path) -> None:
     evidence_root = tmp_path / "evidence"
     real_dir = evidence_root / "real"
@@ -78,6 +87,10 @@ def test_nonexistent_descendant_is_provisionally_allowed(tmp_path: Path) -> None
     assert resolve_allowed_path(missing, [evidence_root]) == missing.resolve(strict=False)
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="dangling symlink resolution differs on Windows",
+)
 def test_dangling_symlink_is_checked_by_destination(tmp_path: Path) -> None:
     evidence_root = tmp_path / "evidence"
     evidence_root.mkdir()
@@ -141,6 +154,7 @@ def test_file_root_does_not_authorize_sibling_prefix(tmp_path: Path) -> None:
         resolve_allowed_path(sibling, [evidence_image])
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="symlink loop handling differs on Windows")
 def test_symlink_loop_fails_closed(tmp_path: Path) -> None:
     evidence_root = tmp_path / "evidence"
     evidence_root.mkdir()

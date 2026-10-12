@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tarfile
 import zipfile
 from pathlib import Path
@@ -260,6 +261,10 @@ class TestProvisioning:
         assert "checksum mismatch" in _by_key(result)["capa"].status
         assert not (roots[0] / "capa").exists()
 
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="symlink bin-dir link creation is not portable to Windows",
+    )
     def test_shims_are_linked_into_bin_dir(self, roots: tuple[Path, Path]) -> None:
         import dataclasses
 

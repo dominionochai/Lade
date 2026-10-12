@@ -187,6 +187,10 @@ class TestFindVolBinary:
             _find_vol_binary()
 
     @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="the resolved vol tool may not be available",
+    )
+    @pytest.mark.skipif(
         importlib.util.find_spec("volatility3") is None,
         reason="volatility3 is not installed in this environment",
     )

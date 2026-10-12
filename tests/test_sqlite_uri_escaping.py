@@ -46,6 +46,7 @@ chosen deliberately does more than confuse the path, though -- see
 from __future__ import annotations
 
 import sqlite3
+import sys
 from pathlib import Path
 from urllib.parse import quote
 
@@ -147,6 +148,10 @@ class TestThePremise:
         opened.close()
         assert "injected" in tables, "read-only was defeated and the evidence was written"
 
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Windows file paths disallow '?' in filenames",
+    )
     def test_a_question_mark_makes_the_connection_fail(self, tmp_path: Path) -> None:
         evidence = tmp_path / "chat?mode=rwc&cache=shared.db"
         _make_db(evidence)
@@ -154,6 +159,10 @@ class TestThePremise:
         with pytest.raises(sqlite3.Error):
             sqlite3.connect(f"file:{evidence}?mode=ro", uri=True)
 
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Windows file paths disallow '?' in filenames",
+    )
     def test_a_double_slash_path_is_read_as_a_uri_authority(self, tmp_path: Path) -> None:
         """Escaping the filename alone leaves this one, so pin it separately.
 
@@ -172,6 +181,10 @@ class TestThePremise:
 
 
 class TestReadonlySqliteUri:
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Windows file paths disallow '?' in filenames",
+    )
     @pytest.mark.parametrize("name", HOSTILE_NAMES)
     def test_the_named_file_is_the_file_that_opens(self, tmp_path: Path, name: str) -> None:
         evidence = tmp_path / name
@@ -187,6 +200,10 @@ class TestReadonlySqliteUri:
             "opening evidence must not create files next to it"
         )
 
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="Windows file paths disallow '?' in filenames",
+    )
     @pytest.mark.parametrize("name", HOSTILE_NAMES)
     def test_the_connection_is_read_only(self, tmp_path: Path, name: str) -> None:
         """mode=ro must survive the escaping, or evidence becomes writable."""
@@ -207,6 +224,10 @@ class TestReadonlySqliteUri:
         assert [r[0] for r in conn.execute("SELECT body FROM message")] == ["the evidence"]
         conn.close()
 
+    @pytest.mark.skipif(
+        sys.platform == "win32",
+        reason="double-slash path authority semantics differ on Windows",
+    )
     def test_a_double_slash_path_opens_against_real_sqlite(self, tmp_path: Path) -> None:
         """The regression for the URI-authority case, against real SQLite."""
         evidence = _double_slash_db(tmp_path)
@@ -245,6 +266,6 @@ class TestEveryCallSiteUsesIt:
         offenders = [
             str(path.relative_to(root))
             for path in root.rglob("*.py")
-            if 'sqlite3.connect(f"file:' in path.read_text()
+            if 'sqlite3.connect(f"file:' in path.read_text(encoding="utf-8")
         ]
         assert offenders == []

@@ -199,7 +199,7 @@ def report(case_id: str, db_dir: str) -> None:
                     "event_time": w.event_time,
                     "raw_text": w.raw_text,
                     "total": total,
-                    "truncated": total > _MAX_WINDOWS,
+                    "truncated": total > 50,
                 }
                 for w in windows
             ]
