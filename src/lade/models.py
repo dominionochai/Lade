@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, model_validator
 
@@ -50,7 +50,7 @@ class Finding(BaseModel):
     description: str
     severity: Literal["critical", "high", "medium", "low", "info"]
     confidence: Literal["confirmed", "inference"]
-    evidence_refs: list[str]
+    evidence_refs: list[str | dict[str, Any]]
     sources: list[str]
     mitre_attack_ids: list[str] = []
     event_time_start: str | None = None

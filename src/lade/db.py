@@ -136,6 +136,17 @@ kv_store_t = Table(
     Column("updated_at", Text, nullable=False),
 )
 
+tool_outputs_t = Table(
+    "tool_outputs",
+    metadata,
+    Column("tool_call_id", Text, primary_key=True),
+    Column("tool_name", Text, nullable=False),
+    Column("output_text", Text, nullable=False),
+    Column("output_hash", Text, nullable=False),
+    Column("truncated", Integer, nullable=False),
+    Column("created_at", Text, nullable=False),
+)
+
 _FTS_CREATE = (
     "CREATE VIRTUAL TABLE IF NOT EXISTS windows_fts USING fts5("
     "    raw_text, content=windows, content_rowid=window_id"
@@ -329,6 +340,22 @@ def _migrate_add_kv_store(conn: Connection) -> None:
     )
 
 
+def _migrate_add_tool_outputs(conn: Connection) -> None:
+    """Create the tool_outputs table if it doesn't exist yet."""
+    conn.execute(
+        text(
+            "CREATE TABLE IF NOT EXISTS tool_outputs ("
+            "  tool_call_id TEXT PRIMARY KEY,"
+            "  tool_name TEXT NOT NULL,"
+            "  output_text TEXT NOT NULL,"
+            "  output_hash TEXT NOT NULL,"
+            "  truncated INTEGER NOT NULL,"
+            "  created_at TEXT NOT NULL"
+            ")"
+        )
+    )
+
+
 _SENTINEL = object()
 
 
@@ -497,6 +524,7 @@ class CaseDB:
             _migrate_add_bookmarks(conn)
             _migrate_add_progress(conn)
             _migrate_add_kv_store(conn)
+            _migrate_add_tool_outputs(conn)
         return db
 
     def close(self) -> None:
@@ -1461,6 +1489,98 @@ class CaseDB:
                 {"key": key},
             ).fetchone()
         return row[0] if row else None
+
+    def store_tool_output(
+        self,
+        tool_call_id: str,
+        tool_name: str,
+        output_text: str | object,
+        created_at: str | None = None,
+    ) -> None:
+        """Store tool output text in tool_outputs table, capped at 2 MB.
+
+        Invariant: when truncated=0, sha256(output_text) == output_hash.
+        """
+        if isinstance(output_text, str):
+            text_val = output_text
+        else:
+            try:
+                text_val = json.dumps(output_text, ensure_ascii=False, default=str)
+            except Exception:
+                text_val = str(output_text)
+
+        full_hash = hashlib.sha256(text_val.encode("utf-8")).hexdigest()
+        cap_chars = 2 * 1024 * 1024
+        if len(text_val) > cap_chars:
+            stored_text = text_val[:cap_chars]
+            truncated = 1
+        else:
+            stored_text = text_val
+            truncated = 0
+
+        now = created_at or datetime.now(timezone.utc).isoformat()
+
+        def _do_store() -> None:
+            with self._engine.begin() as conn:
+                conn.execute(
+                    text(
+                        "INSERT OR REPLACE INTO tool_outputs "
+                        "(tool_call_id, tool_name, output_text, output_hash, truncated, created_at) "
+                        "VALUES (:tc_id, :t_name, :out_txt, :out_hash, :trunc, :created)"
+                    ),
+                    {
+                        "tc_id": tool_call_id,
+                        "t_name": tool_name,
+                        "out_txt": stored_text,
+                        "out_hash": full_hash,
+                        "trunc": truncated,
+                        "created": now,
+                    },
+                )
+
+        self._wq.submit(_do_store)
+
+    def get_tool_output(self, tool_call_id: str) -> dict[str, Any] | None:
+        """Retrieve stored tool output for tool_call_id."""
+        with self._engine.connect() as conn:
+            row = conn.execute(
+                text(
+                    "SELECT tool_call_id, tool_name, output_text, output_hash, "
+                    "truncated, created_at FROM tool_outputs WHERE tool_call_id = :tc_id"
+                ),
+                {"tc_id": tool_call_id},
+            ).fetchone()
+        if row is None:
+            return None
+        return {
+            "tool_call_id": row[0],
+            "tool_name": row[1],
+            "output_text": row[2],
+            "output_hash": row[3],
+            "truncated": row[4],
+            "created_at": row[5],
+        }
+
+    def get_all_tool_outputs(self) -> list[dict[str, Any]]:
+        """Retrieve all stored tool outputs."""
+        with self._engine.connect() as conn:
+            rows = conn.execute(
+                text(
+                    "SELECT tool_call_id, tool_name, output_text, output_hash, "
+                    "truncated, created_at FROM tool_outputs"
+                )
+            ).fetchall()
+        return [
+            {
+                "tool_call_id": row[0],
+                "tool_name": row[1],
+                "output_text": row[2],
+                "output_hash": row[3],
+                "truncated": row[4],
+                "created_at": row[5],
+            }
+            for row in rows
+        ]
 
     def _get_case_id(self) -> str:
         """Read case_id from the case_metadata table (cached after first call)."""

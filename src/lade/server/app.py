@@ -223,6 +223,7 @@ class ServerConfig:
     max_workers: int = 8
     mem_percent_limit: float = 90.0
     cpu_percent_limit: float = 90.0
+    evidence_mode: str = "legacy"
 
 
 @dataclass

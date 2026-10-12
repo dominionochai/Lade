@@ -10,6 +10,7 @@ from __future__ import annotations
 import functools
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -163,6 +164,33 @@ def make_tool_call_id() -> str:
 _P = ParamSpec("_P")
 
 
+def get_evidence_mode() -> str:
+    """Return the active evidence mode ('legacy' or 'strict')."""
+    mode = os.environ.get("LADE_EVIDENCE_MODE")
+    if mode:
+        return mode.lower().strip()
+    try:
+        from lade.server.app import _cfg
+
+        if _cfg is not None and hasattr(_cfg, "evidence_mode"):
+            return _cfg.evidence_mode.lower().strip()
+    except Exception:
+        pass
+    return "legacy"
+
+
+def set_evidence_mode(mode: str) -> None:
+    """Set the active evidence mode ('legacy' or 'strict')."""
+    os.environ["LADE_EVIDENCE_MODE"] = mode
+    try:
+        from lade.server.app import _cfg
+
+        if _cfg is not None:
+            _cfg.evidence_mode = mode
+    except Exception:
+        pass
+
+
 def audited_tool(
     tool_name: str,
 ) -> Callable[[Callable[_P, dict[str, object]]], Callable[_P, dict[str, object]]]:
@@ -193,6 +221,15 @@ def audited_tool(
             try:
                 result = func(*args, **kwargs)
                 elapsed = (time.monotonic() - t0) * 1000
+                if hasattr(ctx, "db") and ctx.db is not None:
+                    try:
+                        ctx.db.store_tool_output(
+                            tool_call_id=tc_id,
+                            tool_name=tool_name,
+                            output_text=result,
+                        )
+                    except Exception:
+                        pass
                 ctx.audit.log_tool_call(
                     tool_call_id=tc_id,
                     tool_name=tool_name,
@@ -291,6 +328,15 @@ def windowed_response(
 
     if has_ctx():
         ctx = get_ctx()
+        if hasattr(ctx, "db") and ctx.db is not None:
+            try:
+                ctx.db.store_tool_output(
+                    tool_call_id=tc_id,
+                    tool_name=tool_name,
+                    output_text=results,
+                )
+            except Exception:
+                pass
         ctx.audit.log_tool_call(
             tool_call_id=tc_id,
             tool_name=tool_name,
@@ -346,6 +392,15 @@ def tool_response(
     """
     if has_ctx():
         ctx = get_ctx()
+        if hasattr(ctx, "db") and ctx.db is not None:
+            try:
+                ctx.db.store_tool_output(
+                    tool_call_id=tc_id,
+                    tool_name=tool_name,
+                    output_text=results,
+                )
+            except Exception:
+                pass
         ctx.audit.log_tool_call(
             tool_call_id=tc_id,
             tool_name=tool_name,
