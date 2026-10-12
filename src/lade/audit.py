@@ -446,7 +446,9 @@ def _resolve_anchor(anchor: object, log_path: Path) -> tuple[int, str] | None:
             try:
                 import sqlite3
 
-                conn = sqlite3.connect(f"file:{db_file.resolve()}?mode=ro", uri=True)
+                from lade.server.helpers import readonly_sqlite_uri
+
+                conn = sqlite3.connect(readonly_sqlite_uri(db_file), uri=True)
                 try:
                     cursor = conn.cursor()
                     cursor.execute("SELECT value FROM kv_store WHERE key = 'audit_head'")
