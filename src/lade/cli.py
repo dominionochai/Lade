@@ -187,9 +187,9 @@ def report(case_id: str, db_dir: str) -> None:
         md_path.write_text(md_text, encoding="utf-8")
         click.echo(f"  Markdown: {md_path}")
 
-        _MAX_WINDOWS = 50
+        max_windows = 50
         source_names = [s.source_name for s in sources_list]
-        bulk_windows = case_db.get_capped_windows_by_sources(source_names, _MAX_WINDOWS)
+        bulk_windows = case_db.get_capped_windows_by_sources(source_names, max_windows)
         source_windows: dict[str, list[dict[str, object]]] = {}
         for sname, (windows, total) in bulk_windows.items():
             source_windows[sname] = [
