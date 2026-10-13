@@ -7,6 +7,7 @@ is meaningful to the consumer (e.g. verify_evidence_integrity).
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import hashlib
 import json
@@ -222,14 +223,12 @@ def audited_tool(
                 result = func(*args, **kwargs)
                 elapsed = (time.monotonic() - t0) * 1000
                 if hasattr(ctx, "db") and ctx.db is not None:
-                    try:
+                    with contextlib.suppress(Exception):
                         ctx.db.store_tool_output(
                             tool_call_id=tc_id,
                             tool_name=tool_name,
                             output_text=result,
                         )
-                    except Exception:
-                        pass
                 ctx.audit.log_tool_call(
                     tool_call_id=tc_id,
                     tool_name=tool_name,
@@ -329,14 +328,12 @@ def windowed_response(
     if has_ctx():
         ctx = get_ctx()
         if hasattr(ctx, "db") and ctx.db is not None:
-            try:
+            with contextlib.suppress(Exception):
                 ctx.db.store_tool_output(
                     tool_call_id=tc_id,
                     tool_name=tool_name,
                     output_text=results,
                 )
-            except Exception:
-                pass
         ctx.audit.log_tool_call(
             tool_call_id=tc_id,
             tool_name=tool_name,
@@ -393,14 +390,12 @@ def tool_response(
     if has_ctx():
         ctx = get_ctx()
         if hasattr(ctx, "db") and ctx.db is not None:
-            try:
+            with contextlib.suppress(Exception):
                 ctx.db.store_tool_output(
                     tool_call_id=tc_id,
                     tool_name=tool_name,
                     output_text=results,
                 )
-            except Exception:
-                pass
         ctx.audit.log_tool_call(
             tool_call_id=tc_id,
             tool_name=tool_name,
@@ -464,6 +459,13 @@ def error_response(
     """Build an audited error response and log the tool call."""
     if has_ctx():
         ctx = get_ctx()
+        if hasattr(ctx, "db") and ctx.db is not None:
+            with contextlib.suppress(Exception):
+                ctx.db.store_tool_output(
+                    tool_call_id=tc_id,
+                    tool_name=tool_name,
+                    output_text={"error": error},
+                )
         ctx.audit.log_tool_call(
             tool_call_id=tc_id,
             tool_name=tool_name,

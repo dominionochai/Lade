@@ -144,6 +144,7 @@ tool_outputs_t = Table(
     Column("output_text", Text, nullable=False),
     Column("output_hash", Text, nullable=False),
     Column("truncated", Integer, nullable=False),
+    Column("output_length", Integer, nullable=False),
     Column("created_at", Text, nullable=False),
 )
 
@@ -350,6 +351,7 @@ def _migrate_add_tool_outputs(conn: Connection) -> None:
             "  output_text TEXT NOT NULL,"
             "  output_hash TEXT NOT NULL,"
             "  truncated INTEGER NOT NULL,"
+            "  output_length INTEGER NOT NULL,"
             "  created_at TEXT NOT NULL"
             ")"
         )
@@ -1519,14 +1521,16 @@ class CaseDB:
             truncated = 0
 
         now = created_at or datetime.now(timezone.utc).isoformat()
+        output_length = len(text_val)
 
         def _do_store() -> None:
             with self._engine.begin() as conn:
                 conn.execute(
                     text(
                         "INSERT OR REPLACE INTO tool_outputs "
-                        "(tool_call_id, tool_name, output_text, output_hash, truncated, created_at) "
-                        "VALUES (:tc_id, :t_name, :out_txt, :out_hash, :trunc, :created)"
+                        "(tool_call_id, tool_name, output_text, output_hash, "
+                        "truncated, output_length, created_at) "
+                        "VALUES (:tc_id, :t_name, :out_txt, :out_hash, :trunc, :out_len, :created)"
                     ),
                     {
                         "tc_id": tool_call_id,
@@ -1534,6 +1538,7 @@ class CaseDB:
                         "out_txt": stored_text,
                         "out_hash": full_hash,
                         "trunc": truncated,
+                        "out_len": output_length,
                         "created": now,
                     },
                 )
@@ -1546,7 +1551,8 @@ class CaseDB:
             row = conn.execute(
                 text(
                     "SELECT tool_call_id, tool_name, output_text, output_hash, "
-                    "truncated, created_at FROM tool_outputs WHERE tool_call_id = :tc_id"
+                    "truncated, output_length, created_at "
+                    "FROM tool_outputs WHERE tool_call_id = :tc_id"
                 ),
                 {"tc_id": tool_call_id},
             ).fetchone()
@@ -1558,7 +1564,8 @@ class CaseDB:
             "output_text": row[2],
             "output_hash": row[3],
             "truncated": row[4],
-            "created_at": row[5],
+            "output_length": row[5],
+            "created_at": row[6],
         }
 
     def get_all_tool_outputs(self) -> list[dict[str, Any]]:
@@ -1567,7 +1574,7 @@ class CaseDB:
             rows = conn.execute(
                 text(
                     "SELECT tool_call_id, tool_name, output_text, output_hash, "
-                    "truncated, created_at FROM tool_outputs"
+                    "truncated, output_length, created_at FROM tool_outputs"
                 )
             ).fetchall()
         return [
@@ -1577,7 +1584,8 @@ class CaseDB:
                 "output_text": row[2],
                 "output_hash": row[3],
                 "truncated": row[4],
-                "created_at": row[5],
+                "output_length": row[5],
+                "created_at": row[6],
             }
             for row in rows
         ]

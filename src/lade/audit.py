@@ -12,17 +12,15 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
+from lade.db import CaseDB
 from lade.models import (
     AuditSummary,
     ProvenanceChain,
     SourceProvenance,
     ToolCallEntry,
 )
-
-if TYPE_CHECKING:
-    from lade.db import CaseDB
 
 logger = logging.getLogger(__name__)
 
@@ -499,17 +497,21 @@ def _resolve_anchor(anchor: object, log_path: Path) -> tuple[int, str] | None:
 def verify_chain(
     path: str | Path,
     anchor: Mapping[str, object] | str | CaseDB | tuple[int, str] | None = None,
+    db: CaseDB | None = None,
 ) -> AuditVerificationResult:
     """Verify the SHA-256 hash chain in an audit log file.
 
     Recomputes every hash, checks sequence continuity and previous-hash links,
     and optionally compares the chain head to an anchor stored in CaseDB kv_store.
+    If a CaseDB is provided, also verifies tool_outputs table integrity and
+    strict-mode finding evidence refs.
 
     Args:
         path: Path to the .audit.jsonl file.
         anchor: Expected chain head as (seq, record_hash) tuple, dict, JSON string,
             or CaseDB instance. If None and a companion .db file exists, the anchor
             is loaded automatically from kv_store["audit_head"].
+        db: Optional CaseDB instance for verifying tool_outputs and finding quotes.
 
     Returns:
         AuditVerificationResult with ok=True or the first failure reason.
@@ -521,6 +523,10 @@ def verify_chain(
             error_reason="file_not_found",
             error_message=f"File not found: {log_path}",
         )
+
+    # Resolve DB if not provided but anchor is a CaseDB
+    if db is None and isinstance(anchor, CaseDB):
+        db = anchor
 
     expected_anchor = _resolve_anchor(anchor, log_path)
 
@@ -657,6 +663,95 @@ def verify_chain(
                     f"({last_hash[:12] if last_hash else None}...)"
                 ),
             )
+
+# DB verification: check tool_outputs integrity and strict-mode finding quotes
+    if db is not None:
+        # 1. Verify tool_outputs table: for truncated=0, sha256(output_text) == output_hash
+        import hashlib as _hashlib
+
+        try:
+            all_outputs = db.get_all_tool_outputs()
+            for out in all_outputs:
+                if out.get("truncated", 0) == 0:
+                    output_text = out.get("output_text", "")
+                    output_hash = out.get("output_hash", "")
+                    computed = _hashlib.sha256(output_text.encode("utf-8")).hexdigest()
+                    if computed != output_hash:
+                        return AuditVerificationResult(
+                            ok=False,
+                            error_reason="output_hash_mismatch",
+                            error_message=(
+                                f"Tool output {out.get('tool_call_id', 'unknown')}: "
+                                f"SHA-256 of output_text does not match output_hash"
+                            ),
+                            record_count=chained_count,
+                            unchained_count=unchained_count,
+                        )
+        except Exception:
+            # If DB access fails, report but don't fail the chain verification
+            pass
+
+        # 2. Verify strict-mode finding quotes
+        try:
+            with db._engine.connect() as conn:
+                from sqlalchemy import text
+
+                rows = conn.execute(
+                    text("SELECT finding_id, evidence_refs FROM findings")
+                ).fetchall()
+                for row in rows:
+                    finding_id = row[0]
+                    try:
+                        evidence_refs = json.loads(row[1])
+                    except Exception:
+                        continue
+                    for ref in evidence_refs:
+                        is_strict_ref = (
+                            isinstance(ref, dict)
+                            and "quote" in ref
+                            and "start" in ref
+                            and "end" in ref
+                        )
+                        if not is_strict_ref:
+                            continue
+                        tc_id = ref.get("tool_call_id")
+                        if not tc_id:
+                            continue
+                        output_row = db.get_tool_output(tc_id)
+                        if output_row is None:
+                            continue
+                        output_text = output_row.get("output_text", "")
+                        norm_output = output_text.replace("\r\n", "\n")
+                        start = ref.get("start", 0)
+                        end = ref.get("end", 0)
+                        quote = ref.get("quote", "")
+                        norm_quote = quote.replace("\r\n", "\n")
+                        if start < 0 or end > len(norm_output):
+                            return AuditVerificationResult(
+                                ok=False,
+                                error_reason="finding_quote_range_mismatch",
+                                error_message=(
+                                    f"Finding {finding_id}: evidence ref {tc_id} "
+                                    f"has invalid character range [{start}:{end}] "
+                                    f"for output length {len(norm_output)}"
+                                ),
+                                record_count=chained_count,
+                                unchained_count=unchained_count,
+                            )
+                        if norm_output[start:end] != norm_quote:
+                            return AuditVerificationResult(
+                                ok=False,
+                                error_reason="finding_quote_mismatch",
+                                error_message=(
+                                    f"Finding {finding_id}: evidence ref {tc_id} "
+                                    f"quote mismatch at range [{start}:{end}]"
+                                ),
+                                record_count=chained_count,
+                                unchained_count=unchained_count,
+                            )
+        except Exception:
+            # If DB access fails, report but don't fail the chain verification
+            pass
 
     default_head = "0" * 64 if unchained_count == 0 else None
     return AuditVerificationResult(

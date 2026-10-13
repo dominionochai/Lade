@@ -27,7 +27,7 @@ from lade.models import AuditSummary, CaseMetadataRow, Finding, SourceRow
 from lade.patterns import SEVERITY_ORDER, source_is_cited
 from lade.report.renderer import ReportRenderer
 from lade.server.app import get_ctx, get_job_store, mcp
-from lade.server.helpers import error_response, hash_output, make_tool_call_id
+from lade.server.helpers import error_response, get_evidence_mode, hash_output, make_tool_call_id
 from lade.server.tool_access import ANALYSTS, Role, tool_access
 
 logger = logging.getLogger(__name__)
@@ -246,6 +246,100 @@ def _sanitize_event_time(ts: str | None) -> tuple[str | None, str | None]:
     return ts, None
 
 
+def _validate_evidence_refs(
+    ctx, evidence_refs: list[str | dict[str, Any]]
+) -> tuple[list[str | dict[str, Any]], str | None]:
+    """Validate evidence_refs against stored tool outputs.
+
+    Returns (validated_refs, error_message). If error_message is not None,
+    the finding should be rejected.
+    """
+    mode = get_evidence_mode()
+    if mode == "legacy":
+        # Legacy mode: just check tool_call_ids exist in audit log
+        invalid_refs = []
+        for ref in evidence_refs:
+            tc_id = ref if isinstance(ref, str) else ref.get("tool_call_id")
+            if not tc_id or not ctx.audit.has_tool_call(tc_id):
+                invalid_refs.append(tc_id if tc_id else str(ref))
+        if invalid_refs:
+            return evidence_refs, (
+                f"Invalid evidence_ref(s): {', '.join(invalid_refs)} "
+                f"not found in the audit log"
+            )
+        return evidence_refs, None
+
+    # Strict mode: evidence_refs must be objects with tool_call_id and quote
+    validated_refs = []
+    for i, ref in enumerate(evidence_refs):
+        if not isinstance(ref, dict):
+            return evidence_refs, (
+                f"Evidence ref #{i+1}: in strict mode, evidence_refs must be objects "
+                f"with 'tool_call_id' and 'quote' fields (rule: format)"
+            )
+        tc_id = ref.get("tool_call_id")
+        quote = ref.get("quote")
+        if not tc_id or not isinstance(tc_id, str):
+            return evidence_refs, (
+                f"Evidence ref #{i+1}: missing or invalid 'tool_call_id' (rule: tool_call_id)"
+            )
+        if not quote or not isinstance(quote, str):
+            return evidence_refs, (
+                f"Evidence ref #{i+1} ({tc_id}): missing or invalid 'quote' (rule: quote)"
+            )
+
+        # Rule a: tool_call_id exists in tool_outputs and audit log
+        output_row = ctx.db.get_tool_output(tc_id)
+        if output_row is None:
+            return evidence_refs, (
+                f"Evidence ref #{i+1} ({tc_id}): tool_call_id not found in tool_outputs (rule a)"
+            )
+        if not ctx.audit.has_tool_call(tc_id):
+            return evidence_refs, (
+                f"Evidence ref #{i+1} ({tc_id}): tool_call_id not found in audit log (rule a)"
+            )
+
+        # Rule b: quote length 8-2000 chars
+        quote_len = len(quote)
+        if quote_len < 8 or quote_len > 2000:
+            return evidence_refs, (
+                f"Evidence ref #{i+1} ({tc_id}): quote length ({quote_len}) "
+                f"must be between 8 and 2000 characters (rule b)"
+            )
+
+        # Rule c: quote occurs verbatim in output_text (normalize CRLF to LF)
+        output_text = output_row["output_text"]
+        truncated = output_row.get("truncated", 0)
+        norm_output = output_text.replace("\r\n", "\n")
+        norm_quote = quote.replace("\r\n", "\n")
+        pos = norm_output.find(norm_quote)
+        if pos == -1:
+            if truncated:
+                return evidence_refs, (
+                    f"Evidence ref #{i+1} ({tc_id}): quote does not occur in the "
+                    f"stored portion of the truncated output (rule d)"
+                )
+            return evidence_refs, (
+                f"Evidence ref #{i+1} ({tc_id}): quote does not occur verbatim "
+                f"in tool output (rule c)"
+            )
+
+        # Rule d: if truncated, quote must lie within stored part
+        if truncated:
+            quote_end = pos + len(norm_quote)
+            cap_chars = 2 * 1024 * 1024
+            if quote_end > cap_chars:
+                return evidence_refs, (
+                    f"Evidence ref #{i+1} ({tc_id}): quote extends beyond the "
+                    f"truncated part of the output (rule d)"
+                )
+
+        # Store computed char range
+        validated_refs.append({**ref, "start": pos, "end": pos + len(norm_quote)})
+
+    return validated_refs, None
+
+
 @mcp.tool()
 @tool_access(ANALYSTS)
 def submit_finding(
@@ -282,17 +376,17 @@ def submit_finding(
     tc_id = make_tool_call_id()
     t0 = time.monotonic()
 
-    invalid_refs = [ref for ref in evidence_refs if not ctx.audit.has_tool_call(ref)]
-    if invalid_refs:
-        recent_ids = sorted(ctx.audit.tool_call_ids)[-10:]
+    evidence_refs, validation_error = _validate_evidence_refs(ctx, evidence_refs)
+    if validation_error:
         resp = error_response(
             tc_id,
             "submit_finding",
             {"title": title, "evidence_refs": evidence_refs},
-            f"Invalid evidence_ref(s): {', '.join(invalid_refs)} not found in the audit log",
+            validation_error,
             (time.monotonic() - t0) * 1000,
+            error_type="validation",
         )
-        resp["valid_refs"] = recent_ids
+        resp["valid_refs"] = sorted(ctx.audit.tool_call_ids)[-10:]
         return resp
 
     case_metadata = ctx.db.get_case_metadata()
@@ -428,17 +522,17 @@ def update_finding(
     if evidence_refs == []:
         evidence_refs = None  # a finding must keep >=1 ref; treat [] as "unchanged" (#239)
     if evidence_refs is not None:
-        invalid_refs = [ref for ref in evidence_refs if not ctx.audit.has_tool_call(ref)]
-        if invalid_refs:
-            recent_ids = sorted(ctx.audit.tool_call_ids)[-10:]
+        evidence_refs, validation_error = _validate_evidence_refs(ctx, evidence_refs)
+        if validation_error:
             resp = error_response(
                 tc_id,
                 "update_finding",
                 {"finding_id": finding_id, "evidence_refs": evidence_refs},
-                f"Invalid evidence_ref(s): {', '.join(invalid_refs)} not found in the audit log",
+                validation_error,
                 (time.monotonic() - t0) * 1000,
+                error_type="validation",
             )
-            resp["valid_refs"] = recent_ids
+            resp["valid_refs"] = sorted(ctx.audit.tool_call_ids)[-10:]
             return resp
 
     ts_warnings: list[str] = []

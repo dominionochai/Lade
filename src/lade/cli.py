@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import sys
 from pathlib import Path
@@ -805,9 +806,11 @@ def audit_verify_cmd(target: str, db_dir: str) -> None:
     import sys
 
     from lade.audit import verify_chain
+    from lade.db import CaseDB
 
     target_path = Path(target)
     anchor = None
+    db = None
 
     if target_path.is_file():
         log_path = target_path
@@ -816,24 +819,30 @@ def audit_verify_cmd(target: str, db_dir: str) -> None:
             companion_db = log_path.parent / f"{case_id}.db"
             if companion_db.is_file():
                 anchor = companion_db
+                with contextlib.suppress(Exception):
+                    db = CaseDB.open(case_id, log_path.parent)
     elif Path(f"{target}.audit.jsonl").is_file():
         log_path = Path(f"{target}.audit.jsonl")
         case_id = log_path.name[: -len(".audit.jsonl")]
         companion_db = log_path.parent / f"{case_id}.db"
         if companion_db.is_file():
             anchor = companion_db
+            with contextlib.suppress(Exception):
+                db = CaseDB.open(case_id, log_path.parent)
     else:
         db_dir_path = Path(db_dir).expanduser()
         log_path = db_dir_path / f"{target}.audit.jsonl"
         companion_db = db_dir_path / f"{target}.db"
         if companion_db.is_file():
             anchor = companion_db
+            with contextlib.suppress(Exception):
+                db = CaseDB.open(target, db_dir_path)
 
     if not log_path.exists():
         click.echo(f"Audit log not found: {log_path}", err=True)
         sys.exit(1)
 
-    result = verify_chain(log_path, anchor=anchor)
+    result = verify_chain(log_path, anchor=anchor, db=db)
 
     if result.ok:
         head_prefix = result.head_hash[:12] if result.head_hash else "0" * 12
