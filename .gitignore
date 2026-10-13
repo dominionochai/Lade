@@ -45,3 +45,5 @@ dmypy.json
 *.log
 !examples/**/*.log
 SPEC/
+
+!fixtures/**/*.log
