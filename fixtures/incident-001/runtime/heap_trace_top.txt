@@ -1,0 +1,13 @@
+# tracemalloc top 10 by size, instance 0070a1, taken 2026-10-09 14:04:12Z (RSS 503 MiB, includes ~150 MiB interpreter/native memory not traced)
+ 1: streamcache/store.py:118      size=287.0 MiB  count=37,412   avg=8,044 B  (CacheEntry objects holding /export payloads)
+ 2: streamcache/store.py:131      size=3.3 MiB    count=37,412   avg=92 B     (key strings "export:<uuid>")
+ 3: app/services.py:44            size=22.7 MiB   count=1,904    avg=12,502 B (build_export payloads, in flight)
+ 4: <frozen importlib._bootstrap> size=14.1 MiB   count=96,331
+ 5: fastapi/routing.py:210        size=6.3 MiB    count=23,552
+ 6: json/decoder.py:353           size=3.9 MiB    count=40,110
+ 7: uvicorn/protocols/http.py:88  size=2.2 MiB    count=1,904
+ 8: yamlforge/loader.py:57        size=0.9 MiB    count=312
+ 9: httpx/_client.py:301          size=0.7 MiB    count=140
+10: other                         size=7.6 MiB
+# growth between snapshots 13:34Z and 14:04Z: streamcache CacheEntry count 17,380 -> 37,412 (no decreases)
+# equals one new entry per /export request (~720 requests/min); GC gen2 ran normally and freed nothing from CacheEntry
