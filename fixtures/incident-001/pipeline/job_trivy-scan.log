@@ -1,0 +1,20 @@
+Running with gitlab-runner 17.4.0 (shared-runner-eu-3)
+$ trivy image --severity HIGH,CRITICAL --exit-code 1 $IMAGE:$CI_COMMIT_SHORT_SHA
+2026-10-09T13:07:41Z INFO Vulnerability scanning is enabled
+2026-10-09T13:07:52Z INFO Detected OS: debian 12.7
+2026-10-09T13:07:52Z INFO Number of language-specific files: 1
+
+orders-api:a3f9c1e (debian 12.7)
+================================
+Total: 0 (HIGH: 0, CRITICAL: 0)
+
+Python (python-pkg)
+===================
+Total: 2 (HIGH: 1, CRITICAL: 0)
+
+ Library      Vulnerability     Severity  Installed  Fixed   Title
+ streamcache  CVE-2026-90001    HIGH      2.4.1      2.4.3   streamcache: unbounded cache growth leads to memory exhaustion
+ yamlforge    CVE-2026-90002    MEDIUM    1.8.0      1.8.2   yamlforge: excessive recursion on crafted anchors
+
+ERROR: Job failed: exit code 1
+WARNING: allow_failure is set; pipeline continues. Job passed with warnings.

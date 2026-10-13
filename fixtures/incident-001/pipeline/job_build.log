@@ -1,0 +1,21 @@
+Running with gitlab-runner 17.4.0 (shared-runner-eu-3)
+Executing "step_script" stage of the job script
+$ docker build -t $IMAGE:$CI_COMMIT_SHORT_SHA .
+Step 1/9 : FROM python:3.12-slim
+Step 2/9 : WORKDIR /app
+Step 3/9 : COPY requirements.txt .
+Step 4/9 : RUN pip install --no-cache-dir -r requirements.txt
+Collecting fastapi==0.115.2
+Collecting uvicorn==0.31.0
+Collecting streamcache==2.4.1
+  Downloading streamcache-2.4.1-py3-none-any.whl (41 kB)
+Collecting yamlforge==1.8.0
+Collecting httpx==0.27.2
+Successfully installed fastapi-0.115.2 httpx-0.27.2 streamcache-2.4.1 uvicorn-0.31.0 yamlforge-1.8.0
+Step 5/9 : COPY app ./app
+Step 9/9 : CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+Successfully built 7be1f0d2a9c4
+Successfully tagged europe-west1-docker.pkg.dev/lade-demo-staging/orders/orders-api:a3f9c1e
+$ docker push europe-west1-docker.pkg.dev/lade-demo-staging/orders/orders-api:a3f9c1e
+a3f9c1e: digest: sha256:5d1c0b7e9f3a42c8b6a1e7d4f0c92b38a5e61d7c4f8b0a29e3d56c71f4a8b902 size: 1783
+Job succeeded
