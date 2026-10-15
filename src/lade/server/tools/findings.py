@@ -308,7 +308,7 @@ def _validate_evidence_refs(
             )
 
         # Rule c: quote occurs verbatim in searchable text (normalize CRLF to LF)
-        searchable_text = output_row.get("searchable_text", output_row["output_text"])
+        searchable_text = output_row.get("searchable_text", output_row.get("output_text", ""))
         truncated = output_row.get("truncated", 0)
         norm_output = searchable_text.replace("\r\n", "\n")
         norm_quote = quote.replace("\r\n", "\n")

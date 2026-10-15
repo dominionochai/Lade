@@ -1,0 +1,36 @@
+[33mcommit f2a8113a22445530d89fb0f789c2514a77287d7c[m
+Author: Sethai <dominionchukwuonwe@gmail.com>
+Date:   Thu Oct 15 09:15:00 2026 +0100
+
+    feat: CHAIN LINK - tool_outputs output_text matches audit hash serialization; audit-verify checks store_chain
+    
+    - helpers: extract _serialize_for_hash for consistent JSON serialization
+    - db: use _serialize_for_hash in store_tool_output so stored output_text matches audit hash
+    - audit: collect tool_call entries; verify stored output_text hash matches audit output_hash
+    - new errors: store_chain_mismatch, stored_output_without_audit_record
+    - test: tamper output_text + output_hash together -> audit-verify FAILS
+
+[1mdiff --git a/src/lade/server/helpers.py b/src/lade/server/helpers.py[m
+[1mindex 550bc68..6d39b2f 100644[m
+[1m--- a/src/lade/server/helpers.py[m
+[1m+++ b/src/lade/server/helpers.py[m
+[36m@@ -263,13 +263,18 @@[m [m_HASH_PREFIX = "blake2b:"[m
+ _HASH_DIGEST_SIZE = 32[m
+ [m
+ [m
+[32m+[m[32mdef _serialize_for_hash(output: object) -> str:[m
+[32m+[m[32m    """Serialize output exactly as hash_output does for consistent hashing."""[m
+[32m+[m[32m    return json.dumps(output, sort_keys=True, default=str, ensure_ascii=False)[m
+[32m+[m
+[32m+[m
+ def _blake2b_hex(data: bytes) -> str:[m
+     return _HASH_PREFIX + hashlib.blake2b(data, digest_size=_HASH_DIGEST_SIZE).hexdigest()[m
+ [m
+ [m
+ def hash_output(output: object) -> str:[m
+     """Return a BLAKE2b commitment to the complete JSON form of *output*."""[m
+[31m-    raw = json.dumps(output, sort_keys=True, default=str)[m
+[32m+[m[32m    raw = _serialize_for_hash(output)[m
+     return _blake2b_hex(raw.encode())[m
+ [m
+ [m

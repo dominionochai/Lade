@@ -785,10 +785,10 @@ def verify_chain(
                         output_row = db.get_tool_output(tc_id)
                         if output_row is None:
                             continue
-                        searchable_text = output_row.get(
-                            "searchable_text", output_row.get("output_text", "")
+                        model_text = output_row.get(
+                            "model_text", output_row.get("output_text", "")
                         )
-                        norm_output = searchable_text.replace("\r\n", "\n")
+                        norm_output = model_text.replace("\r\n", "\n")
                         start = ref.get("start", 0)
                         end = ref.get("end", 0)
                         quote = ref.get("quote", "")

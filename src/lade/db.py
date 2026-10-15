@@ -14,6 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Literal, TypedDict, TypeVar, cast
 
+from mcp.server.mcpserver.utilities.func_metadata import _convert_to_content
+from mcp_types import TextContent
 from pydantic import ValidationError
 from sqlalchemy import (
     Column,
@@ -142,6 +144,7 @@ tool_outputs_t = Table(
     Column("tool_call_id", Text, primary_key=True),
     Column("tool_name", Text, nullable=False),
     Column("output_text", Text, nullable=False),
+    Column("model_text", Text, nullable=False),
     Column("output_hash", Text, nullable=False),
     Column("truncated", Integer, nullable=False),
     Column("output_length", Integer, nullable=False),
@@ -349,6 +352,7 @@ def _migrate_add_tool_outputs(conn: Connection) -> None:
             "  tool_call_id TEXT PRIMARY KEY,"
             "  tool_name TEXT NOT NULL,"
             "  output_text TEXT NOT NULL,"
+            "  model_text TEXT NOT NULL,"
             "  output_hash TEXT NOT NULL,"
             "  truncated INTEGER NOT NULL,"
             "  output_length INTEGER NOT NULL,"
@@ -1498,13 +1502,17 @@ class CaseDB:
         """Extract human-readable text from stored output for quote searching.
 
         If output is a JSON object with a 'raw_text' field, return that.
+        If output is a JSON object with a 'result' field (from model_text), return that.
         If output is a JSON string, return the string value.
         Otherwise return the output_text as-is.
         """
         try:
             obj = json.loads(output_text)
-            if isinstance(obj, dict) and "raw_text" in obj:
-                return obj["raw_text"]
+            if isinstance(obj, dict):
+                if "raw_text" in obj:
+                    return obj["raw_text"]
+                if "result" in obj and isinstance(obj["result"], str):
+                    return obj["result"]
             if isinstance(obj, str):
                 return obj
         except Exception:
@@ -1515,6 +1523,24 @@ class CaseDB:
     def _serialize_for_hash(self, output: object) -> str:
         """Serialize output exactly as hash_output does for consistent hashing."""
         return json.dumps(output, sort_keys=True, default=str, ensure_ascii=False)
+
+    def _model_text_from_result(self, output_text: object, tool_call_id: str) -> str:
+        """Convert result to the text the model sees, including tool_call_id."""
+        # Create a copy with tool_call_id added (as the model sees it)
+        if isinstance(output_text, dict):
+            output_with_tc = dict(output_text)
+            output_with_tc["tool_call_id"] = tool_call_id
+        else:
+            # For non-dict results, wrap in a dict with tool_call_id
+            output_with_tc = {"result": output_text, "tool_call_id": tool_call_id}
+
+        content_blocks = _convert_to_content(output_with_tc)
+        if content_blocks:
+            first = content_blocks[0]
+            if isinstance(first, TextContent):
+                return first.text
+        # Fallback
+        return _convert_to_content(output_with_tc)[0].text
 
 
     def store_tool_output(
@@ -1543,19 +1569,28 @@ class CaseDB:
         now = created_at or datetime.now(timezone.utc).isoformat()
         output_length = len(text_val)
 
+        # Compute model_text (what the model sees, with tool_call_id included)
+        try:
+            model_text = self._model_text_from_result(output_text, tool_call_id)
+        except Exception:
+            # Fallback: use stored_text if conversion fails
+            model_text = stored_text
+
         def _do_store() -> None:
             with self._engine.begin() as conn:
                 conn.execute(
                     text(
                         "INSERT OR REPLACE INTO tool_outputs "
-                        "(tool_call_id, tool_name, output_text, output_hash, "
+                        "(tool_call_id, tool_name, output_text, model_text, output_hash, "
                         "truncated, output_length, created_at) "
-                        "VALUES (:tc_id, :t_name, :out_txt, :out_hash, :trunc, :out_len, :created)"
+                        "VALUES (:tc_id, :t_name, :out_txt, :model_txt, :out_hash, "
+                        ":trunc, :out_len, :created)"
                     ),
                     {
                         "tc_id": tool_call_id,
                         "t_name": tool_name,
                         "out_txt": stored_text,
+                        "model_txt": model_text,
                         "out_hash": full_hash,
                         "trunc": truncated,
                         "out_len": output_length,
@@ -1570,7 +1605,7 @@ class CaseDB:
         with self._engine.connect() as conn:
             row = conn.execute(
                 text(
-                    "SELECT tool_call_id, tool_name, output_text, output_hash, "
+                    "SELECT tool_call_id, tool_name, output_text, model_text, output_hash, "
                     "truncated, output_length, created_at "
                     "FROM tool_outputs WHERE tool_call_id = :tc_id"
                 ),
@@ -1583,10 +1618,11 @@ class CaseDB:
             "tool_call_id": row[0],
             "tool_name": row[1],
             "output_text": output_text,
-            "output_hash": row[3],
-            "truncated": row[4],
-            "output_length": row[5],
-            "created_at": row[6],
+            "model_text": row[3],
+            "output_hash": row[4],
+            "truncated": row[5],
+            "output_length": row[6],
+            "created_at": row[7],
             "searchable_text": self._extract_searchable_text(output_text),
         }
 
@@ -1595,7 +1631,7 @@ class CaseDB:
         with self._engine.connect() as conn:
             rows = conn.execute(
                 text(
-                    "SELECT tool_call_id, tool_name, output_text, output_hash, "
+                    "SELECT tool_call_id, tool_name, output_text, model_text, output_hash, "
                     "truncated, output_length, created_at FROM tool_outputs"
                 )
             ).fetchall()
@@ -1604,10 +1640,11 @@ class CaseDB:
                 "tool_call_id": row[0],
                 "tool_name": row[1],
                 "output_text": row[2],
-                "output_hash": row[3],
-                "truncated": row[4],
-                "output_length": row[5],
-                "created_at": row[6],
+                "model_text": row[3],
+                "output_hash": row[4],
+                "truncated": row[5],
+                "output_length": row[6],
+                "created_at": row[7],
             }
             for row in rows
         ]

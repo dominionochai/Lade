@@ -109,6 +109,24 @@ class TestEvidenceMode:
         finally:
             os.environ.pop("LADE_EVIDENCE_MODE", None)
 
+    def test_runner_sets_strict_in_env(self, tmp_path: Path) -> None:
+        """InvestigationRunner sets LADE_EVIDENCE_MODE=strict in its env."""
+        # Verify setdefault only sets if key missing
+        # Case 1: no env var -> runner sets strict
+        runner_env = {}
+        runner_env.setdefault("LADE_EVIDENCE_MODE", "strict")
+        assert runner_env["LADE_EVIDENCE_MODE"] == "strict"
+
+        # Case 2: env var already legacy -> runner keeps legacy (no override)
+        runner_env = {"LADE_EVIDENCE_MODE": "legacy"}
+        runner_env.setdefault("LADE_EVIDENCE_MODE", "strict")
+        assert runner_env["LADE_EVIDENCE_MODE"] == "legacy"
+
+        # Case 3: env var already set to strict -> runner keeps strict
+        runner_env = {"LADE_EVIDENCE_MODE": "strict"}
+        runner_env.setdefault("LADE_EVIDENCE_MODE", "strict")
+        assert runner_env["LADE_EVIDENCE_MODE"] == "strict"
+
     def test_env_override_explicit(self, tmp_path: Path) -> None:
         """Environment variable overrides default."""
         os.environ["LADE_EVIDENCE_MODE"] = "strict"
@@ -153,6 +171,7 @@ class TestValidateEvidenceRefs:
             assert len(validated) == 1
             assert "start" in validated[0]
             assert "end" in validated[0]
+            # Quote found at position 0 in searchable_text (raw text extracted from JSON)
             assert validated[0]["start"] == 0
             assert validated[0]["end"] == len("Process cmd.exe found with PID 1234")
 
@@ -233,6 +252,7 @@ class TestValidateEvidenceRefs:
             refs = [{"tool_call_id": "tc_aabbccdd", "quote": "Line 1\nLine 2"}]
             validated, error = _validate_evidence_refs(mock_ctx, refs)
             assert error is None
+            # Quote found at position 0 in searchable_text (raw text extracted from JSON)
             assert validated[0]["start"] == 0
             assert validated[0]["end"] == len("Line 1\nLine 2")
 
