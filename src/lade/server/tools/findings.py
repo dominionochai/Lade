@@ -347,7 +347,7 @@ def submit_finding(
     description: str,
     severity: str,
     confidence: str,
-    evidence_refs: list[str],
+    evidence_refs: list[str | dict[str, Any]],
     sources: list[str],
     mitre_attack_ids: list[str] | None = None,
     event_time_start: str | None = None,
@@ -361,6 +361,14 @@ def submit_finding(
     you directly examined and that specifically supports this finding's
     claims. Citing a tool_call_id from a search you did not review is
     insufficient.
+
+    In strict mode (investigations), evidence_refs must be objects:
+        {"tool_call_id": str, "quote": str}
+    where quote is 8-2000 chars copied verbatim from that tool's output
+    (CRLF normalized to LF). If the output was truncated, the quote must
+    lie within the stored portion.
+
+    In legacy mode, evidence_refs may be plain tool_call_id strings.
 
     Timestamps must be precise ISO-8601 values copied from tool output;
     pass null rather than fabricating. Day-precision placeholders are
@@ -478,7 +486,7 @@ def update_finding(
     description: str | None = None,
     severity: str | None = None,
     confidence: str | None = None,
-    evidence_refs: list[str] | None = None,
+    evidence_refs: list[str | dict[str, Any]] | None = None,
     sources: list[str] | None = None,
     mitre_attack_ids: list[str] | None = None,
     event_time_start: str | None = None,
@@ -492,6 +500,9 @@ def update_finding(
     with additional context.
 
     Only provided fields are updated.  Omitted fields remain unchanged.
+
+    In strict mode, evidence_refs must be objects with tool_call_id and quote.
+    In legacy mode, strings are accepted.
 
     Args:
         finding_id: The finding ID to update (from get_findings).

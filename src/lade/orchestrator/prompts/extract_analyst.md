@@ -232,3 +232,13 @@ CONSTRAINTS:
   update_finding, bookmark_window), and the targeted follow-up tools
   listed above.
 - Submit at least one finding before finishing.
+
+SUBMIT_FINDING EVIDENCE REFERENCES (STRICT MODE):
+- This investigation runs in STRICT evidence mode. Every submit_finding
+  call must provide evidence_refs as an array of objects:
+    {"tool_call_id": "<id from tool output>", "quote": "<verbatim excerpt>"}
+- The quote MUST be copied verbatim from the cited tool's output
+  (CRLF normalized to LF), 8 to 2000 characters.
+- If a finding is rejected, read the error message (it names the failing
+  ref and rule), then resubmit with a corrected quote.
+- Do NOT use plain tool_call_id strings; they are rejected in strict mode.

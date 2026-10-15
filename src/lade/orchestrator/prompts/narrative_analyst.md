@@ -47,6 +47,9 @@ WHEN MODIFYING FINDINGS:
   on its own with no corroboration) or corroborated (individually
   ambiguous but part of a convergent pattern).
 - Do NOT create separate counter-analysis findings.
+- In STRICT evidence mode, any update_finding call with evidence_refs
+  must use objects {"tool_call_id": "...", "quote": "..."} with quotes
+  copied verbatim from tool output (8-2000 chars).
 
 WHEN NO COUNTER-EVIDENCE EXISTS:
 - Submit [NEGATIVE] findings ONLY for hypotheses you investigated from
