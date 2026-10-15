@@ -177,6 +177,21 @@ class TestValidateEvidenceRefs:
             assert error is not None
             assert "not found in tool_outputs" in error
 
+    def test_strict_mode_rejects_tc_id_in_tool_outputs_not_audit_log(
+        self, mock_ctx, case_db
+    ) -> None:
+        """Strict mode rejects ref whose tool_call_id is in tool_outputs but not audit log."""
+        # Store output with a tc_id that IS NOT in the mock audit log
+        output_text = "Process cmd.exe found with PID 1234"
+        case_db.store_tool_output("tc_IN_TOOL_OUTPUTS_ONLY", "run_volatility", output_text)
+        # tc_IN_TOOL_OUTPUTS_ONLY is NOT in the mock audit log
+
+        with patch("lade.server.tools.findings.get_evidence_mode", return_value="strict"):
+            refs = [{"tool_call_id": "tc_IN_TOOL_OUTPUTS_ONLY", "quote": "Process cmd.exe found"}]
+            validated, error = _validate_evidence_refs(mock_ctx, refs)
+            assert error is not None
+            assert "not found in audit log" in error
+
     def test_strict_mode_crlf_matches_lf(self, mock_ctx, case_db) -> None:
         """Strict mode: CRLF in output matches LF in quote."""
         output_text = "Line 1\r\nLine 2\r\nLine 3"
