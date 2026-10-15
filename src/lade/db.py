@@ -1492,6 +1492,31 @@ class CaseDB:
             ).fetchone()
         return row[0] if row else None
 
+
+    @staticmethod
+    def _extract_searchable_text(output_text: str) -> str:
+        """Extract human-readable text from stored output for quote searching.
+
+        If output is a JSON object with a 'raw_text' field, return that.
+        If output is a JSON string, return the string value.
+        Otherwise return the output_text as-is.
+        """
+        try:
+            obj = json.loads(output_text)
+            if isinstance(obj, dict) and "raw_text" in obj:
+                return obj["raw_text"]
+            if isinstance(obj, str):
+                return obj
+        except Exception:
+            pass
+        return output_text
+
+
+    def _serialize_for_hash(self, output: object) -> str:
+        """Serialize output exactly as hash_output does for consistent hashing."""
+        return json.dumps(output, sort_keys=True, default=str, ensure_ascii=False)
+
+
     def store_tool_output(
         self,
         tool_call_id: str,
@@ -1503,13 +1528,8 @@ class CaseDB:
 
         Invariant: when truncated=0, sha256(output_text) == output_hash.
         """
-        if isinstance(output_text, str):
-            text_val = output_text
-        else:
-            try:
-                text_val = json.dumps(output_text, ensure_ascii=False, default=str)
-            except Exception:
-                text_val = str(output_text)
+        # Serialize exactly as hash_output does for chain verification
+        text_val = self._serialize_for_hash(output_text)
 
         full_hash = hashlib.sha256(text_val.encode("utf-8")).hexdigest()
         cap_chars = 2 * 1024 * 1024
@@ -1558,14 +1578,16 @@ class CaseDB:
             ).fetchone()
         if row is None:
             return None
+        output_text = row[2]
         return {
             "tool_call_id": row[0],
             "tool_name": row[1],
-            "output_text": row[2],
+            "output_text": output_text,
             "output_hash": row[3],
             "truncated": row[4],
             "output_length": row[5],
             "created_at": row[6],
+            "searchable_text": self._extract_searchable_text(output_text),
         }
 
     def get_all_tool_outputs(self) -> list[dict[str, Any]]:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 from datetime import datetime, timezone
@@ -16,7 +15,7 @@ from lade.audit import AuditLog, verify_chain
 from lade.db import CaseDB
 from lade.models import Finding
 from lade.server.app import _tool_dispatch_sync
-from lade.server.helpers import get_evidence_mode
+from lade.server.helpers import get_evidence_mode, hash_output
 from lade.server.tools.findings import _validate_evidence_refs
 
 
@@ -257,12 +256,13 @@ class TestAuditVerify:
 
         # Store a valid tool output
         output_text = "Original output text here"
-        db.store_tool_output("tc_tamper1", "test_tool", output_text)
+        tool_result = {"status": "success", "raw_text": output_text}
+        db.store_tool_output("tc_tamper1", "test_tool", tool_result)
         audit_log.log_tool_call(
             tool_call_id="tc_tamper1",
             tool_name="test_tool",
             params={},
-            output_hash=hashlib.sha256(output_text.encode()).hexdigest(),
+            output_hash=hash_output(tool_result),
             duration_ms=10.0,
         )
 
@@ -287,12 +287,13 @@ class TestAuditVerify:
         audit_log = AuditLog(tmp_path / "quote-tamper.audit.jsonl", db=db)
 
         output_text = "Original output text here with some quote"
-        db.store_tool_output("tc_quote1", "test_tool", output_text)
+        tool_result = {"status": "success", "raw_text": output_text}
+        db.store_tool_output("tc_quote1", "test_tool", tool_result)
         audit_log.log_tool_call(
             tool_call_id="tc_quote1",
             tool_name="test_tool",
             params={},
-            output_hash=hashlib.sha256(output_text.encode()).hexdigest(),
+            output_hash=hash_output(tool_result),
             duration_ms=10.0,
         )
 

@@ -307,10 +307,10 @@ def _validate_evidence_refs(
                 f"must be between 8 and 2000 characters (rule b)"
             )
 
-        # Rule c: quote occurs verbatim in output_text (normalize CRLF to LF)
-        output_text = output_row["output_text"]
+        # Rule c: quote occurs verbatim in searchable text (normalize CRLF to LF)
+        searchable_text = output_row.get("searchable_text", output_row["output_text"])
         truncated = output_row.get("truncated", 0)
-        norm_output = output_text.replace("\r\n", "\n")
+        norm_output = searchable_text.replace("\r\n", "\n")
         norm_quote = quote.replace("\r\n", "\n")
         pos = norm_output.find(norm_quote)
         if pos == -1:

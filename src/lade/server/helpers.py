@@ -263,13 +263,18 @@ _HASH_PREFIX = "blake2b:"
 _HASH_DIGEST_SIZE = 32
 
 
+def _serialize_for_hash(output: object) -> str:
+    """Serialize output exactly as hash_output does for consistent hashing."""
+    return json.dumps(output, sort_keys=True, default=str, ensure_ascii=False)
+
+
 def _blake2b_hex(data: bytes) -> str:
     return _HASH_PREFIX + hashlib.blake2b(data, digest_size=_HASH_DIGEST_SIZE).hexdigest()
 
 
 def hash_output(output: object) -> str:
     """Return a BLAKE2b commitment to the complete JSON form of *output*."""
-    raw = json.dumps(output, sort_keys=True, default=str)
+    raw = _serialize_for_hash(output)
     return _blake2b_hex(raw.encode())
 
 

@@ -537,6 +537,9 @@ def verify_chain(
     last_seq: int | None = None
     last_hash: str | None = None
 
+    # Collect audit log entries for later chain verification
+    audit_entries: list[dict[str, object]] = []
+
     with open(log_path, encoding="utf-8") as fh:
         for line_no, raw_line in enumerate(fh, start=1):
             line = raw_line.strip()
@@ -647,6 +650,10 @@ def verify_chain(
             expected_seq = seq + 1
             expected_prev_hash = record_hash
 
+            # Store tool_call entries for later chain verification
+            if entry.get("type") == "tool_call":
+                audit_entries.append(entry)
+
     if expected_anchor is not None:
         anchor_seq, anchor_hash = expected_anchor
         if last_seq != anchor_seq or last_hash != anchor_hash:
@@ -664,7 +671,14 @@ def verify_chain(
                 ),
             )
 
-# DB verification: check tool_outputs integrity and strict-mode finding quotes
+    # Build index of audit tool_call entries by tool_call_id for chain verification
+    audit_by_tc_id: dict[str, dict[str, object]] = {}
+    for entry in audit_entries:
+        tc_id = entry.get("tool_call_id")
+        if isinstance(tc_id, str):
+            audit_by_tc_id[tc_id] = entry
+
+    # DB verification: check tool_outputs integrity and strict-mode finding quotes
     if db is not None:
         # 1. Verify tool_outputs table: for truncated=0, sha256(output_text) == output_hash
         import hashlib as _hashlib
@@ -691,7 +705,58 @@ def verify_chain(
             # If DB access fails, report but don't fail the chain verification
             pass
 
-        # 2. Verify strict-mode finding quotes
+        # 2. Verify audit-log hash chain against stored outputs (store_chain)
+        try:
+            from lade.server.helpers import hash_output
+
+            all_outputs = db.get_all_tool_outputs()
+            for out in all_outputs:
+                if out.get("truncated", 0) != 0:
+                    continue
+                tc_id = out.get("tool_call_id")
+                if not tc_id:
+                    continue
+                output_text = out.get("output_text", "")
+                # Recompute audit hash from stored output_text
+                try:
+                    output_obj = json.loads(output_text)
+                except Exception:
+                    # If not valid JSON, treat as string
+                    output_obj = output_text
+                recomputed_hash = hash_output(output_obj)
+
+                # Look up audit record for this tool_call_id
+                audit_entry = audit_by_tc_id.get(tc_id)
+                if audit_entry is None:
+                    return AuditVerificationResult(
+                        ok=False,
+                        error_reason="stored_output_without_audit_record",
+                        error_message=(
+                            f"Tool output {tc_id} exists in tool_outputs but has no "
+                            f"matching audit log entry"
+                        ),
+                        record_count=chained_count,
+                        unchained_count=unchained_count,
+                    )
+
+                audit_hash = audit_entry.get("output_hash", "")
+                if recomputed_hash != audit_hash:
+                    return AuditVerificationResult(
+                        ok=False,
+                        error_reason="store_chain_mismatch",
+                        error_message=(
+                            f"Tool output {tc_id}: recomputed hash from stored output "
+                            f"({recomputed_hash[:16]}...) does not match audit log "
+                            f"output_hash ({audit_hash[:16]}...)"
+                        ),
+                        record_count=chained_count,
+                        unchained_count=unchained_count,
+                    )
+        except Exception:
+            # If DB access fails, report but don't fail the chain verification
+            pass
+
+# 3. Verify strict-mode finding quotes
         try:
             with db._engine.connect() as conn:
                 from sqlalchemy import text
@@ -720,8 +785,10 @@ def verify_chain(
                         output_row = db.get_tool_output(tc_id)
                         if output_row is None:
                             continue
-                        output_text = output_row.get("output_text", "")
-                        norm_output = output_text.replace("\r\n", "\n")
+                        searchable_text = output_row.get(
+                            "searchable_text", output_row.get("output_text", "")
+                        )
+                        norm_output = searchable_text.replace("\r\n", "\n")
                         start = ref.get("start", 0)
                         end = ref.get("end", 0)
                         quote = ref.get("quote", "")
