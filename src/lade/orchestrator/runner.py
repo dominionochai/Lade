@@ -119,6 +119,9 @@ class Orchestrator:
         self.env[DB_DIR_ENV_VAR] = str(self._db_dir)
         if self._case_id:
             self.env["LADE_CASE_ID"] = self._case_id
+        # Investigations run in strict evidence mode by default; can be
+        # overridden via LADE_EVIDENCE_MODE env var.
+        self.env.setdefault("LADE_EVIDENCE_MODE", "strict")
         self._last_session_id: str = ""
         self._parallel_extractions = max(1, parallel_extractions)
         self._max_compactions = max_compactions

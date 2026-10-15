@@ -111,6 +111,8 @@ def serve(
     root_logger.setLevel(logging.INFO)
     root_logger.addHandler(file_handler)
 
+    import os
+
     if case_id:
         click.echo(f"Initialising MCP server for case '{case_id}' ...", err=True)
     else:
@@ -123,6 +125,7 @@ def serve(
         max_workers=workers,
         mem_percent_limit=mem_limit,
         cpu_percent_limit=cpu_limit,
+        evidence_mode=os.environ.get("LADE_EVIDENCE_MODE"),
     )
 
     click.echo(f"Starting MCP server (transport={transport}) ...", err=True)

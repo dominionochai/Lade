@@ -341,19 +341,26 @@ def init_server(
     max_workers: int = 8,
     mem_percent_limit: float = 90.0,
     cpu_percent_limit: float = 90.0,
+    evidence_mode: str | None = None,
     **_kwargs: object,
 ) -> None:
     """Initialise server-level config and optionally pre-load a case.
 
     Called by ``cli.py`` before ``mcp.run()``.
     """
+    import os
+
     global _cfg, _job_store, _tool_limiter  # noqa: PLW0603
+
+    if evidence_mode is None:
+        evidence_mode = os.environ.get("LADE_EVIDENCE_MODE", "legacy")
 
     _cfg = ServerConfig(
         db_dir=db_dir,
         max_workers=max_workers,
         mem_percent_limit=mem_percent_limit,
         cpu_percent_limit=cpu_percent_limit,
+        evidence_mode=evidence_mode,
     )
 
     _tool_limiter = anyio.CapacityLimiter(max_workers)

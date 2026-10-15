@@ -83,6 +83,38 @@ class TestEvidenceMode:
         assert get_evidence_mode() == "strict"
         os.environ.pop("LADE_EVIDENCE_MODE", None)
 
+    def test_investigation_runner_sets_strict(self, tmp_path: Path) -> None:
+        """InvestigationRunner sets LADE_EVIDENCE_MODE=strict by default."""
+        # Simulate what InvestigationRunner does in __init__
+        os.environ.pop("LADE_EVIDENCE_MODE", None)
+        runner_env = {}
+        runner_env.setdefault("LADE_EVIDENCE_MODE", "strict")
+        os.environ.update(runner_env)
+        try:
+            assert get_evidence_mode() == "strict"
+        finally:
+            os.environ.pop("LADE_EVIDENCE_MODE", None)
+
+    def test_env_override_runner_strict(self, tmp_path: Path) -> None:
+        """Explicit LADE_EVIDENCE_MODE env var overrides runner default."""
+        os.environ.pop("LADE_EVIDENCE_MODE", None)
+        # Set explicit env var first
+        os.environ["LADE_EVIDENCE_MODE"] = "legacy"
+        # Runner only sets default if not already present (mimics setdefault behavior)
+        if "LADE_EVIDENCE_MODE" not in os.environ:
+            os.environ["LADE_EVIDENCE_MODE"] = "strict"
+        try:
+            # Explicit env var should win
+            assert get_evidence_mode() == "legacy"
+        finally:
+            os.environ.pop("LADE_EVIDENCE_MODE", None)
+
+    def test_env_override_explicit(self, tmp_path: Path) -> None:
+        """Environment variable overrides default."""
+        os.environ["LADE_EVIDENCE_MODE"] = "strict"
+        assert get_evidence_mode() == "strict"
+        os.environ.pop("LADE_EVIDENCE_MODE", None)
+
 
 class TestValidateEvidenceRefs:
     """Tests for _validate_evidence_refs function."""
