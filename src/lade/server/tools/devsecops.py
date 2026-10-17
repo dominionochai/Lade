@@ -1,8 +1,8 @@
 """DevSecOps evidence parsing tools for Lade.
 
 Read-only tools that parse common DevSecOps artifact formats (Trivy reports,
-dependency diffs, CI job logs, and git diffs) found in the case evidence
-directory.
+dependency diffs, CI job logs, git diffs, cloud logs, memory metrics, heap
+traces, and status pages) found in the case evidence directory.
 
 All tools enforce the standard Lade path-containment policy and refuse any
 path containing a folder named ``expected`` (which holds answer keys).
@@ -10,6 +10,8 @@ path containing a folder named ``expected`` (which holds answer keys).
 
 from __future__ import annotations
 
+import csv
+import io
 import json
 import re
 from pathlib import Path
@@ -25,6 +27,10 @@ __all__ = [
     "dependency_diff",
     "ci_job_log",
     "git_diff",
+    "cloud_logs",
+    "memory_metrics",
+    "heap_trace",
+    "status_page",
 ]
 
 
@@ -256,3 +262,207 @@ def git_diff(path: str) -> dict[str, object]:
         result += "\n" + "\n".join(summary_lines)
 
     return {"status": "success", "result": result}
+
+
+@mcp.tool()
+@tool_access(EXECUTORS | ANALYSTS)
+@audited_tool("cloud_logs")
+def cloud_logs(
+    path: str,
+    severity: str | None = None,
+    contains: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+    limit: int = 200,
+) -> dict[str, object]:
+    """Filter Cloud Logging JSONL entries.
+
+    Each entry is rendered as one line:
+    ``timestamp SEVERITY key=value ...`` where ``resource`` labels and
+    ``jsonPayload`` fields are included as ``key=value`` text (null renders
+    as ``None``).
+
+    Args:
+        path: Path to the Cloud Logging JSONL file inside the case evidence.
+        severity: Filter to entries with this severity level.
+        contains: Substring filter on the rendered line text.
+        start: ISO-8601 timestamp; only entries at or after this time are kept.
+        end: ISO-8601 timestamp; only entries before this time are kept.
+        limit: Maximum number of entries to return.
+    """
+    text, error = _read_evidence_text(path)
+    if error is not None:
+        return {"status": "error", "error_message": error}
+
+    out_lines: list[str] = []
+    for raw_line in text.splitlines():
+        raw_line = raw_line.strip()
+        if not raw_line:
+            continue
+        try:
+            entry = json.loads(raw_line)
+        except json.JSONDecodeError:
+            continue
+
+        entry_severity = entry.get("severity", "DEFAULT")
+        if severity is not None and entry_severity != severity:
+            continue
+
+        ts = entry.get("timestamp", "")
+        if start is not None and ts < start:
+            continue
+        if end is not None and ts > end:
+            continue
+
+        parts: list[str] = [ts, entry_severity]
+
+        resource = entry.get("resource", {}) or {}
+        for k, v in (resource.get("labels", {}) or {}).items():
+            parts.append(_kv(k, v))
+
+        payload = entry.get("jsonPayload", {}) or {}
+        if isinstance(payload, dict):
+            for k, v in payload.items():
+                parts.append(_kv(k, v))
+        elif isinstance(payload, str):
+            parts.append(payload)
+
+        rendered = " ".join(parts)
+        if contains is not None and contains not in rendered:
+            continue
+
+        out_lines.append(rendered)
+        if len(out_lines) >= limit:
+            break
+
+    return {"status": "success", "result": "\n".join(out_lines)}
+
+
+def _kv(key: str, value: Any) -> str:
+    """Render a key/value pair from a Cloud Logging payload."""
+    if isinstance(value, bool):
+        return f"{key}={value}"
+    if value is None:
+        return f"{key}=None"
+    if isinstance(value, (dict, list)):
+        return f"{key}={json.dumps(value, default=str)}"
+    return f"{key}={value}"
+
+
+@mcp.tool()
+@tool_access(EXECUTORS | ANALYSTS)
+@audited_tool("memory_metrics")
+def memory_metrics(path: str, revision: str | None = None) -> dict[str, object]:
+    """Analyze per-minute memory metrics from a CSV file.
+
+    Produces one summary line per instance with first/last timestamp,
+    start/end MiB, slope (MiB/min via least squares), and requests/sec
+    statistics.  Adds a ``MiB per 1000 requests`` line per instance.
+
+    Args:
+        path: Path to the per-minute memory metrics CSV file.
+        revision: Optional revision filter (e.g. git SHA); unused when empty.
+    """
+    text, error = _read_evidence_text(path)
+    if error is not None:
+        return {"status": "error", "error_message": error}
+
+    reader = csv.DictReader(io.StringIO(text))
+    by_instance: dict[str, list[dict[str, str]]] = {}
+    for row in reader:
+        inst = (row.get("instance") or "").strip()
+        if not inst:
+            continue
+        by_instance.setdefault(inst, []).append(row)
+
+    lines: list[str] = []
+    for inst in sorted(by_instance):
+        rows = by_instance[inst]
+        rows.sort(key=lambda r: r.get("timestamp", ""))
+        first_ts = rows[0].get("timestamp", "")
+        last_ts = rows[-1].get("timestamp", "")
+
+        mibs: list[float] = []
+        reqs: list[float] = []
+        for r in rows:
+            try:
+                mibs.append(float(r.get("memory_mib", 0)))
+            except (TypeError, ValueError):
+                mibs.append(0.0)
+            try:
+                reqs.append(float(r.get("requests_per_sec", 0)))
+            except (TypeError, ValueError):
+                reqs.append(0.0)
+
+        slope = _least_squares_slope(mibs)
+
+        req_mean = sum(reqs) / len(reqs) if reqs else 0.0
+        req_min = min(reqs) if reqs else 0.0
+        req_max = max(reqs) if reqs else 0.0
+
+        lines.append(
+            f"instance={inst} first={first_ts} last={last_ts} "
+            f"start_mib={mibs[0]:.1f} end_mib={mibs[-1]:.1f} "
+            f"slope={slope:.2f}_mib_per_min "
+            f"reqs_per_sec mean={req_mean:.1f} min={req_min:.1f} max={req_max:.1f}"
+        )
+
+        if req_mean > 0:
+            mib_per_1k = slope * 1000.0 / (req_mean * 60.0)
+            lines.append(f"MiB per 1000 requests: {mib_per_1k:.2f}")
+        else:
+            lines.append("MiB per 1000 requests: N/A")
+
+    return {"status": "success", "result": "\n".join(lines)}
+
+
+def _least_squares_slope(values: list[float]) -> float:
+    """Return the least-squares linear regression slope of *values*.
+
+    The independent variable is the 0-based index (one point per minute),
+    so the slope is in units-per-step where each step is one minute.
+    """
+    n = len(values)
+    if n < 2:
+        return 0.0
+    xs = list(range(n))
+    sum_x = sum(xs)
+    sum_y = sum(values)
+    sum_xy = sum(x * y for x, y in zip(xs, values, strict=True))
+    sum_xx = sum(x * x for x in xs)
+    denom = n * sum_xx - sum_x * sum_x
+    if denom == 0:
+        return 0.0
+    return (n * sum_xy - sum_x * sum_y) / denom
+
+
+@mcp.tool()
+@tool_access(EXECUTORS | ANALYSTS)
+@audited_tool("heap_trace")
+def heap_trace(path: str) -> dict[str, object]:
+    """Return a heap trace dump with line numbers.
+
+    Args:
+        path: Path to the heap trace file inside the case evidence.
+    """
+    text, error = _read_evidence_text(path)
+    if error is not None:
+        return {"status": "error", "error_message": error}
+
+    return {"status": "success", "result": _numbered_lines(text)}
+
+
+@mcp.tool()
+@tool_access(EXECUTORS | ANALYSTS)
+@audited_tool("status_page")
+def status_page(path: str) -> dict[str, object]:
+    """Return a service status page with line numbers.
+
+    Args:
+        path: Path to the status page file inside the case evidence.
+    """
+    text, error = _read_evidence_text(path)
+    if error is not None:
+        return {"status": "error", "error_message": error}
+
+    return {"status": "success", "result": _numbered_lines(text)}
