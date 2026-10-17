@@ -1,0 +1,8 @@
+[2026-10-09T14:07:41Z] Service: streamcache
+[2026-10-09T14:07:41Z] Status: DEGRADED
+[2026-10-09T14:07:41Z] Version: 2.3.4
+[2026-10-09T14:05:00Z] Uptime: 47 minutes
+[2026-10-09T14:07:30Z] Active connections: 42
+[2026-10-09T14:07:40Z] Memory usage: 2.1 GiB / 4.0 GiB
+[2026-10-09T14:07:41Z] Last error: Memory limit of 512 MiB exceeded
+[2026-10-09T14:07:41Z] Health check: failing (OOM kill detected)

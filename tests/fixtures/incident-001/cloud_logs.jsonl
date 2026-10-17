@@ -1,0 +1,3 @@
+{"timestamp":"2026-10-09T14:05:00Z","severity":"INFO","resource":{"type":"gce_instance","labels":{"instance_id":"0070a1"}},"jsonPayload":{"message":"Request processed successfully","max_entries":1000}}
+{"timestamp":"2026-10-09T14:06:00Z","severity":"INFO","resource":{"type":"gce_instance","labels":{"instance_id":"0070a1"}},"jsonPayload":{"message":"Cache miss, fetching from upstream","max_entries":null}}
+{"timestamp":"2026-10-09T14:07:41Z","severity":"ERROR","resource":{"type":"gce_instance","labels":{"instance_id":"0070a1"}},"jsonPayload":{"message":"Memory limit of 512 MiB exceeded","max_entries":null,"stack":"streamcache/store.py:118"}}

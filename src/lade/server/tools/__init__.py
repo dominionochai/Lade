@@ -9,6 +9,7 @@ from lade.server.tools import (  # noqa: F401  # noqa: F401
     chainsaw,
     composite,
     core,
+    devsecops,
     documents,
     email,
     enrichment,

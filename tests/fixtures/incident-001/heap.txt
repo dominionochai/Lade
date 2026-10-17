@@ -1,0 +1,15 @@
+Pympler heap trace at 2026-10-09T14:07:41Z
+=========================================
+Process memory: 1247.3 MiB / 4096.0 MiB (30.4%)
+
+Top memory consumers:
+  128.0 MiB : streamcache/store.py:118   get_cache (get_cache)
+  64.5 MiB  : requests/sessions.py:45   Session.resolve_redirects
+  32.1 MiB  : urllib3/connectionpool.py:783 HTTPConnectionPool.urlopen
+
+Traceback (most recent call last):
+  File "streamcache/app.py", line 42, in handle_request
+    result = cache.get(key)
+  File "streamcache/store.py", line 118, in get_cache
+    data = self._fetch(key)
+MemoryError: Unable to allocate 512 MiB

@@ -1,0 +1,9 @@
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -1,6 +1,6 @@
+ cachetools==5.3.0
+-streamcache==2.3.4
++streamcache==2.4.1
+ requests==2.31.0
+-flask==2.0.0
++flask==2.0.1
