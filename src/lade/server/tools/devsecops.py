@@ -118,9 +118,10 @@ def trivy_report(path: str) -> dict[str, object]:
     lines: list[str] = []
     count = len(vulns)
     sev_summary = ", ".join(f"{s}: {c}" for s, c in sorted(severity_counts.items()))
+    noun = "vulnerability" if count == 1 else "vulnerabilities"
     lines.append(
         f"Trivy report for {artifact} ({artifact_type}): "
-        f"{count} vulnerability{'s' if count != 1 else ''} found"
+        f"{count} {noun} found"
         + (f" ({sev_summary})" if sev_summary else "")
     )
 
@@ -130,7 +131,7 @@ def trivy_report(path: str) -> dict[str, object]:
         installed = v.get("InstalledVersion", "")
         fixed = v.get("FixedVersion", "")
         severity = v.get("Severity", "UNKNOWN")
-        cwes_raw = v.get("CWEs", []) or []
+        cwes_raw = v.get("CweIDs", []) or []
         cwe_ids: list[str] = []
         for cwe in cwes_raw:
             if isinstance(cwe, dict):
@@ -161,13 +162,15 @@ def dependency_diff(path: str) -> dict[str, object]:
 
     removed: dict[str, str] = {}
     added: dict[str, str] = {}
-    pkg_version_re = re.compile(r"^[-+]\s*([A-Za-z0-9_.-]+)==\s*([\w.+-]+)")
+    pkg_version_re = re.compile(r"^[-+]\s*([A-Za-z0-9_.-]+)\s+(\S+)")
 
     for raw_line in text.splitlines():
         line = raw_line.rstrip()
         if line.startswith("---") or line.startswith("+++"):
             continue
         stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
         if stripped.startswith("+ ") or stripped.startswith("+"):
             m = pkg_version_re.match(stripped)
             if m:
@@ -195,9 +198,11 @@ def dependency_diff(path: str) -> dict[str, object]:
 def ci_job_log(path: str) -> dict[str, object]:
     """Return a CI job log with line numbers and a derived job result.
 
-    The job result is derived from the log text: "failed" if the log
-    contains failure indicators, "passed with warnings" if it contains
-    warnings but no failures, otherwise "succeeded".
+    The job result is derived from the log text: "passed with warnings"
+    if the log mentions ``allow_failure`` and contains a ``WARNING`` line
+    (the job was allowed to fail but completed with warnings), otherwise
+    the result is determined by the last ``Job succeeded`` or ``Job failed``
+    line, defaulting to ``succeeded``.
 
     Args:
         path: Path to the CI job log file inside the case evidence.
@@ -215,12 +220,14 @@ def ci_job_log(path: str) -> dict[str, object]:
 def _derive_job_result(text: str) -> str:
     """Derive a job result string from CI log text (deterministic heuristic)."""
     lowered = text.lower()
-    if "fail" in lowered:
-        return "failed"
-    if "warn" in lowered:
+    if "allow_failure" in lowered and "warning" in lowered:
         return "passed with warnings"
-    if "succeed" in lowered or "pass" in lowered:
-        return "succeeded"
+    for line in reversed(text.splitlines()):
+        line_lower = line.lower()
+        if "job succeeded" in line_lower:
+            return "succeeded"
+        if "job failed" in line_lower:
+            return "failed"
     return "succeeded"
 
 
