@@ -97,6 +97,7 @@ def trivy_report(path: str) -> dict[str, object]:
     text, error = _read_evidence_text(path)
     if error is not None:
         return {"status": "error", "error_message": error}
+    assert text is not None
 
     try:
         data = json.loads(text)
@@ -159,6 +160,7 @@ def dependency_diff(path: str) -> dict[str, object]:
     text, error = _read_evidence_text(path)
     if error is not None:
         return {"status": "error", "error_message": error}
+    assert text is not None
 
     removed: dict[str, str] = {}
     added: dict[str, str] = {}
@@ -210,6 +212,7 @@ def ci_job_log(path: str) -> dict[str, object]:
     text, error = _read_evidence_text(path)
     if error is not None:
         return {"status": "error", "error_message": error}
+    assert text is not None
 
     numbered = _numbered_lines(text)
     job_result = _derive_job_result(text)
@@ -243,6 +246,7 @@ def git_diff(path: str) -> dict[str, object]:
     text, error = _read_evidence_text(path)
     if error is not None:
         return {"status": "error", "error_message": error}
+    assert text is not None
 
     numbered = _numbered_lines(text)
 
@@ -285,9 +289,10 @@ def cloud_logs(
     """Filter Cloud Logging JSONL entries.
 
     Each entry is rendered as one line:
-    ``timestamp SEVERITY key=value ...`` where ``resource`` labels and
-    ``jsonPayload`` fields are included as ``key=value`` text (null renders
-    as ``None``).
+    ``timestamp SEVERITY revision=NAME instance=ID ...`` where
+    ``resource.labels`` (revision_name), ``labels.instanceId``,
+    ``httpRequest``, ``textPayload``, and ``jsonPayload`` fields are all
+    included (null renders as ``None``).
 
     Args:
         path: Path to the Cloud Logging JSONL file inside the case evidence.
@@ -300,6 +305,7 @@ def cloud_logs(
     text, error = _read_evidence_text(path)
     if error is not None:
         return {"status": "error", "error_message": error}
+    assert text is not None
 
     out_lines: list[str] = []
     for raw_line in text.splitlines():
@@ -324,8 +330,28 @@ def cloud_logs(
         parts: list[str] = [ts, entry_severity]
 
         resource = entry.get("resource", {}) or {}
-        for k, v in (resource.get("labels", {}) or {}).items():
-            parts.append(_kv(k, v))
+        rev = (resource.get("labels", {}) or {}).get("revision_name", "")
+        if rev:
+            parts.append(f"revision={rev}")
+
+        entry_labels = entry.get("labels", {}) or {}
+        inst = entry_labels.get("instanceId", "")
+        if inst:
+            parts.append(f"instance={inst}")
+
+        http = entry.get("httpRequest", {}) or {}
+        if http:
+            if http.get("requestMethod"):
+                parts.append(f"httpMethod={http['requestMethod']}")
+            if http.get("requestUrl"):
+                parts.append(f"requestUrl={http['requestUrl']}")
+            if http.get("status"):
+                parts.append(f"status={http['status']}")
+            if http.get("latency"):
+                parts.append(f"latency={http['latency']}")
+
+        if entry.get("textPayload"):
+            parts.append(entry["textPayload"])
 
         payload = entry.get("jsonPayload", {}) or {}
         if isinstance(payload, dict):
@@ -368,16 +394,22 @@ def memory_metrics(path: str, revision: str | None = None) -> dict[str, object]:
 
     Args:
         path: Path to the per-minute memory metrics CSV file.
-        revision: Optional revision filter (e.g. git SHA); unused when empty.
+        revision: Optional revision name filter (e.g. ``orders-api-00042-kqz``);
+            when provided, only rows matching this revision are included.
     """
     text, error = _read_evidence_text(path)
     if error is not None:
         return {"status": "error", "error_message": error}
+    assert text is not None
 
     reader = csv.DictReader(io.StringIO(text))
     by_instance: dict[str, list[dict[str, str]]] = {}
     for row in reader:
-        inst = (row.get("instance") or "").strip()
+        if revision is not None:
+            row_rev = (row.get("revision") or "").strip()
+            if row_rev != revision:
+                continue
+        inst = (row.get("instance_id") or "").strip()
         if not inst:
             continue
         by_instance.setdefault(inst, []).append(row)
@@ -385,9 +417,9 @@ def memory_metrics(path: str, revision: str | None = None) -> dict[str, object]:
     lines: list[str] = []
     for inst in sorted(by_instance):
         rows = by_instance[inst]
-        rows.sort(key=lambda r: r.get("timestamp", ""))
-        first_ts = rows[0].get("timestamp", "")
-        last_ts = rows[-1].get("timestamp", "")
+        rows.sort(key=lambda r: r.get("timestamp_utc", ""))
+        first_ts = rows[0].get("timestamp_utc", "")
+        last_ts = rows[-1].get("timestamp_utc", "")
 
         mibs: list[float] = []
         reqs: list[float] = []
@@ -455,6 +487,7 @@ def heap_trace(path: str) -> dict[str, object]:
     text, error = _read_evidence_text(path)
     if error is not None:
         return {"status": "error", "error_message": error}
+    assert text is not None
 
     return {"status": "success", "result": _numbered_lines(text)}
 
@@ -471,5 +504,6 @@ def status_page(path: str) -> dict[str, object]:
     text, error = _read_evidence_text(path)
     if error is not None:
         return {"status": "error", "error_message": error}
+    assert text is not None
 
     return {"status": "success", "result": _numbered_lines(text)}
