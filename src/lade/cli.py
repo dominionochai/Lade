@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -305,6 +306,13 @@ def report(case_id: str, db_dir: str) -> None:
     help="LiteLLM config YAML for custom model routing.",
 )
 @click.option(
+    "--profile",
+    default=None,
+    type=click.Choice(["devsecops", "dfir"]),
+    help="Investigation profile controlling the tool allowlist (env: LADE_PROFILE). "
+    "devsecops (default) excludes DFIR binary tools; dfir includes all tools.",
+)
+@click.option(
     "--show-cli-stderr",
     is_flag=True,
     help="Stream agent CLI diagnostics to the dashboard and orchestrator.log.",
@@ -325,6 +333,7 @@ def investigate(
     proxy_config: str | None,
     no_thinking: bool,
     show_cli_stderr: bool,
+    profile: str | None,
 ) -> None:
     """Run a full multi-pass forensic investigation.
 
@@ -389,6 +398,11 @@ def investigate(
         config_path=config_path,
     )
 
+    if profile:
+        os.environ["LADE_PROFILE"] = profile
+    elif os.environ.get("LADE_PROFILE", "") == "":
+        os.environ["LADE_PROFILE"] = "devsecops"
+
     click.echo(
         f"Lade v{__version__} \u2014 The truth is in the data.",
         err=True,
@@ -403,6 +417,7 @@ def investigate(
     else:
         click.echo(f"Effort: {effort}, Workers: {workers}", err=True)
     click.echo(f"Logging to {log_file}", err=True)
+    click.echo(f"Profile: {profile or os.environ.get('LADE_PROFILE', 'devsecops')}", err=True)
 
     orchestrator = Orchestrator(
         evidence_path=evidence_path,
@@ -418,6 +433,7 @@ def investigate(
         no_thinking=no_thinking,
         show_cli_stderr=show_cli_stderr,
         max_compactions=max_compactions,
+        profile=profile or os.environ.get("LADE_PROFILE", "devsecops"),
     )
 
     from lade.orchestrator.errors import (

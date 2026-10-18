@@ -82,6 +82,7 @@ class Orchestrator:
         no_thinking: bool = False,
         show_cli_stderr: bool = False,
         max_compactions: int = DEFAULT_MAX_COMPACTIONS,
+        profile: str = "devsecops",
     ) -> None:
         """Initialize the orchestrator.
 
@@ -106,6 +107,9 @@ class Orchestrator:
             show_cli_stderr: Stream agent CLI diagnostics to the dashboard and log.
             max_compactions: Continuation sessions allowed per role session
                 after context exhaustion; ``0`` disables continuations.
+            profile: Investigation profile (``devsecops`` or ``dfir``).
+                Controls which tools appear in the allowlist.  Exported to
+                agent sessions via ``LADE_PROFILE``.
         """
         self.evidence_path = evidence_path
         self.cwd = str(cwd)
@@ -122,6 +126,9 @@ class Orchestrator:
         # Investigations run in strict evidence mode by default; can be
         # overridden via LADE_EVIDENCE_MODE env var.
         self.env.setdefault("LADE_EVIDENCE_MODE", "strict")
+        # Propagate the profile so child server sessions build the same
+        # allowlists.
+        self.env.setdefault("LADE_PROFILE", profile)
         self._last_session_id: str = ""
         self._parallel_extractions = max(1, parallel_extractions)
         self._max_compactions = max_compactions
