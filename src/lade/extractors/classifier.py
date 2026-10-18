@@ -20,6 +20,8 @@ _BROWSER_HISTORY_NAMES = {"index.dat"}
 _LOG_FILE_EXTS = {".log", ".txt"}
 _LOG_DIR_NAMES = {"logs", "log"}
 _PHONE_DUMP_EXTS = {".bin"}
+_DIFF_EXTS = {".diff"}
+_JSONL_EXTS = {".jsonl"}
 _PHONE_DUMP_MIN_SIZE = 50_000_000
 _PHONE_DB_NAMES = {
     "contacts2.db",
@@ -239,6 +241,24 @@ class EvidenceClassifier:
         ext = path.suffix.lower()
         name = path.name.lower()
 
+        # DevSecOps artifact types — checked before the generic extension skip
+        # so that .json, .csv, and .yml files are not silently discarded.
+
+        if ext == ".json" and "trivy" in name:
+            return ClassifiedEvidence(path=path, artifact_type="trivy_report")
+
+        if ext == ".csv" and "metric" in name:
+            return ClassifiedEvidence(path=path, artifact_type="metrics_csv")
+
+        if ext in (".yml", ".yaml") and ("ci" in name or "gitlab" in name):
+            return ClassifiedEvidence(path=path, artifact_type="ci_config")
+
+        if ext in _DIFF_EXTS:
+            return ClassifiedEvidence(path=path, artifact_type="git_diff")
+
+        if ext in _JSONL_EXTS and "log" in name:
+            return ClassifiedEvidence(path=path, artifact_type="cloud_logs")
+
         # Autoruns CSV files are classified before the general extension skip
         if ext == ".csv" and any(pat in name for pat in _AUTORUNS_CSV_PATTERNS):
             return ClassifiedEvidence(path=path, artifact_type="autoruns_csv")
@@ -282,6 +302,21 @@ class EvidenceClassifier:
 
         if ext in _SQLITE_EXTS:
             return ClassifiedEvidence(path=path, artifact_type="sqlite_database")
+
+        # DevSecOps text artifact types — checked before the generic log_file
+        # so these files get specific types instead of the catch-all.
+
+        if "heap" in name:
+            return ClassifiedEvidence(path=path, artifact_type="heap_trace")
+
+        if "status" in name:
+            return ClassifiedEvidence(path=path, artifact_type="status_page")
+
+        if "dependency" in name:
+            return ClassifiedEvidence(path=path, artifact_type="dependency_diff")
+
+        if ext in _LOG_FILE_EXTS and "job" in name:
+            return ClassifiedEvidence(path=path, artifact_type="ci_job_log")
 
         if ext in _LOG_FILE_EXTS:
             if _is_evidence_sidecar(path):

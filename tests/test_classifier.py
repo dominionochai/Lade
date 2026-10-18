@@ -42,6 +42,20 @@ class TestExtensionMapping:
             ("unknown.sqlite", "sqlite_database"),
             ("server.log", "log_file"),
             ("output.txt", "log_file"),
+            # DevSecOps catalog types
+            ("trivy-image.json", "trivy_report"),
+            ("trivy-fs-report.json", "trivy_report"),
+            ("metrics_per_minute.csv", "metrics_csv"),
+            ("gitlab-ci.yml", "ci_config"),
+            ("gitlab-ci.yaml", "ci_config"),
+            ("ci-config.yml", "ci_config"),
+            ("mr_482.diff", "git_diff"),
+            ("cloud_logging.jsonl", "cloud_logs"),
+            ("dependency-diff.txt", "dependency_diff"),
+            ("heap_trace_top.txt", "heap_trace"),
+            ("gcp_status.txt", "status_page"),
+            ("job_build.log", "ci_job_log"),
+            ("job_deploy-staging.log", "ci_job_log"),
         ],
     )
     def test_known_extensions(
