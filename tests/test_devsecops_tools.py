@@ -1,8 +1,9 @@
 """Tests for DevSecOps evidence reading tools.
 
-Tests run against static fixtures under ``tests/fixtures/incident-001``.
-No network access is required; the path-containment policy is exercised
-including the refusal of any folder named ``expected``.
+Tests run against static fixtures under ``fixtures/incident-001`` (the
+case evidence directory at the repository root).  No network access is
+required; the path-containment policy is exercised including the refusal
+of any folder named ``expected``.
 """
 
 from __future__ import annotations
@@ -18,8 +19,8 @@ from lade.audit import AuditLog
 from lade.db import CaseDB
 from lade.server.app import _tool_dispatch_sync
 
-_FIXTURES = Path(__file__).parent / "fixtures" / "incident-001"
-_EXPECTED = _FIXTURES / "expected" / "answers.md"
+_FIXTURES = Path(__file__).parent.parent / "fixtures" / "incident-001"
+_EXPECTED = _FIXTURES / "expected" / "ANSWER_KEY.md"
 
 _DEVSECOPS_TOOLS = [
     "trivy_report",
@@ -60,7 +61,7 @@ def _call(tool_name: str, **kwargs: object) -> dict[str, object]:
 class TestTrivyReport:
     def test_contains_cve_streamcache_high(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("trivy_report", path=str(_FIXTURES / "trivy.json"))
+        result = _call("trivy_report", path=str(_FIXTURES / "scans" / "trivy-image.json"))
         assert result["status"] == "success"
         text = result["result"]
         assert "CVE-2026-90001" in text
@@ -69,29 +70,46 @@ class TestTrivyReport:
 
     def test_header_has_counts(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("trivy_report", path=str(_FIXTURES / "trivy.json"))
-        assert "1 vulnerability found" in result["result"]
+        result = _call("trivy_report", path=str(_FIXTURES / "scans" / "trivy-image.json"))
+        assert "2 vulnerabilities found" in result["result"]
+
+    def test_cwes_listed(self, incident_env):
+        _ctx, _db, _audit = incident_env
+        result = _call("trivy_report", path=str(_FIXTURES / "scans" / "trivy-image.json"))
+        assert "CWE-770" in result["result"]
+        assert "CWE-401" in result["result"]
 
 
 class TestDependencyDiff:
     def test_reports_streamcache_version_change(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("dependency_diff", path=str(_FIXTURES / "dependency.diff"))
+        result = _call("dependency_diff", path=str(_FIXTURES / "scans" / "dependency-diff.txt"))
         assert result["status"] == "success"
         assert "streamcache: 2.3.4 -> 2.4.1 (changed)" in result["result"]
 
 
 class TestCiJobLog:
-    def test_ends_with_passed_with_warnings(self, incident_env):
+    def test_trivy_scan_job_passed_with_warnings(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("ci_job_log", path=str(_FIXTURES / "job_trivy-scan.log"))
+        result = _call("ci_job_log", path=str(_FIXTURES / "pipeline" / "job_trivy-scan.log"))
         assert result["status"] == "success"
         assert result["result"].endswith("JOB RESULT: passed with warnings")
-        assert result["result"].endswith("passed with warnings")
+
+    def test_build_job_succeeded(self, incident_env):
+        _ctx, _db, _audit = incident_env
+        result = _call("ci_job_log", path=str(_FIXTURES / "pipeline" / "job_build.log"))
+        assert result["status"] == "success"
+        assert result["result"].endswith("JOB RESULT: succeeded")
+
+    def test_deploy_job_succeeded(self, incident_env):
+        _ctx, _db, _audit = incident_env
+        result = _call("ci_job_log", path=str(_FIXTURES / "pipeline" / "job_deploy-staging.log"))
+        assert result["status"] == "success"
+        assert result["result"].endswith("JOB RESULT: succeeded")
 
     def test_line_numbers_present(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("ci_job_log", path=str(_FIXTURES / "job_trivy-scan.log"))
+        result = _call("ci_job_log", path=str(_FIXTURES / "pipeline" / "job_trivy-scan.log"))
         first_line = result["result"].splitlines()[0]
         assert re.match(r"^\d{4}: ", first_line)
 
@@ -99,13 +117,13 @@ class TestCiJobLog:
 class TestGitDiff:
     def test_lists_changed_file(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("git_diff", path=str(_FIXTURES / "git.diff"))
+        result = _call("git_diff", path=str(_FIXTURES / "git" / "mr_482.diff"))
         assert result["status"] == "success"
         assert "FILE app/routes/export.py" in result["result"]
 
     def test_line_numbers_present(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("git_diff", path=str(_FIXTURES / "git.diff"))
+        result = _call("git_diff", path=str(_FIXTURES / "git" / "mr_482.diff"))
         first_line = result["result"].splitlines()[0]
         assert re.match(r"^\d{4}: ", first_line)
 
@@ -114,7 +132,9 @@ class TestCloudLogs:
     def test_severity_error_contains_memory_message(self, incident_env):
         _ctx, _db, _audit = incident_env
         result = _call(
-            "cloud_logs", path=str(_FIXTURES / "cloud_logs.jsonl"), severity="ERROR"
+            "cloud_logs",
+            path=str(_FIXTURES / "cloudrun" / "cloud_logging.jsonl"),
+            severity="ERROR",
         )
         assert result["status"] == "success"
         assert "Memory limit of 512 MiB exceeded" in result["result"]
@@ -124,7 +144,7 @@ class TestCloudLogs:
         _ctx, _db, _audit = incident_env
         result = _call(
             "cloud_logs",
-            path=str(_FIXTURES / "cloud_logs.jsonl"),
+            path=str(_FIXTURES / "cloudrun" / "cloud_logging.jsonl"),
             contains="max_entries",
         )
         assert result["status"] == "success"
@@ -133,16 +153,43 @@ class TestCloudLogs:
     def test_limit_caps_output(self, incident_env):
         _ctx, _db, _audit = incident_env
         result = _call(
-            "cloud_logs", path=str(_FIXTURES / "cloud_logs.jsonl"), limit=1
+            "cloud_logs", path=str(_FIXTURES / "cloudrun" / "cloud_logging.jsonl"), limit=1
         )
         lines = result["result"].splitlines()
         assert len(lines) <= 1
+
+    def test_revision_name_rendered(self, incident_env):
+        _ctx, _db, _audit = incident_env
+        result = _call(
+            "cloud_logs", path=str(_FIXTURES / "cloudrun" / "cloud_logging.jsonl")
+        )
+        assert "revision=orders-api-00042-kqz" in result["result"]
+
+    def test_instance_id_rendered(self, incident_env):
+        _ctx, _db, _audit = incident_env
+        result = _call(
+            "cloud_logs", path=str(_FIXTURES / "cloudrun" / "cloud_logging.jsonl")
+        )
+        assert "instance=0070a1" in result["result"]
+
+    def test_httprequest_rendered(self, incident_env):
+        _ctx, _db, _audit = incident_env
+        result = _call(
+            "cloud_logs",
+            path=str(_FIXTURES / "cloudrun" / "cloud_logging.jsonl"),
+            contains="export",
+        )
+        assert "httpMethod=GET" in result["result"]
+        assert "requestUrl=" in result["result"]
 
 
 class TestMemoryMetrics:
     def test_slope_in_range_for_0070a1(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("memory_metrics", path=str(_FIXTURES / "memory_metrics.csv"))
+        result = _call(
+            "memory_metrics",
+            path=str(_FIXTURES / "cloudrun" / "metrics_per_minute.csv"),
+        )
         assert result["status"] == "success"
         text = result["result"]
         assert "0070a1" in text
@@ -150,24 +197,39 @@ class TestMemoryMetrics:
         match = re.search(r"slope=([\d.]+)_mib_per_min", text)
         assert match is not None
         slope = float(match.group(1))
-        assert 5.0 <= slope <= 7.0
+        assert 5.5 <= slope <= 6.5
 
     def test_mib_per_1000_requests_present(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("memory_metrics", path=str(_FIXTURES / "memory_metrics.csv"))
+        result = _call(
+            "memory_metrics",
+            path=str(_FIXTURES / "cloudrun" / "metrics_per_minute.csv"),
+        )
         assert "MiB per 1000 requests:" in result["result"]
+
+    def test_revision_filter_excludes_other_revisions(self, incident_env):
+        _ctx, _db, _audit = incident_env
+        result = _call(
+            "memory_metrics",
+            path=str(_FIXTURES / "cloudrun" / "metrics_per_minute.csv"),
+            revision="orders-api-00041-fxd",
+        )
+        assert result["status"] == "success"
+        text = result["result"]
+        assert "00a1f0" in text
+        assert "0070a1" not in text
 
 
 class TestHeapTrace:
     def test_contains_store_py_118(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("heap_trace", path=str(_FIXTURES / "heap.txt"))
+        result = _call("heap_trace", path=str(_FIXTURES / "runtime" / "heap_trace_top.txt"))
         assert result["status"] == "success"
         assert "streamcache/store.py:118" in result["result"]
 
     def test_line_numbers_present(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("heap_trace", path=str(_FIXTURES / "heap.txt"))
+        result = _call("heap_trace", path=str(_FIXTURES / "runtime" / "heap_trace_top.txt"))
         first_line = result["result"].splitlines()[0]
         assert re.match(r"^\d{4}: ", first_line)
 
@@ -175,11 +237,11 @@ class TestHeapTrace:
 class TestStatusPage:
     def test_returns_text_with_line_numbers(self, incident_env):
         _ctx, _db, _audit = incident_env
-        result = _call("status_page", path=str(_FIXTURES / "status.txt"))
+        result = _call("status_page", path=str(_FIXTURES / "infra" / "gcp_status.txt"))
         assert result["status"] == "success"
         first_line = result["result"].splitlines()[0]
         assert re.match(r"^\d{4}: ", first_line)
-        assert "streamcache" in result["result"]
+        assert "no incidents" in result["result"]
 
 
 class TestExpectedFolderRefused:
@@ -199,7 +261,7 @@ class TestAuditAndToolOutputs:
 
     def test_trivy_report_audit_and_output(self, incident_env):
         ctx, db, audit = incident_env
-        result = _call("trivy_report", path=str(_FIXTURES / "trivy.json"))
+        result = _call("trivy_report", path=str(_FIXTURES / "scans" / "trivy-image.json"))
         tc_id = result["tool_call_id"]
         assert isinstance(tc_id, str)
 

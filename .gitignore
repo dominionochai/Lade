@@ -47,3 +47,4 @@ dmypy.json
 SPEC/
 
 !fixtures/**/*.log
+!tests/fixtures/**/*.log

@@ -8,9 +8,10 @@ with every request until the 512 MiB limit is hit at ~14:07 UTC.
 Competing hypotheses Phase 4 must test:
  H1 GCP resource exhaustion / noisy neighbor: REFUTED. No incident on status page; the
     previous revision ran 24h flat at ~190 MiB on the same infrastructure; the second
-    instance created 13:44-13:52 also started low and grew with its own age.
- H2 Traffic spike: REFUTED. Requests/sec stayed in a narrow 9-15 band throughout; memory growth is
-    linear and matches cache entry count, not request rate changes.
+    instance (0070c4, 13:44-13:52) also started low (~191 MiB) and grew with its
+   own age (~4.2 MiB/min, much slower than the primary).
+ H2 Traffic spike: REFUTED. Requests/sec on the primary instance stayed in a narrow 9-15 band
+   throughout; memory growth is linear and matches cache entry count, not request rate changes.
  H3 Cold-start / startup-probe issue at 13:46: REAL but UNRELATED. 11.2s probe delay on
     the short-lived instance; no memory effect.
  H4 yamlforge CVE-2026-90002: REAL finding, NOT the cause. No untrusted YAML parsing in
