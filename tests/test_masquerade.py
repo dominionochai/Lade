@@ -225,8 +225,12 @@ def test_fls_failure_is_an_error_response() -> None:
 
 
 def test_registered_for_extract_executor_only() -> None:
-    assert "mcp__lade__detect_masquerading" in get_tools_for_role(Role.EXTRACT_EXECUTOR)
-    assert "mcp__lade__detect_masquerading" not in get_tools_for_role(Role.EXTRACT_ANALYST)
+    from lade.server.tool_access import Profile
+
+    tools_ee = get_tools_for_role(Role.EXTRACT_EXECUTOR, profile=Profile.DFIR)
+    tools_an = get_tools_for_role(Role.EXTRACT_ANALYST, profile=Profile.DFIR)
+    assert "mcp__lade__detect_masquerading" in tools_ee
+    assert "mcp__lade__detect_masquerading" not in tools_an
     assert masquerade.__name__ == MOD
 
 

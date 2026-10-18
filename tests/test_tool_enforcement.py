@@ -14,14 +14,19 @@ from claude_agent_sdk import ClaudeAgentOptions
 from claude_agent_sdk._internal.transport.subprocess_cli import SubprocessCLITransport
 from claude_agent_sdk.types import AssistantMessage, SystemMessage, TextBlock
 
-from lade.orchestrator.phases import CATALOG, CROSS_SYSTEM, EXTRACTION, REPORT
+from lade.orchestrator.phases import CATALOG, CROSS_SYSTEM, EXTRACTION
 from lade.orchestrator.roles import _EXECUTOR_CONTROL_TOOLS, RoleRunner
 from lade.orchestrator.runner import Orchestrator
 from lade.orchestrator.session import _MCP_CONNECT_ATTEMPTS, builtin_tools, off_role_tools
 from lade.orchestrator.types import AnalystResult, ExecutionResults, PhaseResult, Plan
-from lade.server.tool_access import ALL_ROLES, get_tools_for_role
+from lade.server.tool_access import ALL_ROLES, Profile, Role, get_tools_for_role
 
-ALL_TOOLS = frozenset(get_tools_for_role(ALL_ROLES))
+ALL_TOOLS = frozenset(get_tools_for_role(ALL_ROLES, profile=Profile.DFIR))
+
+
+@pytest.fixture(autouse=True)
+def set_dfir_profile(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("LADE_PROFILE", "dfir")
 
 #: ``@tool_access(Role.EXTRACT_EXECUTOR)`` only; the analyst called all six
 #: in the benchmark run that exposed the bug.
@@ -38,11 +43,11 @@ EXECUTOR_ONLY = [
 ]
 
 ROLE_LISTS: dict[str, list[str]] = {
-    "extract_planner": EXTRACTION.planner_allowed_tools,
-    "extract_executor": EXTRACTION.executor_allowed_tools,
-    "extract_analyst": EXTRACTION.analyst_allowed_tools,
-    "catalog": CATALOG.single_allowed_tools,
-    "report": REPORT.single_allowed_tools,
+    "extract_planner": get_tools_for_role(Role.EXTRACT_PLANNER, profile=Profile.DFIR),
+    "extract_executor": get_tools_for_role(Role.EXTRACT_EXECUTOR, profile=Profile.DFIR),
+    "extract_analyst": get_tools_for_role(Role.EXTRACT_ANALYST, profile=Profile.DFIR),
+    "catalog": get_tools_for_role(Role.CATALOG, profile=Profile.DFIR),
+    "report": get_tools_for_role(Role.REPORT, profile=Profile.DFIR),
 }
 
 
@@ -114,14 +119,14 @@ def test_executor_only_tools_hidden_from_other_roles() -> None:
 
 def test_dynamic_executor_allowlist_keeps_control_tools() -> None:
     allowed = RoleRunner._build_dynamic_allowlist(
-        _plan("run_mmls"), EXTRACTION.executor_allowed_tools
+        _plan("trivy_report"), EXTRACTION.executor_allowed_tools
     )
     off = set(off_role_tools(allowed))
-    assert "mcp__lade__run_mmls" in allowed
+    assert "mcp__lade__trivy_report" in allowed
     assert set(allowed) >= _EXECUTOR_CONTROL_TOOLS
     assert _EXECUTOR_CONTROL_TOOLS.isdisjoint(off)
     # Executor-role tools the plan did not ask for are hidden too.
-    assert "mcp__lade__run_bulk_extractor" in off
+    assert "mcp__lade__dependency_diff" in off
 
 
 @pytest.mark.asyncio()

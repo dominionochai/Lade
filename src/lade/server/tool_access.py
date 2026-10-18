@@ -6,10 +6,14 @@ builds allowlists at import time so ``phases.py`` never needs manual
 tool list maintenance.
 
 The active investigation profile (``LADE_PROFILE`` env var, default
-``devsecops``) further filters the allowlist: the *devsecops* profile
-excludes tools that only run DFIR binaries (tsk, plaso, yara,
-hayabusa, chainsaw, zircolite, eztools, hindsight, mvt, phone,
-binary), so they are invisible to agents in that profile.
+``devsecops``) selects between two modes:
+
+* **devsecops** (default) — only tools in the explicit
+  ``_DEVSECOPS_ALLOWLIST`` are visible, intersected with the role's
+  registered tools.  This keeps DevSecOps evidence parsers (Trivy,
+  CI logs, cloud metrics, etc.) visible while hiding all DFIR-binary
+  tools (volatility, fls, zeek, regripper, etc.).
+* **dfir** — every registered tool is visible (no filtering).
 """
 
 from __future__ import annotations
@@ -57,57 +61,66 @@ _registry: dict[str, Role] = {}
 # small DB reads); never for anything that runs a binary or scans a source.
 UNTHROTTLED: set[str] = set()
 
-# Tool function names excluded from the *devsecops* profile allowlist.
-# These tools only invoke external DFIR binaries (disk-image, memory,
-# mobile, binary-analysis toolkits).
-_PROFILE_EXCLUSIONS: dict[Profile, set[str]] = {
-    Profile.DEVSECOPS: {
-        # tsk.py
-        "list_partitions",
-        "list_files",
-        "get_deleted_files",
-        "get_fs_timeline",
-        "extract_file_by_inode",
-        "get_file_metadata",
-        # plaso.py
-        "get_plaso_stats",
-        "filter_timeline",
-        "export_timeline_slice",
-        # yara.py
-        "yara_scan_files",
-        "yara_scan_memory",
-        "yara_scan_with_volatility",
-        # hayabusa.py
-        "run_hayabusa",
-        # chainsaw.py
-        "run_chainsaw",
-        # zircolite.py
-        "run_zircolite",
-        # eztools.py
-        "parse_mft",
-        "parse_usn_journal",
-        # hindsight.py
-        "run_hindsight",
-        # mvt.py
-        "run_mvt_android",
-        "run_mvt_ios",
-        # phone.py
-        "carve_sqlite_from_raw",
-        "parse_android_artifacts",
-        "parse_ios_artifacts",
-        "decrypt_app_data",
-        "run_aleapp",
-        "run_ileapp",
-        # binary.py
-        "triage_binary",
-        "run_capa",
-        "run_floss",
-        "run_detect_it_easy",
-    },
-    Profile.DFIR: set(),
+# ---------------------------------------------------------------------------
+# Profile allowlists
+# ---------------------------------------------------------------------------
+
+_DEVSECOPS_ALLOWLIST: frozenset[str] = frozenset({
+    "open_case",
+    "list_cases",
+    "scan_evidence",
+    "list_sources",
+    "get_source_stats",
+    "list_directory",
+    "read_evidence_file",
+    "extract_archive",
+    "get_tool_guide",
+    "track_progress",
+    "wait",
+    "wait_all",
+    "get_completed_results",
+    "check_extraction_status",
+    "get_raw_output",
+    "run_parallel",
+    "search",
+    "get_timeline",
+    "correlate_across_sources",
+    "bookmark_window",
+    "get_bookmarks",
+    "remove_bookmark",
+    "submit_finding",
+    "update_finding",
+    "delete_finding",
+    "get_findings",
+    "deduplicate_findings",
+    "submit_narrative",
+    "finalize_report",
+    "check_finalize_readiness",
+    "get_investigation_summary",
+    "audit_evidence_coverage",
+    "audit_tool_coverage",
+    "verify_evidence_integrity",
+    "lookup_attack_technique",
+    "get_ioc_summary",
+    "run_strings",
+    "trivy_report",
+    "dependency_diff",
+    "ci_job_log",
+    "git_diff",
+    "cloud_logs",
+    "memory_metrics",
+    "heap_trace",
+    "status_page",
+})
+
+# None means "no filtering" (all registered tools visible).
+_PROFILE_ALLOWLIST: dict[Profile, frozenset[str] | None] = {
+    Profile.DEVSECOPS: _DEVSECOPS_ALLOWLIST,
+    Profile.DFIR: None,
 }
 
 _PROFILE_ENV_VAR: str = "LADE_PROFILE"
+_allowlist_validated: bool = False
 
 
 def tool_access(*roles: Role, unthrottled: bool = False) -> Callable[[F], F]:
@@ -139,6 +152,24 @@ def tool_access(*roles: Role, unthrottled: bool = False) -> Callable[[F], F]:
     return decorator
 
 
+def _validate_allowlist() -> None:
+    """Ensure every name in the DEVSECOPS allowlist is a registered tool.
+
+    Raises ``ImportError`` with a sorted list of missing names so a typo
+    cannot silently drop a tool from the devsecops surface.
+    """
+    global _allowlist_validated
+    if _allowlist_validated:
+        return
+    missing = _DEVSECOPS_ALLOWLIST - set(_registry)
+    if missing:
+        raise ImportError(
+            "Lade DEVSECOPS profile allowlist references unregistered "
+            f"tools: {sorted(missing)}"
+        )
+    _allowlist_validated = True
+
+
 def get_active_profile() -> Profile:
     """Read the active investigation profile from ``LADE_PROFILE``.
 
@@ -158,12 +189,27 @@ def get_tools_for_role(role: Role, profile: Profile | None = None) -> list[str]:
     When *profile* is ``None`` (the default) the active profile is
     read from :func:`get_active_profile`, so callers in
     ``phases.py`` pick up ``LADE_PROFILE`` automatically.
+
+    For the **devsecops** profile only tools whose bare name appears in
+    ``_DEVSECOPS_ALLOWLIST`` and are registered for *role* are returned.
+    For the **dfir** profile every registered tool for *role* is returned.
     """
     if profile is None:
         profile = get_active_profile()
-    excluded = _PROFILE_EXCLUSIONS.get(profile, set())
+
+    allowlist = _PROFILE_ALLOWLIST.get(profile)
+    if allowlist is None:
+        # DFIR profile: no filtering.
+        return sorted(
+            f"mcp__lade__{name}"
+            for name, allowed in _registry.items()
+            if role & allowed
+        )
+
+    # DEVSECOPS profile: intersect allowlist with role's registered tools.
+    _validate_allowlist()
     return sorted(
         f"mcp__lade__{name}"
         for name, allowed in _registry.items()
-        if role & allowed and name not in excluded
+        if role & allowed and name in allowlist
     )
