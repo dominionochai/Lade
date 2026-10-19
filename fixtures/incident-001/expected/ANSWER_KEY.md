@@ -8,8 +8,9 @@ with every request until the 512 MiB limit is hit at ~14:07 UTC.
 Competing hypotheses Phase 4 must test:
 H1 GCP resource exhaustion / noisy neighbor: REFUTED. No incident on status page; the
   previous revision ran 24h flat at ~190 MiB on the same infrastructure; the second
-  instance (0070c4, 13:44-13:52) also started low (~192 MiB) and grew only ~1.1 MiB/min
-  (8.5 MiB over 8 min), much slower than the primary.
+  instance (0070c4, 13:44-13:52) also started low (~192 MiB) and grew about 1.1 MiB/min
+  at ~2 req/s, in proportion to its own traffic (same MiB per 1000 requests as the
+  main instance, about 8).
  H2 Traffic spike: REFUTED. Requests/sec on the primary instance stayed in a narrow 9-15 band
    throughout; memory growth is linear and matches cache entry count, not request rate changes.
  H3 Cold-start / startup-probe issue at 13:46: REAL but UNRELATED. 11.2s probe delay on

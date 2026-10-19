@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import fnmatch
+import json
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -51,7 +52,56 @@ _PHONE_DB_NAMES = {
 }
 _SQLITE_EXTS = {".sqlite", ".sqlitedb", ".db"}
 
-_AUTO_EXCLUDE_DIRS = {"precooked", "baseline-memory", "baseline"}
+_AUTO_EXCLUDE_DIRS = {"precooked", "baseline-memory", "baseline", "expected"}
+
+
+def _check_trivy_content(path: Path) -> bool:
+    try:
+        if path.stat().st_size > 10_000_000:
+            return False
+        data = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
+        if isinstance(data, dict):
+            return "SchemaVersion" in data and "Results" in data
+    except Exception:
+        pass
+    return False
+
+
+def _check_cloud_logs_content(path: Path) -> bool:
+    try:
+        if path.stat().st_size > 50_000_000:
+            return False
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            for i, line in enumerate(f):
+                if i > 25:
+                    break
+                line_str = line.strip()
+                if not line_str:
+                    continue
+                if "severity" in line_str:
+                    try:
+                        obj = json.loads(line_str)
+                        if isinstance(obj, dict) and "severity" in obj:
+                            return True
+                    except Exception:
+                        if "severity" in line_str:
+                            return True
+    except Exception:
+        pass
+    return False
+
+
+def _check_metrics_csv_content(path: Path) -> bool:
+    try:
+        if path.stat().st_size > 10_000_000:
+            return False
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            header = f.readline()
+            if "memory_mib" in header.lower():
+                return True
+    except Exception:
+        pass
+    return False
 
 _AUTORUNS_CSV_PATTERNS: tuple[str, ...] = ("autorunsc", "autoruns")
 
@@ -244,10 +294,10 @@ class EvidenceClassifier:
         # DevSecOps artifact types — checked before the generic extension skip
         # so that .json, .csv, and .yml files are not silently discarded.
 
-        if ext == ".json" and "trivy" in name:
+        if ext == ".json" and (_check_trivy_content(path) or "trivy" in name):
             return ClassifiedEvidence(path=path, artifact_type="trivy_report")
 
-        if ext == ".csv" and "metric" in name:
+        if ext == ".csv" and (_check_metrics_csv_content(path) or "metric" in name):
             return ClassifiedEvidence(path=path, artifact_type="metrics_csv")
 
         if ext in (".yml", ".yaml") and ("ci" in name or "gitlab" in name):
@@ -256,7 +306,11 @@ class EvidenceClassifier:
         if ext in _DIFF_EXTS:
             return ClassifiedEvidence(path=path, artifact_type="git_diff")
 
-        if ext in _JSONL_EXTS and "log" in name:
+        if (
+            (ext in _JSONL_EXTS or "log" in name)
+            and "job" not in name
+            and (_check_cloud_logs_content(path) or ext in _JSONL_EXTS or "log" in name)
+        ):
             return ClassifiedEvidence(path=path, artifact_type="cloud_logs")
 
         # Autoruns CSV files are classified before the general extension skip
