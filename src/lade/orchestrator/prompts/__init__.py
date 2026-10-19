@@ -9,11 +9,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from lade.server.tool_access import Profile, get_active_profile
+
 _DIR = Path(__file__).resolve().parent
 
 
 def _load(name: str) -> str:
-    """Read a prompt file from this package directory.
+    """Read a prompt file from this package directory or devsecops subfolder.
 
     Args:
         name: Filename (e.g., ``catalog.md``) relative to this directory.
@@ -21,6 +23,11 @@ def _load(name: str) -> str:
     Returns:
         The file contents with leading/trailing whitespace stripped.
     """
+    profile = get_active_profile()
+    if profile == Profile.DEVSECOPS:
+        devsecops_path = _DIR / "devsecops" / name
+        if devsecops_path.exists():
+            return devsecops_path.read_text(encoding="utf-8").strip()
     return (_DIR / name).read_text(encoding="utf-8").strip()
 
 
