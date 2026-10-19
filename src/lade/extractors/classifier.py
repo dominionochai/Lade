@@ -71,6 +71,11 @@ def _check_cloud_logs_content(path: Path) -> bool:
     try:
         if path.stat().st_size > 50_000_000:
             return False
+        if path.suffix.lower() == ".log":
+            with open(path, encoding="utf-8", errors="ignore") as f:
+                first_few = "".join([f.readline() for _ in range(5)])
+                if "Running with" in first_few:
+                    return False
         with open(path, encoding="utf-8", errors="ignore") as f:
             for i, line in enumerate(f):
                 if i > 25:
@@ -78,14 +83,12 @@ def _check_cloud_logs_content(path: Path) -> bool:
                 line_str = line.strip()
                 if not line_str:
                     continue
-                if "severity" in line_str:
-                    try:
-                        obj = json.loads(line_str)
-                        if isinstance(obj, dict) and "severity" in obj:
-                            return True
-                    except Exception:
-                        if "severity" in line_str:
-                            return True
+                try:
+                    obj = json.loads(line_str)
+                    if isinstance(obj, dict) and "severity" in obj:
+                        return True
+                except Exception:
+                    pass
     except Exception:
         pass
     return False

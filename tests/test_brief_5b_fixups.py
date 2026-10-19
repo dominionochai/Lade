@@ -72,6 +72,14 @@ def test_content_based_classification_generic_names(tmp_path: Path) -> None:
     assert "metrics_csv" in types
 
 
+def test_job_trivy_scan_log_is_ci_job_log() -> None:
+    log_path = Path("fixtures/incident-001/pipeline/job_trivy-scan.log")
+    classifier = EvidenceClassifier()
+    results = classifier.classify(log_path)
+    assert len(results) == 1
+    assert results[0].artifact_type == "ci_job_log"
+
+
 def test_incident_001_scan_evidence_registers_all_non_expected(tmp_path: Path) -> None:
     evidence_path = Path("fixtures/incident-001").resolve()
     init_server(db_dir=tmp_path)
