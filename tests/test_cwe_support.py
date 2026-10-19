@@ -6,7 +6,6 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-from sqlalchemy import text
 
 from lade.db import CaseDB, _migrate_add_cwe_ids
 from lade.orchestrator.gates import validate_cross_system
@@ -77,7 +76,9 @@ def test_invalid_cwe_rejected(case_env: Path) -> None:
         cwe_ids=["CWE-ABC", "INVALID"],
     )
     assert out["status"] == "error"
-    assert "validation" in str(out.get("error_type", "")) or "Invalid CWE" in str(out.get("error_message", ""))
+    msg = str(out.get("error_message", ""))
+    err_type = str(out.get("error_type", ""))
+    assert "validation" in err_type or "Invalid CWE" in msg
 
 
 def test_migration_on_db_without_cwe_column(tmp_path: Path) -> None:

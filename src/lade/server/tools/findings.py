@@ -248,7 +248,7 @@ def _sanitize_event_time(ts: str | None) -> tuple[str | None, str | None]:
 
 
 def _validate_evidence_refs(
-    ctx, evidence_refs: list[str | dict[str, Any]]
+    ctx: Any, evidence_refs: list[str | dict[str, Any]]
 ) -> tuple[list[str | dict[str, Any]], str | None]:
     """Validate evidence_refs against stored tool outputs.
 
@@ -1034,7 +1034,10 @@ def _compute_similarity(a: Finding, b: Finding) -> float:
         _extract_ioc_tokens(a.description),
         _extract_ioc_tokens(b.description),
     )
-    evidence_sim = _jaccard(set(a.evidence_refs), set(b.evidence_refs))
+    evidence_sim = _jaccard(
+        {str(r) if isinstance(r, dict) else r for r in a.evidence_refs},
+        {str(r) if isinstance(r, dict) else r for r in b.evidence_refs},
+    )
     source_sim = _jaccard(set(a.sources), set(b.sources))
     time_sim = _time_windows_overlap(a, b)
 
@@ -1121,7 +1124,7 @@ def _consolidate_group(
 
     for f in group:
         all_sources.update(f.sources)
-        all_refs.update(f.evidence_refs)
+        all_refs.update(str(r) if isinstance(r, dict) else r for r in f.evidence_refs)
         all_mitre.update(f.mitre_attack_ids)
         all_cwe.update(f.cwe_ids)
         if _SEVERITY_RANK.get(f.severity, 99) < _SEVERITY_RANK.get(highest_severity, 99):
@@ -1134,7 +1137,7 @@ def _consolidate_group(
             )
 
     best.sources = sorted(all_sources)
-    best.evidence_refs = sorted(all_refs)
+    best.evidence_refs = cast(list[str | dict[str, Any]], sorted(all_refs))
     best.mitre_attack_ids = sorted(all_mitre)
     best.cwe_ids = sorted(all_cwe)
     best.severity = highest_severity

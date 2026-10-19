@@ -272,7 +272,10 @@ def validate_cross_system(summary: dict[str, Any] | None) -> GateResult:
     check_classified = GateCheck(
         name="mitre_mapping",
         passed=classified_count > 0,
-        detail=f"{classified_count} finding(s) mapped to CWE or ATT&CK ({cwe_count} CWE, {mitre_count} ATT&CK)",
+        detail=(
+            f"{classified_count} finding(s) mapped to CWE or ATT&CK "
+            f"({cwe_count} CWE, {mitre_count} ATT&CK)"
+        ),
     )
     checks.append(check_classified)
     if not check_classified.passed:
