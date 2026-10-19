@@ -307,8 +307,9 @@ class TestFlsFallback:
 
 
 def test_tools_are_extract_executor_only() -> None:
-    executor = set(get_tools_for_role(Role.EXTRACT_EXECUTOR))
-    analyst = set(get_tools_for_role(Role.EXTRACT_ANALYST))
+    from lade.server.tool_access import Profile
+    executor = set(get_tools_for_role(Role.EXTRACT_EXECUTOR, profile=Profile.DFIR))
+    analyst = set(get_tools_for_role(Role.EXTRACT_ANALYST, profile=Profile.DFIR))
 
     assert {"mcp__lade__run_optical_listing", "mcp__lade__extract_optical_file"} <= executor
     assert "mcp__lade__run_optical_listing" not in analyst
