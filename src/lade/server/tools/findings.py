@@ -33,6 +33,7 @@ from lade.server.tool_access import ANALYSTS, Role, tool_access
 logger = logging.getLogger(__name__)
 
 _MIDNIGHT_RE = re.compile(r"T00:00:00(?:Z|[+-]00:?00)?$")
+_CWE_PATTERN = re.compile(r"^CWE-[0-9]{1,5}$")
 
 _MIN_NON_NEGATIVE_FINDINGS = 3
 
@@ -350,6 +351,7 @@ def submit_finding(
     evidence_refs: list[str | dict[str, Any]],
     sources: list[str],
     mitre_attack_ids: list[str] | None = None,
+    cwe_ids: list[str] | None = None,
     event_time_start: str | None = None,
     event_time_end: str | None = None,
 ) -> dict[str, object]:
@@ -397,6 +399,18 @@ def submit_finding(
         resp["valid_refs"] = sorted(ctx.audit.tool_call_ids)[-10:]
         return resp
 
+    if cwe_ids:
+        for cid in cwe_ids:
+            if not _CWE_PATTERN.match(cid):
+                return error_response(
+                    tc_id,
+                    "submit_finding",
+                    {"title": title, "cwe_ids": cwe_ids},
+                    f"Invalid CWE identifier '{cid}': must match format CWE-NNN (e.g., CWE-770)",
+                    (time.monotonic() - t0) * 1000,
+                    error_type="validation",
+                )
+
     case_metadata = ctx.db.get_case_metadata()
     finding_id = f"f_{uuid4().hex[:8]}"
     now = datetime.now(timezone.utc).isoformat()
@@ -423,6 +437,7 @@ def submit_finding(
             evidence_refs=evidence_refs,
             sources=sources,
             mitre_attack_ids=mitre_attack_ids or [],
+            cwe_ids=cwe_ids or [],
             event_time_start=event_time_start,
             event_time_end=event_time_end,
             submitted_at=now,
@@ -471,6 +486,7 @@ def submit_finding(
             "evidence_refs": evidence_refs,
             "sources": sources,
             "mitre_attack_ids": mitre_attack_ids or [],
+            "cwe_ids": cwe_ids or [],
         },
         output_hash=hash_output(result),
         duration_ms=elapsed,
@@ -489,6 +505,7 @@ def update_finding(
     evidence_refs: list[str | dict[str, Any]] | None = None,
     sources: list[str] | None = None,
     mitre_attack_ids: list[str] | None = None,
+    cwe_ids: list[str] | None = None,
     event_time_start: str | None = None,
     event_time_end: str | None = None,
 ) -> dict[str, object]:
@@ -546,6 +563,18 @@ def update_finding(
             resp["valid_refs"] = sorted(ctx.audit.tool_call_ids)[-10:]
             return resp
 
+    if cwe_ids is not None:
+        for cid in cwe_ids:
+            if not _CWE_PATTERN.match(cid):
+                return error_response(
+                    tc_id,
+                    "update_finding",
+                    {"finding_id": finding_id, "cwe_ids": cwe_ids},
+                    f"Invalid CWE identifier '{cid}': must match format CWE-NNN (e.g., CWE-770)",
+                    (time.monotonic() - t0) * 1000,
+                    error_type="validation",
+                )
+
     ts_warnings: list[str] = []
     if event_time_start is not None:
         event_time_start, w = _sanitize_event_time(event_time_start)
@@ -565,6 +594,7 @@ def update_finding(
         ("evidence_refs", evidence_refs),
         ("sources", sources),
         ("mitre_attack_ids", mitre_attack_ids),
+        ("cwe_ids", cwe_ids),
         ("event_time_start", event_time_start),
         ("event_time_end", event_time_end),
     ]:
@@ -1084,6 +1114,7 @@ def _consolidate_group(
     all_sources: set[str] = set()
     all_refs: set[str] = set()
     all_mitre: set[str] = set()
+    all_cwe: set[str] = set()
     highest_severity = best.severity
     starts = [f.event_time_start for f in group if f.event_time_start]
     ends = [f.event_time_end or f.event_time_start for f in group if f.event_time_start]
@@ -1092,6 +1123,7 @@ def _consolidate_group(
         all_sources.update(f.sources)
         all_refs.update(f.evidence_refs)
         all_mitre.update(f.mitre_attack_ids)
+        all_cwe.update(f.cwe_ids)
         if _SEVERITY_RANK.get(f.severity, 99) < _SEVERITY_RANK.get(highest_severity, 99):
             highest_severity = f.severity
         if f.finding_id != best.finding_id:
@@ -1104,6 +1136,7 @@ def _consolidate_group(
     best.sources = sorted(all_sources)
     best.evidence_refs = sorted(all_refs)
     best.mitre_attack_ids = sorted(all_mitre)
+    best.cwe_ids = sorted(all_cwe)
     best.severity = highest_severity
     if any(f.confidence == "confirmed" for f in group):
         best.confidence = "confirmed"
@@ -1234,6 +1267,7 @@ def deduplicate_findings(
                 sources=representative.sources,
                 evidence_refs=representative.evidence_refs,
                 mitre_attack_ids=representative.mitre_attack_ids,
+                cwe_ids=representative.cwe_ids,
                 event_time_start=representative.event_time_start,
                 event_time_end=representative.event_time_end,
             )

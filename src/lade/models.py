@@ -53,6 +53,7 @@ class Finding(BaseModel):
     evidence_refs: list[str | dict[str, Any]]
     sources: list[str]
     mitre_attack_ids: list[str] = []
+    cwe_ids: list[str] = []
     event_time_start: str | None = None
     event_time_end: str | None = None
     submitted_at: str

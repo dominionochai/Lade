@@ -94,6 +94,7 @@ findings_t = Table(
     Column("evidence_refs", Text, nullable=False),
     Column("sources", Text, nullable=False),
     Column("mitre_attack_ids", Text),
+    Column("cwe_ids", Text),
     Column("event_time_start", Text),
     Column("event_time_end", Text),
     Column("submitted_at", Text, nullable=False),
@@ -257,6 +258,17 @@ def _migrate_add_mitre_attack_ids(conn: Connection) -> None:
     """Add the mitre_attack_ids column if it doesn't exist yet."""
     try:
         conn.execute(text("ALTER TABLE findings ADD COLUMN mitre_attack_ids TEXT"))
+    except Exception as exc:
+        if "duplicate column" in str(exc).lower() or "already exists" in str(exc).lower():
+            pass
+        else:
+            raise
+
+
+def _migrate_add_cwe_ids(conn: Connection) -> None:
+    """Add the cwe_ids column if it doesn't exist yet."""
+    try:
+        conn.execute(text("ALTER TABLE findings ADD COLUMN cwe_ids TEXT"))
     except Exception as exc:
         if "duplicate column" in str(exc).lower() or "already exists" in str(exc).lower():
             pass
@@ -466,6 +478,7 @@ def _finding_fields(row: Any) -> dict[str, Any]:
         "evidence_refs": json.loads(row.evidence_refs),
         "sources": json.loads(row.sources),
         "mitre_attack_ids": json.loads(row.mitre_attack_ids) if row.mitre_attack_ids else [],
+        "cwe_ids": json.loads(row.cwe_ids) if row.cwe_ids else [],
         "event_time_start": row.event_time_start,
         "event_time_end": row.event_time_end,
         "submitted_at": row.submitted_at,
@@ -524,6 +537,7 @@ class CaseDB:
             conn.execute(text(_FTS_CREATE))
             conn.execute(text(_IX_WINDOWS_SOURCE_LINE))
             _migrate_add_mitre_attack_ids(conn)
+            _migrate_add_cwe_ids(conn)
             _migrate_add_narrative(conn)
             _migrate_add_evidence_registry(conn)
             _migrate_add_windows_hash(conn)
@@ -1103,6 +1117,7 @@ class CaseDB:
                         evidence_refs=json.dumps(finding.evidence_refs),
                         sources=json.dumps(finding.sources),
                         mitre_attack_ids=json.dumps(finding.mitre_attack_ids),
+                        cwe_ids=json.dumps(finding.cwe_ids),
                         event_time_start=finding.event_time_start,
                         event_time_end=finding.event_time_end,
                         submitted_at=finding.submitted_at,
@@ -1126,7 +1141,7 @@ class CaseDB:
         Returns:
             True if a row was matched and updated, False otherwise.
         """
-        json_columns = frozenset({"evidence_refs", "sources", "mitre_attack_ids"})
+        json_columns = frozenset({"evidence_refs", "sources", "mitre_attack_ids", "cwe_ids"})
         values: dict[str, object] = {}
         for key, val in kwargs.items():
             if val is None:

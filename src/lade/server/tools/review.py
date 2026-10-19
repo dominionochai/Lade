@@ -395,6 +395,8 @@ def get_investigation_summary() -> dict[str, object]:
         severity_counts[f.severity] = severity_counts.get(f.severity, 0) + 1
 
     has_mitre = sum(1 for f in findings if f.mitre_attack_ids)
+    has_cwe = sum(1 for f in findings if f.cwe_ids)
+    has_classified = sum(1 for f in findings if f.cwe_ids or f.mitre_attack_ids)
     has_negative = sum(1 for f in findings if f.title.startswith("[NEGATIVE]"))
     has_timestamps = sum(1 for f in findings if f.event_time_start)
 
@@ -444,6 +446,8 @@ def get_investigation_summary() -> dict[str, object]:
         "findings_submitted": len(findings),
         "findings_by_severity": severity_counts,
         "findings_with_mitre_ids": has_mitre,
+        "findings_with_cwe_ids": has_cwe,
+        "findings_classified": has_classified,
         "findings_with_timestamps": has_timestamps,
         "negative_findings": has_negative,
         "extraction_batches": batch_info,
