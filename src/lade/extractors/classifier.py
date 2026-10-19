@@ -71,7 +71,7 @@ def _check_cloud_logs_content(path: Path) -> bool:
     try:
         if path.stat().st_size > 50_000_000:
             return False
-        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        with open(path, encoding="utf-8", errors="ignore") as f:
             for i, line in enumerate(f):
                 if i > 25:
                     break
@@ -95,7 +95,7 @@ def _check_metrics_csv_content(path: Path) -> bool:
     try:
         if path.stat().st_size > 10_000_000:
             return False
-        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+        with open(path, encoding="utf-8", errors="ignore") as f:
             header = f.readline()
             if "memory_mib" in header.lower():
                 return True

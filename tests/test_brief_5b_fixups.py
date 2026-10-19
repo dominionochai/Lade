@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from lade.extractors.classifier import ClassifierConfig, EvidenceClassifier
+from lade.extractors.classifier import EvidenceClassifier
 from lade.orchestrator.runner import Orchestrator
 from lade.server.app import _tool_dispatch_sync, init_server
-from lade.server.tool_access import Profile, Role, get_active_profile, get_tools_for_role
+from lade.server.tool_access import Profile, get_active_profile
 
 
 @pytest.fixture(autouse=True)
@@ -58,7 +58,10 @@ def test_content_based_classification_generic_names(tmp_path: Path) -> None:
 
     # data3.csv with memory_mib header
     csv_file = d / "data3.csv"
-    csv_file.write_text("timestamp_utc,revision,instance_id,memory_mib,requests_per_sec\n2026-10-09,rev,inst,185.9,10\n")
+    csv_file.write_text(
+        "timestamp_utc,revision,instance_id,memory_mib,requests_per_sec\n"
+        "2026-10-09,rev,inst,185.9,10\n"
+    )
 
     classifier = EvidenceClassifier()
     results = classifier.classify(d)
@@ -72,7 +75,11 @@ def test_content_based_classification_generic_names(tmp_path: Path) -> None:
 def test_incident_001_scan_evidence_registers_all_non_expected(tmp_path: Path) -> None:
     evidence_path = Path("fixtures/incident-001").resolve()
     init_server(db_dir=tmp_path)
-    res = _tool_dispatch_sync["scan_evidence"](evidence_path=str(evidence_path), case_id="test-incident-001-scan", replace=True)
+    res = _tool_dispatch_sync["scan_evidence"](
+        evidence_path=str(evidence_path),
+        case_id="test-incident-001-scan",
+        replace=True,
+    )
     assert res["status"] == "success"
     tree = str(res.get("evidence_tree", ""))
     assert "expected" not in tree
