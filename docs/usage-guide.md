@@ -285,7 +285,7 @@ docker run -it --privileged \
   ghcr.io/dominionochai/lade:1.5.2
 ```
 
-Model IDs are passed through to the SDK exactly as specified, with no automatic translation or mapping. When using Vertex, you must provide the full Vertex model ID including the `@version` suffix (e.g. `--model claude-opus-4-6@20250514`). If you omit `--model`, the built-in defaults (`claude-opus-4-6` for planner/analyst, `claude-haiku-4-5` for executor) are used.
+Model IDs are passed through to the SDK exactly as specified, with no automatic translation or mapping. When using Vertex, you must provide the full Vertex model ID including the `@version` suffix (e.g. `--model claude-opus-5-5@20250514`). If you omit `--model`, the built-in defaults (`claude-opus-5-5` for planner/analyst, `claude-haiku-5-5` for executor) are used.
 
 | Variable | Description |
 |----------|-------------|
@@ -312,7 +312,7 @@ docker run -it --privileged \
   ghcr.io/dominionochai/lade:1.5.2
 ```
 
-Model IDs are passed through to the SDK exactly as specified, with no automatic translation or mapping. When using Bedrock, you must provide the full Bedrock model ID with the `us.anthropic.` prefix (e.g. `--model us.anthropic.claude-opus-4-6`). If you omit `--model`, the built-in defaults (`claude-opus-4-6` for planner/analyst, `claude-haiku-4-5` for executor) are used.
+Model IDs are passed through to the SDK exactly as specified, with no automatic translation or mapping. When using Bedrock, you must provide the full Bedrock model ID with the `us.anthropic.` prefix (e.g. `--model us.anthropic.claude-opus-5-5`). If you omit `--model`, the built-in defaults (`claude-opus-5-5` for planner/analyst, `claude-haiku-5-5` for executor) are used.
 
 | Variable | Description |
 |----------|-------------|
@@ -565,9 +565,9 @@ Runs a full multi-phase forensic investigation.
 | Option | Default | Description |
 |--------|---------|-------------|
 | `--model` | None | Fallback model for all roles |
-| `--planner-model` | `claude-opus-4-6` | Model for planner agents |
-| `--executor-model` | `claude-haiku-4-5` | Model for executor agents |
-| `--analyst-model` | `claude-opus-4-6` | Model for analyst agents |
+| `--planner-model` | `claude-opus-5-5` | Model for planner agents |
+| `--executor-model` | `claude-haiku-5-5` | Model for executor agents |
+| `--analyst-model` | `claude-opus-5-5` | Model for analyst agents |
 | `--config` | None | YAML config file for models and settings |
 | `--effort` | `max` | Effort level (`max`, `xhigh`, `high`) |
 | `--no-thinking` | off | Disable extended thinking for all queries; overrides `--effort` |

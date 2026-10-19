@@ -44,10 +44,10 @@ Each phase concludes with a quality gate evaluated in `src/lade/orchestrator/gat
 ### Model Assignment and Configuration
 Models are defined in `src/lade/orchestrator/models.py` via `RoleConfig`:
 - **Defaults (`models.py:25–35`):**
-  - Planner: `claude-opus-4-6` (or env `LADE_PLANNER_MODEL`)
-  - Executor: `claude-haiku-4-5` (or env `LADE_EXECUTOR_MODEL`)
-  - Analyst: `claude-opus-4-6` (or env `LADE_ANALYST_MODEL`)
-  - Single-mode / Utility: `claude-opus-4-6` (or env `LADE_UTILITY_MODEL` / `LADE_MODEL`)
+  - Planner: `claude-opus-5-5` (or env `LADE_PLANNER_MODEL`)
+  - Executor: `claude-haiku-5-5` (or env `LADE_EXECUTOR_MODEL`)
+  - Analyst: `claude-opus-5-5` (or env `LADE_ANALYST_MODEL`)
+  - Single-mode / Utility: `claude-opus-5-5` (or env `LADE_UTILITY_MODEL` / `LADE_MODEL`)
 - **Overrides:** The CLI allows overriding global models via `--model <name>` or per-role models via `--role-model planner=<model> --role-model executor=<model>`.
 
 ### Prompt Loading

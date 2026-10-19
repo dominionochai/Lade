@@ -57,11 +57,19 @@ def _parse_override(raw: dict[str, Any], source: str, where: str) -> ModelOverri
     return override
 
 
-_BUILT_IN_DEFAULTS: dict[str, str] = {
-    "planner": "claude-opus-4-6",
-    "executor": "claude-haiku-4-5",
-    "analyst": "claude-opus-4-6",
-}
+def _get_built_in_defaults() -> dict[str, str]:
+    if os.environ.get("LADE_CHEAP") == "1":
+        return {
+            "planner": "claude-sonnet-5-5",
+            "executor": "claude-haiku-5-5",
+            "analyst": "claude-sonnet-5-5",
+        }
+    return {
+        "planner": "claude-opus-5-5",
+        "executor": "claude-haiku-5-5",
+        "analyst": "claude-opus-5-5",
+    }
+
 
 _KNOWN_CONFIG_KEYS: frozenset[str] = frozenset(
     {
@@ -89,9 +97,9 @@ class ModelConfig:
             applied to every proxy model ahead of the file.
     """
 
-    planner: str = _BUILT_IN_DEFAULTS["planner"]
-    executor: str = _BUILT_IN_DEFAULTS["executor"]
-    analyst: str = _BUILT_IN_DEFAULTS["analyst"]
+    planner: str = field(default_factory=lambda: _get_built_in_defaults()["planner"])
+    executor: str = field(default_factory=lambda: _get_built_in_defaults()["executor"])
+    analyst: str = field(default_factory=lambda: _get_built_in_defaults()["analyst"])
     phase_overrides: dict[str, dict[str, str]] = field(default_factory=dict)
     model_overrides: dict[str, ModelOverride] = field(default_factory=dict)
     env_override: ModelOverride = field(default_factory=ModelOverride)
@@ -192,24 +200,25 @@ class ModelConfig:
                     phase_overrides[str(phase_name)] = {str(k): str(v) for k, v in roles.items()}
 
         fallback = model or ""
+        defaults = _get_built_in_defaults()
 
         planner = (
             planner_model
             or file_models.get("planner")
             or fallback
-            or _BUILT_IN_DEFAULTS["planner"]
+            or defaults["planner"]
         )
         executor = (
             executor_model
             or file_models.get("executor")
             or fallback
-            or _BUILT_IN_DEFAULTS["executor"]
+            or defaults["executor"]
         )
         analyst = (
             analyst_model
             or file_models.get("analyst")
             or fallback
-            or _BUILT_IN_DEFAULTS["analyst"]
+            or defaults["analyst"]
         )
 
         return cls(

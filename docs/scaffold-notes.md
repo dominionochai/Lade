@@ -23,9 +23,9 @@ Defined in `lade/models.py`:
 
 ```python
 DEFAULT_MODELS = {
-    "planner": "claude-opus-4-6",
-    "executor": "claude-haiku-4-5",
-    "analyst": "claude-opus-4-6",
+    "planner": "claude-opus-5-5",
+    "executor": "claude-haiku-5-5",
+    "analyst": "claude-opus-5-5",
 }
 ```
 
