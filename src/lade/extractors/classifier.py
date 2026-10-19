@@ -306,10 +306,9 @@ class EvidenceClassifier:
         if ext in _DIFF_EXTS:
             return ClassifiedEvidence(path=path, artifact_type="git_diff")
 
-        if (
-            (ext in _JSONL_EXTS or "log" in name)
+        if _check_cloud_logs_content(path) or (
+            (ext in _JSONL_EXTS or "cloud_log" in name or "cloud_logging" in name)
             and "job" not in name
-            and (_check_cloud_logs_content(path) or ext in _JSONL_EXTS or "log" in name)
         ):
             return ClassifiedEvidence(path=path, artifact_type="cloud_logs")
 

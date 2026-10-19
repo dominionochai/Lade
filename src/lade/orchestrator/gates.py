@@ -266,9 +266,13 @@ def validate_cross_system(summary: dict[str, Any] | None) -> GateResult:
     if not check_findings.passed:
         gaps.append("No findings exist after cross-system analysis.")
 
-    classified_count = summary.get("findings_classified", 0)
     mitre_count = summary.get("findings_with_mitre_ids", 0)
     cwe_count = summary.get("findings_with_cwe_ids", 0)
+    classified_count = (
+        summary.get("findings_classified", 0)
+        or mitre_count
+        or cwe_count
+    )
     check_classified = GateCheck(
         name="mitre_mapping",
         passed=classified_count > 0,

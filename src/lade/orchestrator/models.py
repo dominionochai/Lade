@@ -71,6 +71,9 @@ def _get_built_in_defaults() -> dict[str, str]:
     }
 
 
+_BUILT_IN_DEFAULTS = _get_built_in_defaults()
+
+
 _KNOWN_CONFIG_KEYS: frozenset[str] = frozenset(
     {
         "models",
@@ -125,7 +128,7 @@ class ModelConfig:
         phase_override = self.phase_overrides.get(phase, {})
         if role in phase_override:
             return phase_override[role]
-        return getattr(self, role, _BUILT_IN_DEFAULTS.get(role, self.planner))
+        return getattr(self, role, _get_built_in_defaults().get(role, self.planner))
 
     @property
     def requires_proxy(self) -> bool:
