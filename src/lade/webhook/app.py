@@ -19,7 +19,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, PlainTextResponse
+from starlette.responses import JSONResponse, PlainTextResponse, HTMLResponse
 from starlette.routing import Route
 
 MAX_BODY_SIZE = 1_000_000
@@ -304,10 +304,218 @@ def create_app(
             "context": context,
         })
 
+    async def list_cases(request: Request) -> JSONResponse:
+        cases = []
+        for case_dir in settings.evidence_root.iterdir():
+            if not case_dir.is_dir():
+                continue
+            trigger_file = case_dir / "trigger" / "gitlab_event.json"
+            context = {}
+            updated_at = case_dir.stat().st_mtime * 1000
+            if trigger_file.exists():
+                with suppress(Exception):
+                    ctx = json.loads(trigger_file.read_text())
+                    context = ctx
+                    if "object_attributes" in ctx:
+                        updated_at = max(updated_at, ctx.get("updated_at", updated_at))
+            cases.append({
+                "case_id": case_dir.name,
+                "status": "running",
+                "phase": "running",
+                "updated_at": updated_at,
+                "context": context,
+            })
+        cases.sort(key=lambda c: c.get("updated_at", 0), reverse=True)
+        return JSONResponse(cases)
+
     async def healthz(request: Request) -> PlainTextResponse:
         return PlainTextResponse("ok")
 
+    async def dashboard(request: Request) -> HTMLResponse:
+        return HTMLResponse("""
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lade Webhook Dashboard</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; background: #0d1117; color: #e6edf3; line-height: 1.4; padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+    header { border-bottom: 1px solid #30363d; padding-bottom: 16px; margin-bottom: 24px; }
+    h1 { font-size: 1.5rem; font-weight: 600; color: #58a6ff; }
+    .subtitle { color: #8b949e; margin-top: 4px; }
+    .status-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stat { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 12px 16px; min-width: 120px; }
+    .stat-label { color: #8b949e; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 1.5rem; font-weight: 600; color: #58a6ff; }
+    .case-list { background: #161b22; border: 1px solid #30363d; border-radius: 6px; overflow: hidden; }
+    .case-header { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 2fr; padding: 12px 16px; background: #21262d; border-bottom: 1px solid #30363d; font-size: 0.75rem; text-transform: uppercase; color: #8b949e; letter-spacing: 0.5px; }
+    .case-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 2fr; padding: 12px 16px; border-bottom: 1px solid #21262d; transition: background 0.15s; }
+    .case-row:hover { background: #1f2428; }
+    .case-row:last-child { border-bottom: none; }
+    .case-id { font-family: monospace; color: #58a6ff; word-break: break-all; }
+    .status { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; }
+    .status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+    .status-queued::before { background: #d29922; }
+    .status-running::before { background: #58a6ff; animation: pulse 1.5s infinite; }
+    .status-done::before { background: #3fb950; }
+    .status-failed::before { background: #f85149; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .phase { color: #8b949e; font-size: 0.875rem; }
+    .timestamp { color: #8b949e; font-size: 0.75rem; font-family: monospace; }
+    .actions button { background: #238636; color: white; border: none; border-radius: 4px; padding: 4px 12px; font-family: inherit; font-size: 0.75rem; cursor: pointer; transition: background 0.15s; }
+    .actions button:hover { background: #2ea043; }
+    .actions button:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; }
+    .empty { padding: 48px; text-align: center; color: #8b949e; }
+    .footer { margin-top: 24px; padding-top: 16px; border-top: 1px solid #30363d; color: #8b949e; font-size: 0.75rem; text-align: center; }
+    .flash { animation: flash 0.5s ease-out; }
+    @keyframes flash { 0% { background: #238636; } 100% { background: #161b22; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>▲ LADE Webhook Dashboard</h1>
+      <p class="subtitle">GitLab webhook receiver · investigation queue</p>
+    </header>
+
+    <div class="status-bar">
+      <div class="stat">
+        <div class="stat-label">Queued</div>
+        <div class="stat-value" id="stat-queued">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Running</div>
+        <div class="stat-value" id="stat-running">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Done</div>
+        <div class="stat-value" id="stat-done">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Failed</div>
+        <div class="stat-value" id="stat-failed">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Last Update</div>
+        <div class="stat-value" id="stat-last">—</div>
+      </div>
+    </div>
+
+    <div class="case-list" id="case-list">
+      <div class="case-header">
+        <div>Case ID</div>
+        <div>Status</div>
+        <div>Phase</div>
+        <div>Updated</div>
+        <div>Actions</div>
+      </div>
+      <div id="case-rows"></div>
+    </div>
+
+    <footer class="footer">
+      <code>GET /cases/{id}</code> · <code>POST /webhook/gitlab</code> · <code>POST /trigger/manual</code> · <code>GET /healthz</code>
+      <br>Webhook secret: <code>GITLAB_WEBHOOK_SECRET</code> · Evidence root: <code>LADE_EVIDENCE_ROOT</code>
+    </footer>
+  </div>
+
+  <script>
+    const rowsEl = document.getElementById('case-rows');
+    const statEls = {
+      queued: document.getElementById('stat-queued'),
+      running: document.getElementById('stat-running'),
+      done: document.getElementById('stat-done'),
+      failed: document.getElementById('stat-failed'),
+      last: document.getElementById('stat-last'),
+    };
+
+    async function loadCases() {
+      try {
+        const res = await fetch('/cases');
+        if (!res.ok) throw new Error('Failed to load');
+        const cases = await res.json();
+        renderCases(cases);
+        updateStats(cases);
+      } catch (e) {
+        console.error('Failed to load cases:', e);
+      }
+    }
+
+    function renderCases(cases) {
+      if (!cases || cases.length === 0) {
+        rowsEl.innerHTML = '<div class="empty">No cases yet. Trigger a GitLab pipeline or merge request.</div>';
+        return;
+      }
+
+      const now = Date.now();
+      rowsEl.innerHTML = cases.map(c => {
+        const age = Math.floor((now - (c.updated_at || now)) / 1000);
+        const timeStr = age < 60 ? `${age}s ago` : age < 3600 ? `${Math.floor(age/60)}m ago` : `${Math.floor(age/3600)}h ago`;
+        const statusClass = `status-${c.status || 'queued'}`;
+        const isNew = c._justAdded;
+        return `
+          <div class="case-row${isNew ? ' flash' : ''}" data-id="${c.case_id}">
+            <div class="case-id">${c.case_id}</div>
+            <div class="status ${statusClass}">${c.status || 'queued'}</div>
+            <div class="phase">${c.phase || 'pending'}</div>
+            <div class="timestamp">${timeStr}</div>
+            <div class="actions">
+              ${c.status !== 'done' && c.status !== 'failed' 
+                ? `<button onclick="refreshCase('${c.case_id}')" disabled>Running…</button>`
+                : `<button onclick="window.open('/cases/${c.case_id}', '_blank')">View</button>`}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Remove flash class after animation
+      setTimeout(() => {
+        document.querySelectorAll('.flash').forEach(el => el.classList.remove('flash'));
+      }, 500);
+    }
+
+    function updateStats(cases) {
+      const counts = { queued: 0, running: 0, done: 0, failed: 0 };
+      let latest = 0;
+      cases.forEach(c => {
+        const s = (c.status || 'queued').toLowerCase();
+        if (counts[s] !== undefined) counts[s]++;
+        if (c.updated_at && c.updated_at > latest) latest = c.updated_at;
+      });
+      statEls.queued.textContent = counts.queued;
+      statEls.running.textContent = counts.running;
+      statEls.done.textContent = counts.done;
+      statEls.failed.textContent = counts.failed;
+      statEls.last.textContent = latest ? new Date(latest).toLocaleTimeString() : '—';
+    }
+
+    async function refreshCase(id) {
+      const row = document.querySelector(`[data-id="${id}"]`);
+      if (!row) return;
+      try {
+        const res = await fetch(`/cases/${id}`);
+        if (res.ok) {
+          const c = await res.json();
+          loadCases(); // Full refresh for simplicity
+        }
+      } catch (e) {
+        console.error('Refresh failed:', e);
+      }
+    }
+
+    // Initial load + polling
+    loadCases();
+    setInterval(loadCases, 2000);
+  </script>
+</body>
+</html>
+""")
+
     routes = [
+        Route("/", dashboard, methods=["GET"]),
+        Route("/cases", list_cases, methods=["GET"]),
         Route("/webhook/gitlab", gitlab_webhook, methods=["POST"]),
         Route("/trigger/manual", manual_trigger, methods=["POST"]),
         Route("/cases/{case_id}", case_status, methods=["GET"]),
