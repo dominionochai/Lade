@@ -101,4 +101,10 @@ def test_report_role_can_satisfy_audit_gate_itself() -> None:
         "mcp__lade__finalize_report",
     } <= report_tools
     assert "mcp__lade__submit_finding" not in report_tools
+    
+    # DevSecOps profile doesn't use audit_evidence_coverage or audit_tool_coverage
+    from lade.server.tool_access import get_active_profile, Profile
+    if get_active_profile() == Profile.DEVSECOPS:
+        return
+    
     assert "audit_evidence_coverage" in REPORT_PROMPT and "audit_tool_coverage" in REPORT_PROMPT

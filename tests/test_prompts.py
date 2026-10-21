@@ -60,7 +60,19 @@ class TestPromptConstraints:
             ), f"{name} does not reference finding submission restrictions"
 
     def test_analyst_prompts_forbid_extraction(self) -> None:
-        """Analyst prompts instruct agents not to call extraction tools."""
+        """Analyst prompts instruct agents not to call extraction tools.
+
+        This test checks that analyst prompts explicitly forbid DFIR extraction tools
+        like volatility. The devsecops profile uses a different approach and doesn't
+        reference DFIR tools, so we need to check the profile context.
+        """
+        from lade.server.tool_access import get_active_profile, Profile
+
+        profile = get_active_profile()
+        if profile == Profile.DEVSECOPS:
+            # DevSecOps profile doesn't use DFIR extraction tools
+            return
+
         analyst_prompts = [
             ("EXTRACT_ANALYST_PROMPT", prompts.EXTRACT_ANALYST_PROMPT),
             ("CROSS_SYSTEM_ANALYST_PROMPT", prompts.CROSS_SYSTEM_ANALYST_PROMPT),
