@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 import os
 import re
 import string
@@ -10,9 +9,12 @@ from pathlib import Path
 
 import pytest
 
-from lade.server.tool_access import Profile, _registry, get_active_profile, get_tools_for_role
-from lade.server.tool_access import Role
-
+from lade.server.tool_access import (
+    Profile,
+    Role,
+    _registry,
+    get_tools_for_role,
+)
 
 NAMES = [
     "catalog.md",
@@ -45,10 +47,7 @@ def reset_profile_env():
 
 def _load_prompt(name: str, profile: Profile) -> str:
     """Load a prompt file directly based on profile, bypassing module caching."""
-    if profile == Profile.DEVSECOPS:
-        path = DEVSECOPS_DIR / name
-    else:
-        path = PROMPTS_DIR / name
+    path = DEVSECOPS_DIR / name if profile == Profile.DEVSECOPS else PROMPTS_DIR / name
     assert path.exists(), f"Prompt not found: {path}"
     return path.read_text(encoding="utf-8").strip()
 
@@ -174,11 +173,10 @@ def test_tools_mentioned_in_prompts_are_allowed(name: str) -> None:
         # cross_system_planner.md mentions correlate_across_sources (executor-only tool)
         "correlate_across_sources",
         # cross_system_analyst.md mentions submit_finding and update_finding
-        "submit_finding", "update_finding",
+        "update_finding",
         # narrative_planner.md mentions get_investigation_summary and get_bookmarks
         "get_investigation_summary", "get_bookmarks",
         # narrative_executor.md mentions submit_finding and update_finding
-        "submit_finding", "update_finding",
         # catalog.md mentions start_extraction_batch
         "start_extraction_batch",
     }
@@ -189,9 +187,7 @@ def test_tools_mentioned_in_prompts_are_allowed(name: str) -> None:
                 continue
             if tool_name.lower() in excluded_tools:
                 continue
-            assert False, (
-                f"{name}: mentions registered tool '{tool_name}' not allowed for roles {role_types}"
-            )
+            raise AssertionError(f"{name}: mentions registered tool '{tool_name}' not allowed for roles {role_types}")
 
 
 @pytest.mark.parametrize("name", NAMES)

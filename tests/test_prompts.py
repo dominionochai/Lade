@@ -66,7 +66,7 @@ class TestPromptConstraints:
         like volatility. The devsecops profile uses a different approach and doesn't
         reference DFIR tools, so we need to check the profile context.
         """
-        from lade.server.tool_access import get_active_profile, Profile
+        from lade.server.tool_access import Profile, get_active_profile
 
         profile = get_active_profile()
         if profile == Profile.DEVSECOPS:

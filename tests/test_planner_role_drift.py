@@ -56,11 +56,11 @@ def _advertised(phase: PhaseConfig) -> set[str]:
 
 @pytest.mark.parametrize("phase", SPLIT_PHASES, ids=lambda p: p.name)
 def test_planner_prompt_only_advertises_executor_tools(phase: PhaseConfig) -> None:
-    from lade.server.tool_access import get_active_profile, Profile
-    
+    from lade.server.tool_access import Profile, get_active_profile
+
     if get_active_profile() == Profile.DEVSECOPS:
         return
-    
+
     executor = {t.removeprefix("mcp__lade__") for t in phase.executor_allowed_tools}
     advertised = _advertised(phase)
     assert advertised, f"{phase.name}: prompt names no plannable tools; extractor broke?"

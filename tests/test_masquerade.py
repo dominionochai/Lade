@@ -235,11 +235,11 @@ def test_registered_for_extract_executor_only() -> None:
 
 
 def test_prompts_mention_the_tool() -> None:
-    from lade.server.tool_access import get_active_profile, Profile
-    
+    from lade.server.tool_access import Profile, get_active_profile
+
     if get_active_profile() == Profile.DEVSECOPS:
         return
-    
+
     assert "detect_masquerading" in EXTRACTION.planner_system_prompt
     assert "tsk.masquerade" in EXTRACTION.analyst_system_prompt
 

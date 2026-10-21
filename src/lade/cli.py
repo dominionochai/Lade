@@ -875,5 +875,64 @@ def audit_verify_cmd(target: str, db_dir: str) -> None:
         sys.exit(1)
 
 
-if __name__ == "__main__":
-    cli()
+@cli.command()
+@click.option(
+    "--host",
+    default="0.0.0.0",
+    show_default=True,
+    help="Host to bind to.",
+)
+@click.option(
+    "--port",
+    default=8080,
+    show_default=True,
+    type=click.IntRange(min=1, max=65535),
+    help="Port to bind to.",
+)
+@click.option(
+    "--evidence-root",
+    default="/app/evidence",
+    show_default=True,
+    help="Root directory for evidence (env: LADE_EVIDENCE_ROOT).",
+)
+@click.option(
+    "--db-dir",
+    default="/tmp/lade",
+    show_default=True,
+    help="Directory for webhook database (env: LADE_DB_DIR).",
+)
+def serve_webhook(
+    host: str,
+    port: int,
+    evidence_root: str,
+    db_dir: str,
+) -> None:
+    """Start the GitLab webhook receiver for automated investigations.
+
+    Listens for GitLab webhook events and triggers investigations automatically.
+
+    Required environment variables:
+      GITLAB_WEBHOOK_SECRET  - HMAC secret for webhook validation
+      ANTHROPIC_API_KEY      - API key for the LLM (passed through, never logged)
+
+    Optional environment variables:
+      LADE_EVIDENCE_ROOT     - Evidence root directory (default: /app/evidence)
+      LADE_DB_DIR            - Webhook database directory (default: /tmp/lade)
+      PORT                   - Overrides --port (default: 8080)
+
+    The webhook endpoint is POST /webhook/gitlab with header X-Gitlab-Token.
+    """
+    import os
+
+    os.environ["LADE_EVIDENCE_ROOT"] = evidence_root
+    os.environ["LADE_DB_DIR"] = db_dir
+
+    import uvicorn
+
+    uvicorn.run(
+        "lade.webhook.app:create_app",
+        host=host,
+        port=port,
+        factory=True,
+        log_level="info",
+    )
