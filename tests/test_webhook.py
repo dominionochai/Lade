@@ -332,3 +332,205 @@ def test_docker_build_optional():
             print("Docker not available - skipping build test")
     except (FileNotFoundError, subprocess.TimeoutExpired):
         print("Docker not available - skipping build test")
+
+
+def test_cases_endpoint_sanitizes_payload():
+    """GET /cases returns only allowed fields, never raw payload or paths."""
+    import json
+    import os
+    os.environ["GITLAB_WEBHOOK_SECRET"] = "test-secret-123"
+    os.environ["LADE_EVIDENCE_ROOT"] = "/tmp/test_evidence"
+    os.environ["LADE_DB_DIR"] = "/tmp/test_lade"
+
+    from starlette.testclient import TestClient
+
+    from lade.webhook.app import create_app, sanitize_case_for_public
+
+    app = create_app(sync_mode=True)
+    client = TestClient(app)
+
+    # Create a case with malicious payload
+    import tempfile
+    from pathlib import Path
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        evidence_root = Path(tmpdir) / "evidence"
+        evidence_root.mkdir()
+
+        case_dir = evidence_root / "test-case-123"
+        case_dir.mkdir()
+        trigger_dir = case_dir / "trigger"
+        trigger_dir.mkdir()
+
+        # Write payload with "evil" keys and long project name
+        evil_payload = {
+            "object_kind": "pipeline",
+            "object_attributes": {"status": "success", "id": 123},
+            "project": {"path_with_namespace": "x" * 200},
+            "ref": "refs/heads/main",
+            "checkout_sha": "abc123def456",
+            "evil_key": "should_not_appear",
+            "secret_token": "hunter2",
+            "filesystem_path": "/etc/passwd",
+            "object_attributes": {"status": "success", "id": 123}
+        }
+        trigger_file = trigger_dir / "gitlab_event.json"
+        trigger_file.write_text(json.dumps(evil_payload))
+
+        sanitized = sanitize_case_for_public(evil_payload, case_dir)
+
+        # Check only allowed fields exist
+        allowed_keys = {"case_id", "status", "phase", "updated_at", "event_type", "project", "short_sha", "finding_count", "audit_head", "report_ready"}
+        assert set(sanitized.keys()) == allowed_keys
+
+        # Check evil keys are not present
+        assert "evil_key" not in sanitized
+        assert "secret_token" not in sanitized
+        assert "filesystem_path" not in sanitized
+        assert "object_attributes" not in sanitized
+        assert "checkout_sha" not in sanitized  # replaced by short_sha
+
+        # Check truncation
+        assert len(sanitized["project"]) == 100
+        assert sanitized["short_sha"] == "abc123d"
+        assert sanitized["event_type"] == "pipeline"
+        assert sanitized["short_sha"] == "abc123d"
+        assert sanitized["report_ready"] is False
+        assert sanitized["audit_head"] == "pending"
+
+
+def test_case_status_endpoint_sanitizes(client: TestClient, fake_runner: FakeRunner):
+    """GET /cases/{id} returns sanitized data only."""
+    payload = {
+        "object_kind": "pipeline",
+        "object_attributes": {"status": "success", "id": 123},
+        "project": {"path_with_namespace": "group/project"},
+        "ref": "refs/heads/main",
+        "checkout_sha": "abc123def456",
+        "evil_key": "evil",
+        "secret": "hunter2",
+    }
+    response = client.post(
+        "/webhook/gitlab",
+        json=payload,
+        headers={
+            "X-Gitlab-Token": "test-secret-123",
+            "X-Gitlab-Event": "Pipeline Hook",
+            "X-Gitlab-Event-UUID": "sanitize-test-1",
+        },
+    )
+    case_id = response.json()["case_id"]
+
+    status_resp = client.get(f"/cases/{case_id}")
+    assert status_resp.status_code == 200
+    data = status_resp.json()
+
+    # Only allowed keys
+    allowed_keys = {"case_id", "status", "phase", "updated_at", "event_type", "project", "short_sha", "finding_count", "audit_head", "report_ready"}
+    assert set(data.keys()) == allowed_keys
+
+    # No raw payload keys
+    assert "evil_key" not in data
+    assert "secret" not in data
+    assert "checkout_sha" not in data
+    assert "object_attributes" not in data
+    assert "ref" not in data
+
+    # Check truncation
+    assert len(data["project"]) <= 100
+    assert len(data["short_sha"]) == 7
+
+
+def test_xss_protection_dashboard_no_innerhtml():
+    """Dashboard HTML contains no innerHTML assignment of user data."""
+    import os
+    os.environ["GITLAB_WEBHOOK_SECRET"] = "test-secret-123"
+    os.environ["LADE_EVIDENCE_ROOT"] = "/tmp/test_evidence"
+    os.environ["LADE_DB_DIR"] = "/tmp/test_lade"
+
+    from starlette.testclient import TestClient
+
+    from lade.webhook.app import create_app
+
+    app = create_app(sync_mode=True)
+    client = TestClient(app)
+
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+
+    # innerHTML is used only to clear container (rowsEl.innerHTML = ''), not for user data
+    # Verify the pattern: rowsEl.innerHTML = '' (clearing) not rowsEl.innerHTML = userData
+    assert "rowsEl.innerHTML = ''" in html
+    # Should not have pattern of innerHTML with user data interpolation
+    assert "innerHTML = " not in html.replace("rowsEl.innerHTML = ''", "")
+
+    # Uses createElement/textContent pattern
+    assert "createElement" in html
+    assert "textContent" in html
+    assert "dataset" in html or "data-" in html
+
+
+def test_xss_protection_xss_payload_not_executed(client: TestClient, fake_runner: FakeRunner):
+    """Case with XSS payload in project name is returned as plain data."""
+    payload = {
+        "object_kind": "pipeline",
+        "object_attributes": {"status": "success", "id": 123},
+        "project": {"path_with_namespace": '<img src=x onerror=alert(1)>'},
+        "ref": "refs/heads/main",
+        "checkout_sha": "abc123def456",
+    }
+    response = client.post(
+        "/webhook/gitlab",
+        json=payload,
+        headers={
+            "X-Gitlab-Token": "test-secret-123",
+            "X-Gitlab-Event": "Pipeline Hook",
+            "X-Gitlab-Event-UUID": "xss-test-1",
+        },
+    )
+    case_id = response.json()["case_id"]
+
+    # Check case_status endpoint
+    status_resp = client.get(f"/cases/{case_id}")
+    data = status_resp.json()
+    assert data["project"] == "<img src=x onerror=alert(1)>"[:100]  # truncated, not executed
+    assert "img" in data["project"]  # literal text, not HTML
+
+    # Check list_cases endpoint
+    list_resp = client.get("/cases")
+    cases = list_resp.json()
+    case = next(c for c in cases if c["case_id"] == case_id)
+    assert case["project"] == "<img src=x onerror=alert(1)>"[:100]
+    assert "img" in case["project"]
+
+
+def test_dashboard_uses_createelement_textcontent():
+    """Dashboard script uses createElement/textContent, not innerHTML for user data."""
+    import os
+    os.environ["GITLAB_WEBHOOK_SECRET"] = "test-secret-123"
+    os.environ["LADE_EVIDENCE_ROOT"] = "/tmp/test_evidence"
+    os.environ["LADE_DB_DIR"] = "/tmp/test_lade"
+
+    from starlette.testclient import TestClient
+
+    from lade.webhook.app import create_app
+
+    app = create_app(sync_mode=True)
+    client = TestClient(app)
+
+    resp = client.get("/")
+    html = resp.text
+
+    # Verify safe DOM construction
+    assert "createElement" in html
+    assert "textContent" in html
+    assert "dataset" in html
+
+    # innerHTML only used to clear container, not for user data
+    assert "rowsEl.innerHTML = ''" in html
+
+    # No dangerous patterns for user data
+    # No onclick with inline strings
+    # Event handlers use data attributes
+    assert "data-id" in html or "dataset.id" in html

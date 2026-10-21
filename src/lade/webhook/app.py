@@ -19,7 +19,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import JSONResponse, PlainTextResponse, HTMLResponse
+from starlette.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from starlette.routing import Route
 
 MAX_BODY_SIZE = 1_000_000
@@ -125,6 +125,52 @@ def build_context_summary(payload: dict, event_type: str) -> dict:
     return summary
 
 
+def sanitize_case_for_public(payload: dict, case_dir: Path) -> dict:
+    """Return only allowed public fields, never raw payload or paths."""
+    ctx = {}
+    # Determine event_type from payload
+    if "event_type" in payload:
+        ctx["event_type"] = str(payload.get("event_type", ""))
+    elif "object_kind" in payload:
+        ctx["event_type"] = str(payload.get("object_kind", "unknown"))
+    else:
+        ctx["event_type"] = "unknown"
+
+    if "project" in payload:
+        proj = payload["project"].get("path_with_namespace", "")
+        ctx["project"] = str(proj)[:100]
+    if "ref" in payload:
+        ref = str(payload.get("ref", ""))
+        ctx["ref"] = ref[:100]
+    if "checkout_sha" in payload:
+        sha = str(payload.get("checkout_sha", ""))
+        ctx["short_sha"] = sha[:7]
+    if "after" in payload:
+        sha = str(payload.get("after", ""))
+        ctx["short_sha"] = sha[:7]
+    if "object_attributes" in payload:
+        obj = payload["object_attributes"]
+        if "status" in obj:
+            ctx["status"] = str(obj.get("status", ""))
+        if "id" in obj:
+            ctx["pipeline_id"] = str(obj.get("id", ""))
+    if "checkout_sha" in payload and "short_sha" not in ctx:
+        ctx["short_sha"] = str(payload.get("checkout_sha", ""))[:7]
+
+    return {
+        "case_id": case_dir.name,
+        "status": ctx.get("status", "running"),
+        "phase": "running",
+        "updated_at": int(case_dir.stat().st_mtime * 1000),
+        "event_type": ctx.get("event_type", "unknown"),
+        "project": ctx.get("project", ""),
+        "short_sha": ctx.get("short_sha", ""),
+        "finding_count": 0,
+        "audit_head": "pending",
+        "report_ready": False,
+    }
+
+
 async def run_investigation_background(
     case_id: str,
     evidence_root: Path,
@@ -157,7 +203,6 @@ class InvestigationQueue:
 
     async def enqueue(self, case_id: str, evidence_root: Path, context: dict) -> None:
         if self._sync_mode:
-            # In sync mode (tests), call runner immediately
             runner = self._runner_factory(case_id, evidence_root, context)
             if hasattr(runner, 'run') and callable(runner.run):
                 await runner.run()
@@ -289,42 +334,26 @@ def create_app(
             return JSONResponse({"error": "not found"}, status_code=404)
 
         trigger_file = case_dir / "trigger" / "gitlab_event.json"
-        context = {}
+        payload = {}
         if trigger_file.exists():
             with suppress(Exception):
-                context = json.loads(trigger_file.read_text())
+                payload = json.loads(trigger_file.read_text())
 
-        return JSONResponse({
-            "case_id": case_id,
-            "phase": "running",
-            "finding_count": 0,
-            "status": "running",
-            "audit_chain_head": "pending",
-            "report_path": None,
-            "context": context,
-        })
+        return JSONResponse(sanitize_case_for_public(payload, case_dir))
 
     async def list_cases(request: Request) -> JSONResponse:
         cases = []
+        if not settings.evidence_root.exists():
+            return JSONResponse([])
         for case_dir in settings.evidence_root.iterdir():
             if not case_dir.is_dir():
                 continue
             trigger_file = case_dir / "trigger" / "gitlab_event.json"
-            context = {}
-            updated_at = case_dir.stat().st_mtime * 1000
+            payload = {}
             if trigger_file.exists():
                 with suppress(Exception):
-                    ctx = json.loads(trigger_file.read_text())
-                    context = ctx
-                    if "object_attributes" in ctx:
-                        updated_at = max(updated_at, ctx.get("updated_at", updated_at))
-            cases.append({
-                "case_id": case_dir.name,
-                "status": "running",
-                "phase": "running",
-                "updated_at": updated_at,
-                "context": context,
-            })
+                    payload = json.loads(trigger_file.read_text())
+            cases.append(sanitize_case_for_public(payload, case_dir))
         cases.sort(key=lambda c: c.get("updated_at", 0), reverse=True)
         return JSONResponse(cases)
 
@@ -431,6 +460,13 @@ def create_app(
       last: document.getElementById('stat-last'),
     };
 
+    function createCell(tag, className, text) {
+      const el = document.createElement(tag);
+      if (className) el.className = className;
+      if (text !== undefined) el.textContent = text;
+      return el;
+    }
+
     async function loadCases() {
       try {
         const res = await fetch('/cases');
@@ -443,44 +479,69 @@ def create_app(
       }
     }
 
+    function createCell(tag, className, text) {
+      const el = document.createElement(tag);
+      if (className) el.className = className;
+      if (text !== undefined) el.textContent = text;
+      return el;
+    }
+
+    function createCaseRow(c) {
+      const row = document.createElement('div');
+      row.className = 'case-row';
+      row.dataset.id = c.case_id;
+
+      const now = Date.now();
+      const age = Math.floor((now - (c.updated_at || now)) / 1000);
+      const timeStr = age < 60 ? age + 's ago' : age < 3600 ? Math.floor(age/60) + 'm ago' : Math.floor(age/3600) + 'h ago';
+      const statusClass = 'status-' + (c.status || 'queued');
+
+      const caseIdCell = createCell('div', 'case-id', c.case_id);
+
+      const statusCell = createCell('div');
+      const statusBadge = createCell('span', 'status ' + statusClass, c.status || 'queued');
+      statusCell.appendChild(statusBadge);
+
+      const phaseCell = createCell('div', 'phase', c.phase || 'pending');
+
+      const timeCell = createCell('div', 'timestamp',
+        age < 60 ? age + 's ago' : age < 3600 ? Math.floor(age/60) + 'm ago' : Math.floor(age/3600) + 'h ago');
+
+      const actionsCell = createCell('div', 'actions');
+      if (c.status !== 'done' && c.status !== 'failed') {
+        const btn = createCell('button', '', 'Running...');
+        btn.disabled = true;
+        actionsCell.appendChild(btn);
+      } else {
+        const btn = createCell('button', '', 'View');
+        btn.onclick = function() { window.open('/cases/' + c.case_id, '_blank'); };
+        actionsCell.appendChild(btn);
+      }
+
+      row.append(caseIdCell, statusCell, phaseCell, timeCell, actionsCell);
+      return row;
+    }
+
     function renderCases(cases) {
+      rowsEl.innerHTML = '';
       if (!cases || cases.length === 0) {
-        rowsEl.innerHTML = '<div class="empty">No cases yet. Trigger a GitLab pipeline or merge request.</div>';
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = 'No cases yet. Trigger a GitLab pipeline or merge request.';
+        rowsEl.appendChild(empty);
         return;
       }
 
-      const now = Date.now();
-      rowsEl.innerHTML = cases.map(c => {
-        const age = Math.floor((now - (c.updated_at || now)) / 1000);
-        const timeStr = age < 60 ? `${age}s ago` : age < 3600 ? `${Math.floor(age/60)}m ago` : `${Math.floor(age/3600)}h ago`;
-        const statusClass = `status-${c.status || 'queued'}`;
-        const isNew = c._justAdded;
-        return `
-          <div class="case-row${isNew ? ' flash' : ''}" data-id="${c.case_id}">
-            <div class="case-id">${c.case_id}</div>
-            <div class="status ${statusClass}">${c.status || 'queued'}</div>
-            <div class="phase">${c.phase || 'pending'}</div>
-            <div class="timestamp">${timeStr}</div>
-            <div class="actions">
-              ${c.status !== 'done' && c.status !== 'failed' 
-                ? `<button onclick="refreshCase('${c.case_id}')" disabled>Running…</button>`
-                : `<button onclick="window.open('/cases/${c.case_id}', '_blank')">View</button>`}
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // Remove flash class after animation
-      setTimeout(() => {
-        document.querySelectorAll('.flash').forEach(el => el.classList.remove('flash'));
-      }, 500);
+      cases.forEach(function(c) {
+        rowsEl.appendChild(createCaseRow(c));
+      });
     }
 
     function updateStats(cases) {
-      const counts = { queued: 0, running: 0, done: 0, failed: 0 };
-      let latest = 0;
-      cases.forEach(c => {
-        const s = (c.status || 'queued').toLowerCase();
+      var counts = { queued: 0, running: 0, done: 0, failed: 0 };
+      var latest = 0;
+      cases.forEach(function(c) {
+        var s = (c.status || 'queued').toLowerCase();
         if (counts[s] !== undefined) counts[s]++;
         if (c.updated_at && c.updated_at > latest) latest = c.updated_at;
       });
@@ -491,27 +552,13 @@ def create_app(
       statEls.last.textContent = latest ? new Date(latest).toLocaleTimeString() : '—';
     }
 
-    async function refreshCase(id) {
-      const row = document.querySelector(`[data-id="${id}"]`);
-      if (!row) return;
-      try {
-        const res = await fetch(`/cases/${id}`);
-        if (res.ok) {
-          const c = await res.json();
-          loadCases(); // Full refresh for simplicity
-        }
-      } catch (e) {
-        console.error('Refresh failed:', e);
-      }
-    }
-
     // Initial load + polling
     loadCases();
     setInterval(loadCases, 2000);
   </script>
 </body>
 </html>
-""")
+        """)
 
     routes = [
         Route("/", dashboard, methods=["GET"]),
