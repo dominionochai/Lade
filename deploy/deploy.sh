@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Cloud Run deployment script for Lade webhook
-# Usage: ./deploy.sh [project-id] [region] [service-name]
+# Cloud Run deployment script for Lade Webhook
+# Usage: ./deploy/deploy.sh <project-id> [region] [service-name]
 
 set -euo pipefail
 
@@ -52,7 +52,7 @@ fi
 
 # Check/create secrets
 echo "Checking secrets..."
-for secret in GITLAB_WEBHOOK_SECRET ANTHROPIC_API_KEY; do
+for secret in GITLAB_WEBHOOK_SECRET ANTHROPIC_API_KEY MCP_AUTH_TOKEN; do
     if ! gcloud secrets describe "$secret" --project="$PROJECT_ID" &>/dev/null; then
         echo "Secret $secret not found. Creating placeholder..."
         echo "CHANGE_ME" | gcloud secrets create "$secret" \
@@ -60,6 +60,16 @@ for secret in GITLAB_WEBHOOK_SECRET ANTHROPIC_API_KEY; do
             --project="$PROJECT_ID"
         echo "WARNING: Update secret '$secret' in Secret Manager with real value!"
     fi
+done
+
+# Grant Secret Manager access to Cloud Run service account
+SERVICE_ACCOUNT="${SERVICE_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+echo "Granting secret access to service account: $SERVICE_ACCOUNT"
+for secret in GITLAB_WEBHOOK_SECRET ANTHROPIC_API_KEY MCP_AUTH_TOKEN; do
+    gcloud secrets add-iam-policy-binding "$secret" \
+        --member="serviceAccount:$SERVICE_ACCOUNT" \
+        --role="roles/secretmanager.secretAccessor" \
+        --project="$PROJECT_ID" &>/dev/null || true
 done
 
 # Build and deploy using Cloud Build
@@ -74,10 +84,14 @@ steps:
       - '-f'
       - 'Dockerfile.cloudrun'
       - '.'
+    id: 'build-image'
+
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - '\${_REGION}-docker.pkg.dev/\$PROJECT_ID/lade-docker/\${_SERVICE_NAME}:\$COMMIT_SHA'
+    id: 'push-image'
+
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
     args:
@@ -106,17 +120,36 @@ steps:
       - '--set-env-vars'
       - 'LADE_EVIDENCE_ROOT=/app/evidence'
       - '--set-secrets'
-      - 'GITLAB_WEBHOOK_SECRET=GITLAB_WEBHOOK_SECRET:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest'
+      - 'GITLAB_WEBHOOK_SECRET=GITLAB_WEBHOOK_SECRET:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest'
       - '--service-account'
       - '\${_SERVICE_NAME}@\$PROJECT_ID.iam.gserviceaccount.com'
       - '--project'
       - '\$PROJECT_ID'
       - '--quiet'
+    id: 'deploy-cloudrun'
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'services'
+      - 'describe'
+      - '\${_SERVICE_NAME}'
+      - '--region'
+      - '\${_REGION}'
+      - '--project'
+      - '\$PROJECT_ID'
+      - '--format'
+      - 'value(status.url)'
+    id: 'get-service-url'
+
 substitutions:
   _REGION: '$REGION'
   _SERVICE_NAME: '$SERVICE_NAME'
+
 options:
   logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
 EOF
 
 gcloud builds submit \
@@ -136,8 +169,9 @@ echo "Service URL: $SERVICE_URL"
 echo
 echo "Next steps:"
 echo "1. Update secrets in Secret Manager with real values:"
-echo "   gcloud secrets versions add GITLAB_WEBHOOK_SECRET --data-file=- --project=$PROJECT_ID"
-echo "   gcloud secrets versions add ANTHROPIC_API_KEY --data-file=- --project=$PROJECT_ID"
+echo "   echo -n 'your-webhook-secret' | gcloud secrets versions add GITLAB_WEBHOOK_SECRET --data-file=- --project=$PROJECT_ID"
+echo "   echo -n 'sk-ant-your-key' | gcloud secrets versions add ANTHROPIC_API_KEY --data-file=- --project=$PROJECT_ID"
+echo "   echo -n 'your-mcp-auth-token' | gcloud secrets versions add MCP_AUTH_TOKEN --data-file=- --project=$PROJECT_ID"
 echo
 echo "2. Register webhook in GitLab:"
 echo "   URL: $SERVICE_URL/webhook/gitlab"

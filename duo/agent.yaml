@@ -1,0 +1,114 @@
+# Duo Agent Configuration for Lade MCP Integration
+# This file configures the GitLab Duo Agent to connect to the Lade MCP server
+
+agent:
+  name: "lade-forensic-analyzer"
+  description: "Forensic evidence analysis agent using Lade MCP tools"
+  version: "1.0.0"
+
+# MCP Server Configuration
+mcp:
+  # The MCP server can be reached via HTTP/SSE transport
+  # For local development: http://localhost:8081/mcp
+  # For production: https://your-cloud-run-url/mcp
+  transport: "http"
+  endpoint: "${MCP_SERVER_URL:-http://localhost:8081/mcp}"
+  # Optional: authentication for MCP server
+  auth:
+    type: "bearer"
+    token_env: "MCP_AUTH_TOKEN"
+
+# Agent Configuration
+capabilities:
+  - "evidence_cataloging"
+  - "extraction_planning"
+  - "cross_system_correlation"
+  - "narrative_analysis"
+  - "report_generation"
+
+# Tool permissions - which Lade tools the agent can invoke
+tools:
+  allowed:
+    # Evidence cataloging
+    - "scan_evidence"
+    - "list_sources"
+    - "get_source_stats"
+    - "list_directory"
+    - "read_evidence_file"
+    - "extract_archive"
+    # Planning & execution
+    - "run_parallel"
+    - "wait"
+    - "wait_all"
+    - "get_completed_results"
+    - "check_extraction_status"
+    - "get_raw_output"
+    # Query & analysis
+    - "search"
+    - "get_timeline"
+    - "correlate_across_sources"
+    - "bookmark_window"
+    - "get_bookmarks"
+    - "remove_bookmark"
+    # Findings management
+    - "submit_finding"
+    - "update_finding"
+    - "delete_finding"
+    - "get_findings"
+    - "deduplicate_findings"
+    # Reporting
+    - "submit_narrative"
+    - "finalize_report"
+    - "check_finalize_readiness"
+    - "get_investigation_summary"
+    - "audit_evidence_coverage"
+    - "audit_tool_coverage"
+    - "verify_evidence_integrity"
+    - "lookup_attack_technique"
+    - "get_ioc_summary"
+  # Tools explicitly denied (DFIR-only tools not in DevSecOps profile)
+  denied:
+    - "run_volatility"
+    - "run_fls"
+    - "run_bulk_extractor"
+    - "run_evtx_parser"
+    - "run_hayabusa"
+    - "run_plaso"
+    - "run_chainsaw"
+
+# Trigger configuration - when the agent should be invoked
+triggers:
+  - type: "push"
+    branches: ["main", "develop"]
+    paths: ["evidence/**", "*.json", "*.log"]
+  - type: "schedule"
+    cron: "0 2 * * *"  # Daily at 2 AM UTC
+  - type: "api"
+    # Manual trigger via API call from CI
+
+# Agent behavior
+behavior:
+  max_iterations: 10
+  timeout_seconds: 1800  # 30 minutes max per run
+  require_approval: false  # Auto-execute for automated runs
+  retry_on_failure: 2
+  timeout_action: "partial_results"
+
+# Output configuration
+output:
+  create_issue: true
+  issue_template: ".gitlab/issue_templates/automation_report.md"
+  create_draft_mr: true
+  mr_target_branch: "main"
+  mr_title_template: "Automated investigation report - {date}"
+
+# Environment variables required
+env_vars:
+  required:
+    - "GITLAB_TOKEN"
+    - "GITLAB_PROJECT_ID"
+    - "MCP_SERVER_URL"
+  optional:
+    - "MCP_AUTH_TOKEN"
+    - "LADE_PROFILE"
+    - "LADE_DB_DIR"

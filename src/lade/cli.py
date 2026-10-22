@@ -936,3 +936,65 @@ def serve_webhook(
         factory=True,
         log_level="info",
     )
+
+
+@cli.command()
+@click.option(
+    "--host",
+    default="0.0.0.0",
+    show_default=True,
+    help="Host to bind to.",
+)
+@click.option(
+    "--port",
+    default=8081,
+    show_default=True,
+    type=click.IntRange(min=1, max=65535),
+    help="Port to bind to.",
+)
+@click.option(
+    "--db-dir",
+    default="/tmp/lade",
+    envvar="LADE_DB_DIR",
+    show_default=True,
+    help="Directory for case databases (env: LADE_DB_DIR).",
+)
+def serve_mcp_http(
+    host: str,
+    port: int,
+    db_dir: str,
+) -> None:
+    """Run the Lade MCP HTTP server for Duo Agent Platform integration.
+
+    Exposes Lade's forensic tools over HTTP/SSE for the GitLab Duo Agent Platform.
+
+    Required environment variables:
+      GITLAB_TOKEN      - GitLab API token (for Duo agent to call GitLab API)
+      GITLAB_PROJECT_ID - GitLab project ID or path
+
+    Optional environment variables:
+      MCP_AUTH_TOKEN    - Optional auth token for MCP server
+      LADE_DB_DIR       - Case database directory (default: /tmp/lade)
+
+    The MCP server will be available at:
+      SSE endpoint:     http://host:port/mcp/sse
+      Messages endpoint: http://host:port/mcp/messages
+      Tools list:       http://host:port/mcp/tools
+      Health check:     http://host:port/health
+    """
+    import os
+    os.environ["LADE_DB_DIR"] = db_dir
+
+    import uvicorn
+    from lade.mcp_http import create_mcp_http_app
+
+    click.echo(f"Starting Lade MCP HTTP server on {host}:{port}")
+    click.echo(f"Database directory: {db_dir}")
+
+    uvicorn.run(
+        "lade.mcp_http:create_mcp_http_app",
+        host=host,
+        port=port,
+        factory=True,
+        log_level="info",
+    )

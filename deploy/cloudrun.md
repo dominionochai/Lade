@@ -17,7 +17,7 @@ export REGION=europe-west1
 export SERVICE_NAME=lade-webhook
 
 # Deploy
-./deploy/deploy.sh
+./deploy/deploy.sh $PROJECT_ID $REGION $SERVICE_NAME
 ```
 
 ## Manual Deployment Steps
@@ -31,6 +31,10 @@ echo -n "your-secure-webhook-secret" | gcloud secrets create GITLAB_WEBHOOK_SECR
 
 # Anthropic API key
 echo -n "sk-ant-your-key" | gcloud secrets create ANTHROPIC_API_KEY \
+    --data-file=- --replication-policy=automatic
+
+# MCP auth token (optional, for securing MCP endpoint)
+echo -n "your-mcp-auth-token" | gcloud secrets create MCP_AUTH_TOKEN \
     --data-file=- --replication-policy=automatic
 ```
 
@@ -49,17 +53,20 @@ gcloud secrets add-iam-policy-binding GITLAB_WEBHOOK_SECRET \
 gcloud secrets add-iam-policy-binding ANTHROPIC_API_KEY \
     --member="serviceAccount:$SERVICE_ACCOUNT" \
     --role="roles/secretmanager.secretAccessor"
+
+gcloud secrets add-iam-policy-binding MCP_AUTH_TOKEN \
+    --member="serviceAccount:$SERVICE_ACCOUNT" \
+    --role="roles/secretmanager.secretAccessor"
 ```
 
 ### 3. Build and Deploy with Cloud Build
 
 ```bash
-# Submit build
 gcloud builds submit --config cloudbuild.yaml \
     --substitutions=_REGION=$REGION,_SERVICE_NAME=$SERVICE_NAME
 ```
 
-Or build and deploy in one step:
+Or deploy in one step:
 
 ```bash
 gcloud run deploy $SERVICE_NAME \
@@ -73,7 +80,8 @@ gcloud run deploy $SERVICE_NAME \
     --concurrency 1 \
     --timeout 3600 \
     --set-env-vars=LADE_EVIDENCE_ROOT=/app/evidence \
-    --set-secrets=GITLAB_WEBHOOK_SECRET=GITLAB_WEBHOOK_SECRET:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest \
+    --set-secrets=GITLAB_WEBHOOK_SECRET=GITLAB_WEBHOOK_SECRET:latest,ANTHROPIC_API_KEY=ANTHROPIC_API_KEY:latest,MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest \
+    --service-account $SERVICE_NAME@$PROJECT_ID.iam.gserviceaccount.com \
     --port 8080
 ```
 
@@ -96,6 +104,7 @@ gcloud run deploy $SERVICE_NAME \
 |----------|--------|-------------|
 | `GITLAB_WEBHOOK_SECRET` | Secret Manager | HMAC secret for webhook validation |
 | `ANTHROPIC_API_KEY` | Secret Manager | LLM API key (never logged) |
+| `MCP_AUTH_TOKEN` | Secret Manager | Optional auth for MCP endpoint |
 | `LADE_EVIDENCE_ROOT` | Env var | `/app/evidence` (copied in image) |
 | `LADE_DB_DIR` | Env var | `/tmp/lade` (ephemeral SQLite) |
 | `PORT` | Cloud Run | Injected automatically (8080) |
@@ -123,7 +132,7 @@ gcloud run deploy $SERVICE_NAME \
 ### Report Delivery
 - Investigation reports are generated in the case directory under `/tmp/lade/<case_id>/`
 - Since the filesystem is ephemeral, **reports are not persisted locally**
-- Reports must be published to GitLab (via the `submit_narrative` and `finalize_report` tools)
+- Reports must be published to GitLab (via `submit_narrative` and `finalize_report` tools)
 - Configure the investigation to post results back to the triggering MR/pipeline
 
 ### Deduplication
