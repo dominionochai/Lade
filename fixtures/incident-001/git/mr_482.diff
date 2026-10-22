@@ -1,0 +1,43 @@
+commit a3f9c1e5b7d2048c1f6e93a7d0b45c2e8f1a9d63
+Author: J. Okafor <j.okafor@example.com>
+Date:   Fri Oct 9 13:01:12 2026 +0000
+
+    Bump streamcache to 2.4.1, add /export endpoint (MR !482)
+
+diff --git a/requirements.txt b/requirements.txt
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -1,5 +1,5 @@
+ fastapi==0.115.2
+ uvicorn==0.31.0
+-streamcache==2.3.4
++streamcache==2.4.1
+ yamlforge==1.8.0
+ httpx==0.27.2
+diff --git a/app/cache.py b/app/cache.py
+--- a/app/cache.py
++++ b/app/cache.py
+@@ -1,6 +1,6 @@
+ from streamcache import StreamCache
+
+ # relies on library defaults for size limits
+-cache = StreamCache(ttl=300)
++cache = StreamCache(ttl=300, namespace="orders")
+diff --git a/app/routes/export.py b/app/routes/export.py
+new file mode 100644
+--- /dev/null
++++ b/app/routes/export.py
+@@ -0,0 +1,14 @@
++import uuid
++from fastapi import APIRouter
++from app.cache import cache
++from app.services import build_export
++
++router = APIRouter()
++
++@router.get("/export")
++def export():
++    payload = build_export()
++    # cache the rendered export under a fresh key for follow-up downloads
++    cache.set(f"export:{uuid.uuid4()}", payload)
++    return payload

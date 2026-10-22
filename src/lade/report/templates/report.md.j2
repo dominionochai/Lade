@@ -1,0 +1,216 @@
+# Lade Investigation Report
+
+**Case:** {{ case_id }}
+**Generated:** {{ timestamp }}
+**Evidence:** {{ evidence_root }}
+
+---
+
+## Executive Summary
+
+{{ executive_summary_md }}
+
+{% if critical_findings %}
+### Critical Findings
+
+{% for f in critical_findings %}
+- **{{ f.title }}** {% if f.event_time_start %}({{ f.event_time_start }}{% if f.event_time_end %} to {{ f.event_time_end }}{% endif %}){% endif %}
+
+{% endfor %}
+{% endif %}
+
+---
+
+## Forensic Soundness and Evidence Integrity
+
+Analysis was executed via a read-only Model Context Protocol (MCP) server
+mapped to the SANS SIFT toolchain. The MCP architecture enforces structural
+evidence protection: original evidence files were mounted as read-only
+volumes, all tool interactions are typed functions (no shell access), and
+every finding is validated against the append-only audit log before
+acceptance.
+{% if evidence_integrity %}
+SHA-256 hashes were computed at ingestion for {{ evidence_integrity | length }}
+original evidence file{{ '' if evidence_integrity | length == 1 else 's' }} and
+recorded in the case database.
+{% endif %}
+{{ total_tool_calls }} tool calls were executed across {{ sources | length }}
+indexed sources over the course of the investigation, with full provenance
+tracking via append-only JSONL audit log.
+
+{% if narrative %}
+
+---
+
+## Investigation Report
+
+{{ narrative }}
+{% endif %}
+
+---
+
+## Overview
+
+| | |
+|---|---|
+| Findings | **{{ finding_count }}** ({{ confirmed_count }} confirmed, {{ inference_count }} inference) |
+| Severity | {{ critical_count }} critical, {{ high_count }} high, {{ medium_count }} medium, {{ low_count }} low, {{ info_count }} info |
+| Sources | {{ sources | length }} evidence sources across {{ total_tool_calls }} tool calls |
+{% if negative_count %}| Ruled Out | {{ negative_count }} hypotheses tested and rejected |
+{% endif %}
+{% if evidence_integrity %}
+---
+
+## Evidence Hashes
+
+SHA-256 hashes recorded at ingestion. Verify with `sha256sum <file>`.
+
+| File | SHA-256 | Size |
+|------|---------|------|
+{% for e in evidence_integrity %}| {{ e.file_path | basename }} | `{{ e.sha256 }}` | {{ e.size_bytes | filesizeformat }} |
+{% endfor %}
+{% endif %}
+
+---
+
+## Attack Timeline
+
+{% if timeline_findings %}
+| Time | Event | Severity | Sources |
+|------|-------|----------|---------|
+{% for f in timeline_findings %}| {{ f.event_time_start }} | {{ f.title }} | {{ f.severity | upper }} | {{ f.sources | join(", ") }} |
+{% endfor %}
+{% else %}
+No timestamped findings to build a timeline from.
+{% endif %}
+
+{% if negative_findings %}
+---
+
+## Hypotheses Ruled Out
+
+These hypotheses were explicitly tested and no supporting evidence was found.
+
+{% for f in negative_findings %}
+- **{{ f.title | replace("[NEGATIVE] ", "") }}** : {{ f.description | truncate(200) }}
+{% endfor %}
+{% endif %}
+
+---
+
+## Appendix A: Verified Forensic Findings
+{% for finding in findings %}
+
+### {{ loop.index }}. {% if finding.severity == "critical" %}[CRITICAL]{% elif finding.severity == "high" %}[HIGH]{% elif finding.severity == "medium" %}[MEDIUM]{% elif finding.severity == "low" %}[LOW]{% else %}[INFO]{% endif %} {{ finding.title }}
+
+| | |
+|---|---|
+| **Severity** | {{ finding.severity | upper }} |
+| **Confidence** | {{ finding.confidence }} |
+{% if finding.event_time_start %}| **Time** | {{ finding.event_time_start }}{% if finding.event_time_end %} to {{ finding.event_time_end }}{% endif %} |
+{% endif %}| **Sources** | {{ finding.sources | join(", ") }} |
+| **Evidence Refs** | {{ finding.evidence_refs | join(", ") }} |
+{% if finding.mitre_attack_ids %}| **ATT&CK** | {% for tid in finding.mitre_attack_ids %}[{{ tid }}]({{ tid | attack_url }}){% if not loop.last %}, {% endif %}{% endfor %} |
+{% endif %}
+
+{{ finding.description }}
+
+{% endfor %}
+
+---
+
+## Appendix B: Indicators of Compromise
+
+### Network IOCs
+
+| Type | Value | Enrichment | Context |
+|------|-------|------------|---------|
+{% for ioc in network_iocs %}| {{ ioc.type }} | `{{ ioc.value }}` | {{ ioc.enrichment | default('') }} | {{ ioc.context }} |
+{% endfor %}{% if not network_iocs %}| | No network IOCs extracted | | |
+{% endif %}
+
+### File IOCs
+
+| Type | Value | Enrichment | Context |
+|------|-------|------------|---------|
+{% for ioc in file_iocs %}| {{ ioc.type }} | `{{ ioc.value }}` | {{ ioc.enrichment | default('') }} | {{ ioc.context }} |
+{% endfor %}{% if not file_iocs %}| | No file IOCs extracted | | |
+{% endif %}
+
+{% if email_iocs %}
+### Email IOCs
+
+| Type | Value | Enrichment | Context |
+|------|-------|------------|---------|
+{% for ioc in email_iocs %}| {{ ioc.type }} | `{{ ioc.value }}` | {{ ioc.enrichment | default('') }} | {{ ioc.context }} |
+{% endfor %}
+{% endif %}
+
+{% if mitre_techniques %}
+---
+
+## Appendix C: MITRE ATT&CK Coverage
+
+{{ mitre_techniques | length }} techniques identified across findings.
+{% if mitre_tactic_groups %}
+
+**Kill Chain Coverage:** {% for grp in mitre_tactic_groups %}{{ grp.name }} ({{ grp.technique_count }}){% if not loop.last %} > {% endif %}{% endfor %}
+
+{% for grp in mitre_tactic_groups %}
+### {{ grp.name }}
+
+| Technique | Name | Findings |
+|-----------|------|----------|
+{% for t in grp.techniques %}| [{{ t.id }}]({{ t.url }}) | {{ t.name }} | {% for af in t.findings %}{{ af.title | truncate(50) }}{% if not loop.last %}; {% endif %}{% endfor %} |
+{% endfor %}
+{% endfor %}
+{% else %}
+
+| Technique | Findings |
+|-----------|----------|
+{% for t in mitre_techniques %}| [{{ t.id }}]({{ t.url }}) | {% for af in t.findings %}{{ af.title | truncate(50) }}{% if not loop.last %}; {% endif %}{% endfor %} |
+{% endfor %}
+{% endif %}
+{% endif %}
+
+---
+
+## Appendix D: Audit Trail and Token Usage
+
+| Metric | Value |
+|--------|-------|
+| Total tool calls | {{ total_tool_calls }} |
+| Findings submitted | {{ finding_count }} |
+| Confirmed | {{ confirmed_count }} |
+| Inferences | {{ inference_count }} |
+{% if model_token_breakdown %}| Input tokens | {{ model_token_breakdown | sum(attribute='input') | tokformat }} |
+| Output tokens | {{ model_token_breakdown | sum(attribute='output') | tokformat }} |
+| Total tokens | {{ (model_token_breakdown | sum(attribute='input') + model_token_breakdown | sum(attribute='output')) | tokformat }} |
+{% elif estimated_input_tokens %}| Estimated input tokens | {{ estimated_input_tokens | tokformat }} |
+| Estimated output tokens | {{ estimated_output_tokens | tokformat }} |
+{% endif %}| Audit log | {{ audit_log_path }} |
+
+{% if model_token_breakdown %}
+### Token Usage by Model
+
+| Model | Input | Output | Total |
+|-------|-------|--------|-------|
+{% for entry in model_token_breakdown %}| {{ entry.model }} | {{ entry.input | tokformat }} | {{ entry.output | tokformat }} | {{ (entry.input + entry.output) | tokformat }} |
+{% endfor %}
+{% endif %}
+
+{% if sources_list %}
+<details>
+<summary>Evidence Sources ({{ sources_list | length }})</summary>
+
+| Source | Extractor | Lines |
+|--------|-----------|-------|
+{% for s in sources_list %}| {{ s.source_name }} | {{ s.extractor }} | {{ s.line_count }} |
+{% endfor %}
+
+</details>
+{% endif %}
+
+---
+
+*Report generated by [Lade](https://github.com/dominionochai/Lade) via MCP*

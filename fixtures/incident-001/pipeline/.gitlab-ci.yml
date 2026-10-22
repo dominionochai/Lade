@@ -1,0 +1,25 @@
+stages: [build, test, scan, deploy]
+
+build:
+  stage: build
+  script:
+    - docker build -t $IMAGE:$CI_COMMIT_SHORT_SHA .
+    - docker push $IMAGE:$CI_COMMIT_SHORT_SHA
+
+unit-tests:
+  stage: test
+  script:
+    - pip install -r requirements.txt -r requirements-dev.txt
+    - pytest -q
+
+trivy-scan:
+  stage: scan
+  allow_failure: true          # findings never block the pipeline
+  script:
+    - trivy image --severity HIGH,CRITICAL --exit-code 1 $IMAGE:$CI_COMMIT_SHORT_SHA
+
+deploy-staging:
+  stage: deploy
+  environment: staging
+  script:
+    - gcloud run deploy orders-api --image $IMAGE:$CI_COMMIT_SHORT_SHA --region europe-west1 --memory 512Mi --max-instances 2

@@ -1,0 +1,4 @@
+Google Cloud Status, 2026-10-09 12:00-15:00 UTC (synthetic snapshot)
+Cloud Run (europe-west1): no incidents reported.
+Cloud Logging (europe-west1): no incidents reported.
+Artifact Registry (europe-west1): no incidents reported.

@@ -1,0 +1,3 @@
+Revision orders-api-00041-fxd (before the merge), 2026-10-08 13:00 -> 2026-10-09 13:11 UTC
+Traffic: 9-15 requests/sec, same endpoints. Memory per instance: min 181 MiB, max 197 MiB, no upward trend.
+Instance restarts: 0. OOM events: 0. streamcache 2.3.4 stats: entries stayed at 10000 (cap), evictions increasing steadily.

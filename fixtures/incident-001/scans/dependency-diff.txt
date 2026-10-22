@@ -1,0 +1,8 @@
+# SBOM package diff, orders-api:a3f9c0b (previous, revision 00041) -> a3f9c1e (current, revision 00042)
+ fastapi      0.115.2  ->  0.115.2
+ uvicorn      0.31.0   ->  0.31.0
+-streamcache  2.3.4
++streamcache  2.4.1
+ yamlforge    1.8.0    ->  1.8.0
+ httpx        0.27.2   ->  0.27.2
+# streamcache release notes 2.4.0: "Default max_entries is now unlimited (was 10000). Set max_entries explicitly to keep a cap."

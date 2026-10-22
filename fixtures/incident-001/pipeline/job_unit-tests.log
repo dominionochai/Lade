@@ -1,0 +1,7 @@
+Running with gitlab-runner 17.4.0 (shared-runner-eu-3)
+$ pip install -r requirements.txt -r requirements-dev.txt
+$ pytest -q
+..........................................................................  [ 51%]
+....................................................................        [100%]
+142 passed in 11.84s
+Job succeeded

@@ -1,0 +1,8 @@
+Running with gitlab-runner 17.4.0 (shared-runner-eu-3)
+$ gcloud run deploy orders-api --image ...orders-api:a3f9c1e --region europe-west1 --memory 512Mi --max-instances 2
+Deploying container to Cloud Run service [orders-api] in project [lade-demo-staging] region [europe-west1]
+Creating Revision...
+Routing traffic...
+Done.
+Service [orders-api] revision [orders-api-00042-kqz] has been deployed and is serving 100 percent of traffic.
+Job succeeded

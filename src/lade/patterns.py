@@ -1,0 +1,326 @@
+"""Shared patterns, constants, and utilities used across lade modules."""
+
+from __future__ import annotations
+
+import ipaddress
+import os
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import NamedTuple
+
+IP_RE: re.Pattern[str] = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+
+EMAIL_RE: re.Pattern[str] = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
+
+DOMAIN_RE: re.Pattern[str] = re.compile(
+    r"\b(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+(?:com|net|org|io|info|biz|xyz|top|ru|cn|uk|de|fr|onion|local)\b",
+    re.IGNORECASE,
+)
+
+HASH_RE: re.Pattern[str] = re.compile(r"\b[a-f0-9]{32,64}\b")
+
+WIN_PATH_RE: re.Pattern[str] = re.compile(r"[A-Z]:\\[^\s,\"']+")
+
+UNIX_PATH_RE: re.Pattern[str] = re.compile(
+    r"/(?:usr|var|etc|home|tmp|opt|root|proc|sys|run|mnt|media)/[^\s,\"']+"
+)
+"""Absolute Unix paths under a known root directory.
+
+The ``/`` after the root name is load-bearing: without it the root is only a
+prefix, and ``/rootkit``, ``/etcetera``, ``/home.html`` and
+``/mediawiki/index.php`` all match as file paths. Requiring the root to be a
+complete path segment costs nothing real -- a bare ``/tmp`` with no child is
+not a file path worth extracting.
+"""
+
+PROCESS_RE: re.Pattern[str] = re.compile(
+    r"\b(\w+\.exe|(?:sshd|cron|bash|sh|python[23]?|perl|ruby|java|node|nginx|"
+    r"apache2?|httpd|mysqld|postgres|systemd|init|kworker|iptables|netcat|nc|"
+    r"ncat|wget|curl|chmod|chown|dd|rsync|ssh|scp|sftp|su|sudo))\b",
+    re.IGNORECASE,
+)
+
+SEVERITY_ORDER: dict[str, int] = {
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "low": 3,
+    "informational": 4,
+    "info": 4,
+}
+
+DISK_IMAGE_EXTS: frozenset[str] = frozenset(
+    {".e01", ".raw", ".dd", ".img", ".vmdk", ".vhd", ".vhdx", ".001"}
+)
+
+DEFAULT_DB_DIR: str = "~/.lade/cases"
+
+#: Environment variable carrying the case-database directory to subprocesses.
+#: ``lade investigate`` spawns agent sessions which spawn their own
+#: ``lade serve``; without this the child server falls back to the default
+#: directory and writes the case somewhere ``lade report --db-dir`` will
+#: never look. Mirrors the existing ``LADE_CWD`` convention.
+DB_DIR_ENV_VAR: str = "LADE_DB_DIR"
+
+
+def resolve_db_dir(db_dir: str | Path | None = None) -> Path:
+    """Resolve the case-database directory.
+
+    Args:
+        db_dir: An explicit directory. When *None* or empty, falls back to
+            ``$LADE_DB_DIR`` and then to :data:`DEFAULT_DB_DIR`.
+
+    Returns:
+        The expanded directory. Never ``~``-relative, so callers can compare
+        and join paths without expanding again.
+    """
+    chosen = str(db_dir) if db_dir else (os.environ.get(DB_DIR_ENV_VAR) or DEFAULT_DB_DIR)
+    return Path(chosen).expanduser()
+
+
+DEFAULT_WORKSPACE_DIR: str = "~/.lade/workspace"
+"""Default working directory for agent sessions on a native install.
+
+Mirrors DEFAULT_DB_DIR's ``~/.lade/…`` convention. The container overrides
+this with the LADE_CWD environment variable (see Dockerfile).
+"""
+
+DEFAULT_MAX_COMPACTIONS: int = 3
+"""Continuation sessions allowed per role session after context exhaustion.
+
+Overridden by ``lade investigate --max-compactions`` or
+``$LADE_MAX_COMPACTIONS``; ``0`` disables continuations.
+"""
+
+SUSPICIOUS_PATHS: tuple[str, ...] = (
+    "\\temp\\",
+    "\\tmp\\",
+    "\\appdata\\local\\temp\\",
+    "\\users\\public\\",
+    "\\programdata\\",
+    "\\downloads\\",
+    "\\desktop\\",
+    "\\recycle",
+)
+
+
+def format_token_count(count: int | float) -> str:
+    """Format a token count with K/M suffix for human readability.
+
+    Args:
+        count: Raw token count.
+
+    Returns:
+        Human-readable string with appropriate suffix (e.g. ``"1.5M"``).
+    """
+    if count >= 1_000_000:
+        return f"{count / 1_000_000:.1f}M"
+    if count >= 1_000:
+        return f"{count / 1_000:.1f}K"
+    return str(int(count))
+
+
+def source_is_cited(source_name: str, finding_sources: set[str]) -> bool:
+    """Check if a source is cited by any finding using substring matching.
+
+    Findings cite shorthand like ``"bulk.email (carry-tablet)"`` while
+    DB sources are stored as ``"bulk.email"``, so we match if the
+    source_name appears as a substring of any finding source string,
+    or vice versa.
+
+    Args:
+        source_name: Canonical source name from the database.
+        finding_sources: Set of source strings cited across findings.
+
+    Returns:
+        True if *source_name* is matched by any entry in *finding_sources*.
+    """
+    if not source_name:
+        return False
+    return any(source_name in fs or fs in source_name for fs in finding_sources)
+
+
+def classify_ip(ip: str) -> str:
+    """Classify an IPv4 address into a network category.
+
+    Args:
+        ip: Dotted-quad IPv4 address string.
+
+    Returns:
+        One of ``"public"``, ``"private"``, ``"loopback"``,
+        ``"link_local"``, or ``"reserved"``.
+    """
+    try:
+        addr = ipaddress.IPv4Address(ip)
+    except (ipaddress.AddressValueError, ValueError):
+        return "reserved"
+
+    if addr.is_loopback:
+        return "loopback"
+    if addr.is_link_local:
+        return "link_local"
+    if addr.is_unspecified or addr.is_reserved or addr.is_multicast:
+        return "reserved"
+    if addr.is_private:
+        return "private"
+    return "public"
+
+
+def is_external_ip(ip: str) -> bool:
+    """Return True only if *ip* classifies as a public address.
+
+    Args:
+        ip: Dotted-quad IPv4 address string.
+
+    Returns:
+        True when the address is routable on the public internet.
+    """
+    return classify_ip(ip) == "public"
+
+
+@dataclass
+class IOCSet:
+    """Collection of extracted Indicators of Compromise.
+
+    Attributes:
+        ips: Public IPv4 addresses (private/loopback filtered out).
+        domains: Domain names matching common TLDs.
+        hashes: MD5/SHA1/SHA256 hex strings.
+        paths: Windows and Unix filesystem paths.
+        processes: Executable and process names.
+        emails: Email addresses.
+    """
+
+    ips: list[str] = field(default_factory=list)
+    domains: list[str] = field(default_factory=list)
+    hashes: list[str] = field(default_factory=list)
+    paths: list[str] = field(default_factory=list)
+    processes: list[str] = field(default_factory=list)
+    emails: list[str] = field(default_factory=list)
+
+
+def extract_iocs_from_text(text: str) -> IOCSet:
+    """Extract all IOC types from a text block.
+
+    Filters out private/loopback IP addresses using ``classify_ip()`` for
+    correct handling of all RFC 1918 ranges. All other IOC types are
+    returned as-is from their respective regex matches.
+
+    Args:
+        text: Arbitrary text to scan for indicators.
+
+    Returns:
+        An IOCSet populated with deduplicated matches.
+    """
+    return IOCSet(
+        ips=[ip for ip in IP_RE.findall(text) if classify_ip(ip) == "public"],
+        domains=DOMAIN_RE.findall(text),
+        hashes=HASH_RE.findall(text),
+        paths=WIN_PATH_RE.findall(text) + UNIX_PATH_RE.findall(text),
+        processes=PROCESS_RE.findall(text),
+        emails=EMAIL_RE.findall(text),
+    )
+
+
+MMLS_ROW_RE: re.Pattern[str] = re.compile(
+    r"^\s*\d+:\s*\S+\s+(\d+)\s+\d+\s+(\d+)\s+(.+)$",
+    re.MULTILINE,
+)
+"""Matches an ``mmls`` partition row across TSK output variations.
+
+``mmls`` prints the slot column as ``000:000`` for DOS partition tables and
+as a bare ``000`` for GPT, and indents every row by a few spaces.  A pattern
+anchored on ``^\\d+:\\d+`` therefore matches nothing at all on real output.
+
+Captures ``(start_sector, length_sectors, description)``.
+"""
+
+
+def parse_mmls_rows(mmls_text: str) -> list[tuple[int, int, str]]:
+    """Parse ``mmls`` output into ``(start_sector, length_sectors, description)``.
+
+    The description is stripped and lower-cased so callers can match it
+    against the filesystem indicator tuples directly.
+    """
+    return [
+        (int(m.group(1)), int(m.group(2)), m.group(3).strip().lower())
+        for m in MMLS_ROW_RE.finditer(mmls_text)
+    ]
+
+
+FLS_ROW_RE: re.Pattern[str] = re.compile(
+    r"^(?P<name_type>[A-Za-z\-])/(?P<meta_type>[A-Za-z\-])\s+"
+    r"(?P<deleted>\*\s+)?"
+    r"(?P<inode>\d+(?:-\d+-\d+)?):\t"
+    r"(?P<path>.+?)\s*$",
+    re.MULTILINE,
+)
+"""One row of ``fls -r -p`` output.
+
+Verified against The Sleuth Kit 4.12.1 on a real image::
+
+    r/r 15:\tUsers/alice/NTUSER.DAT
+    r/r * 16:\tUsers/alice/capture.pcap
+    l/l 17:\tUsers/alice/link_to_passwd
+    r/r * 22:\tWindows/System32/winevt/Logs/Deleted.evtx
+    V/V 1025:\t$OrphanFiles
+
+Two things the previous ``[rd]/[rd*]`` spelling got wrong:
+
+* the deleted marker is a **separate ``*`` token after the type pair**, not a
+  character inside it, so every deleted entry failed to match;
+* the type characters are not limited to ``r`` and ``d``. TSK also emits
+  ``l`` (symlink), ``v``/``V`` (virtual, e.g. ``$OrphanFiles``), ``s``, ``c``,
+  ``b``, ``p``, ``h``, ``w`` and ``-`` (unknown); ``-/r`` in particular is
+  what an unallocated or orphaned file looks like.
+
+The separator between the inode and the path is a literal tab, which is what
+makes it safe for a path to contain spaces.
+"""
+
+
+class FlsEntry(NamedTuple):
+    """One parsed row of ``fls`` output."""
+
+    inode: str
+    path: str
+    deleted: bool
+    name_type: str
+    meta_type: str
+
+    @property
+    def base_inode(self) -> str:
+        """The inode without NTFS attribute qualifiers, as ``icat`` wants it."""
+        return self.inode.split("-")[0]
+
+
+def parse_fls_rows(fls_text: str) -> list[FlsEntry]:
+    """Parse ``fls -r -p`` output into structured entries.
+
+    Args:
+        fls_text: Raw ``fls`` output, one entry per line.
+
+    Returns:
+        Every entry in the listing, directories included, in file order.
+    """
+    return [
+        FlsEntry(
+            inode=m.group("inode"),
+            path=m.group("path").strip(),
+            deleted=m.group("deleted") is not None,
+            name_type=m.group("name_type"),
+            meta_type=m.group("meta_type"),
+        )
+        for m in FLS_ROW_RE.finditer(fls_text)
+    ]
+
+
+def fls_file_entries(fls_text: str) -> list[FlsEntry]:
+    """Parse ``fls`` output and keep only entries that can hold file content.
+
+    Directories are dropped; everything else -- including entries whose type
+    is unknown (``-``), which is how deleted and orphaned files present -- is
+    kept, because ``icat`` can still read them.
+    """
+    return [e for e in parse_fls_rows(fls_text) if e.meta_type.lower() != "d"]
